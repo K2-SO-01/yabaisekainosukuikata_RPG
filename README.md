@@ -1,0 +1,2 @@
+# yabaisekainosukuikata_RPG
+やばい世界の救い方というRPGをclaudeを使用して制作します。
