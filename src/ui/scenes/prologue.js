@@ -30,9 +30,7 @@ export class PrologueScene extends Scene {
         this.shown = line.length;
         return;
       }
-      const before = Math.floor(this.shown);
       this.shown = Math.min(line.length, this.shown + (Math.min(cps, 18) * dt) / 1000); // プロローグは、ゆっくりめに出す
-      if (Math.floor(this.shown) > before) g.audio.playSe('text', { minIntervalMs: 55 });
       return;
     }
     this.blink += dt;

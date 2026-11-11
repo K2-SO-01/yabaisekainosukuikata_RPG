@@ -16,7 +16,7 @@
   },
   "preloadBgm": ["title", "castle"],
   "se": [
-    "cursor", "ok", "cancel", "buzzer", "text", "start", "equip", "save", "chest", "item_get", "gold_get",
+    "cursor", "ok", "cancel", "buzzer", "start", "equip", "save", "chest", "item_get", "gold_get",
     "levelup", "warp", "open_path", "awaken", "slash", "hit", "critical", "miss", "damage", "dead",
     "enemy_down", "escape", "magic_fire", "magic_thunder", "magic_water", "magic_wind", "magic_holy",
     "magic_dark", "explosion", "heal", "revive", "cure", "status", "poison", "buff", "debuff", "charge",

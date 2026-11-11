@@ -72,9 +72,7 @@ export class MessageScene extends Scene {
         this.shown = this.pageChars;
         return;
       }
-      const before = Math.floor(this.shown);
       this.shown = Math.min(this.pageChars, this.shown + (cps * dt) / 1000);
-      if (Math.floor(this.shown) > before) g.audio.playSe('text', { minIntervalMs: 55 });
       return;
     }
     this.blink += dt;
