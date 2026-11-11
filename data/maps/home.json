@@ -6,7 +6,8 @@
     { "name": "bgm", "type": "string", "value": "town" }
   ],
   "tilesets": [
-    { "firstgid": 1, "name": "BaseChip", "image": "../../assets/tiles/Pipoya RPG Tileset 32x32/[Base]BaseChip_pipo.png", "imagewidth": 256, "imageheight": 4256, "tilewidth": 32, "tileheight": 32, "columns": 8, "tilecount": 1064, "margin": 0, "spacing": 0 }
+    { "firstgid": 1, "name": "BaseChip", "image": "../../assets/tiles/Pipoya RPG Tileset 32x32/[Base]BaseChip_pipo.png", "imagewidth": 256, "imageheight": 4256, "tilewidth": 32, "tileheight": 32, "columns": 8, "tilecount": 1064, "margin": 0, "spacing": 0 },
+    { "firstgid": 1065, "name": "CastleExtra", "image": "../../assets/tiles/extra/castle_extra.png", "imagewidth": 256, "imageheight": 320, "tilewidth": 32, "tileheight": 32, "columns": 8, "tilecount": 80, "margin": 0, "spacing": 0 }
   ],
   "layers": [
     { "id": 1, "type": "tilelayer", "name": "ground", "x": 0, "y": 0, "width": 11, "height": 9, "opacity": 1, "visible": true,
@@ -51,7 +52,7 @@
         { "id": 2, "name": "おじさん", "type": "npc", "x": 128, "y": 128, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "character", "type": "string", "value": "oji" }, { "name": "dialogue", "type": "string", "value": "oji_after" }, { "name": "dir", "type": "string", "value": "down" }] },
         { "id": 3, "name": "おばさん", "type": "npc", "x": 192, "y": 128, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "character", "type": "string", "value": "oba" }, { "name": "dir", "type": "string", "value": "down" }, { "name": "script", "type": "string", "value": "talk_oba" }] },
         { "id": 4, "name": "旅立ち", "type": "auto", "x": 0, "y": 0, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "script", "type": "string", "value": "home_event" }, { "name": "unless", "type": "string", "value": "home_event_done" }] },
-        { "id": 5, "name": "外へ", "type": "exit", "x": 160, "y": 256, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "dir", "type": "string", "value": "down" }, { "name": "map", "type": "string", "value": "town" }, { "name": "x", "type": "int", "value": 7 }, { "name": "y", "type": "int", "value": 18 }] }
+        { "id": 5, "name": "外へ", "type": "exit", "x": 160, "y": 256, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "dir", "type": "string", "value": "down" }, { "name": "map", "type": "string", "value": "town" }, { "name": "x", "type": "int", "value": 7 }, { "name": "y", "type": "int", "value": 24 }] }
       ] }
   ]
 }

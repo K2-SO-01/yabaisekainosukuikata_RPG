@@ -258,7 +258,8 @@ export class FieldScene extends Scene {
     const S = this.game.screen.renderScale || 1;
     const snap = (v) => Math.round(v * S) / S;
     const camX = mapW <= WIDTH ? Math.round((mapW - WIDTH) / 2) : clamp(snap(p.x + TILE / 2 - WIDTH / 2), 0, mapW - WIDTH);
-    const camY = mapH <= HEIGHT ? Math.round((mapH - HEIGHT) / 2) : clamp(snap(p.y + TILE / 2 - HEIGHT / 2), 0, mapH - HEIGHT);
+    const lift = cameraLift(map.props.lift, p.y / TILE) * TILE;
+    const camY = mapH <= HEIGHT ? Math.round((mapH - HEIGHT) / 2) : clamp(snap(p.y - lift + TILE / 2 - HEIGHT / 2), 0, mapH - HEIGHT);
 
     ctx.fillStyle = map.props.back ?? '#1b1722';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -303,6 +304,16 @@ export class FieldScene extends Scene {
 function playerCharacterId(state) {
   const p = state.player;
   return `hero_${p.gender === 'female' ? 'f' : 'm'}_${p.job === 'mage' ? 'mage' : 'sword'}`;
+}
+
+// マップの設定 lift「タイル数,ここまで全部,ここで0」：上にある大きな物（お城など）の近くでは、
+// カメラを上へずらして全体が見えるようにする。下へ歩くほど、ふつうのカメラに戻る
+function cameraLift(setting, row) {
+  if (!setting) return 0;
+  const [tiles, full, zero] = String(setting).split(',').map(Number);
+  if (row <= full) return tiles;
+  if (row >= zero) return 0;
+  return (tiles * (zero - row)) / (zero - full);
 }
 
 function clamp(v, min, max) {
