@@ -156,3 +156,4 @@ html, body {
 }
 #dev button { font: 11px monospace; margin: 2px 4px 2px 0; }
 #dev .missing { color: #ffb36b; }
+#dev select { font: 11px monospace; max-width: 150px; }

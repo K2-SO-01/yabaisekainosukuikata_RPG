@@ -32,6 +32,7 @@ async function boot() {
   });
   game.input = new Input({ canvas, touchRoot: document.getElementById('touch') });
   game.audio = new AudioSys(assets);
+  game.audio.prepare();
   game.audio.setVolumes(game.settings.bgm, game.settings.se);
   game.input.onGesture(() => game.audio.unlock());
   if (DEV) game.devPanel = new DevPanel(game);
@@ -81,10 +82,11 @@ async function loadGameData(game) {
   const manifest = (await assets.loadJson('manifest', 'data/manifest.json')) ?? {};
   for (const name of manifest.bgm ?? []) audio.register('bgm', name, `assets/bgm/${name}.mp3`);
   for (const name of manifest.se ?? []) audio.register('se', name, `assets/se/${name}.mp3`);
+  audio.configureBgm(manifest.bgmSettings);
 
   const jobs = [];
-  for (const name of manifest.se ?? []) jobs.push(audio.prefetch(`se/${name}`));
-  for (const name of manifest.preloadBgm ?? []) jobs.push(audio.prefetch(`bgm/${name}`));
+  for (const name of manifest.se ?? []) jobs.push(audio.prefetch(`se/${name}`).then(() => audio.ensure(`se/${name}`)));
+  for (const name of manifest.preloadBgm ?? []) jobs.push(audio.prefetchBgm(name).then(() => audio.ensureBgm(name)));
 
   const characters = (await assets.loadJson('characters', manifest.characters ?? 'data/characters.json')) ?? {};
   game.characters = characters;

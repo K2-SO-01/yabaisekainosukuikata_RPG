@@ -2,10 +2,18 @@
   "bgm": [
     "title", "castle", "town", "field",
     "dungeon_lake", "dungeon_tower", "dungeon_volcano", "dungeon_storm", "dungeon_demon",
-    "battle", "boss", "demon1", "demon2", "ending",
+    "battle", "boss", "boss_storm", "demon1", "demon2", "ending", "theme",
     "jingle_victory", "jingle_inn", "jingle_gameover", "jingle_rare",
-    "sad", "night"
+    "sad", "farewell", "night"
   ],
+  "bgmSettings": {
+    "title": { "file": "theme", "start": 0.045, "end": 36.085, "gain": 1.2, "loop": "restart", "overlap": 0.04, "fadeIn": 0.005, "fadeOut": 0.03 },
+    "ending": { "file": "theme", "end": 114.2, "gain": 0.95, "loop": "restart", "overlap": 0.2, "fadeIn": 0.005, "fadeOut": 0 },
+    "boss_storm": { "end": 60.8, "loop": "restart", "overlap": 0.4 },
+    "farewell": { "start": 0.98, "end": 64.0, "gain": 0.85, "loop": "restart", "overlap": 0.3, "fadeIn": 0.005, "fadeOut": 0 },
+    "sad": { "start": 0.85, "end": 118.0, "gain": 2.0, "loop": "restart", "overlap": 0.3, "fadeIn": 0.005, "fadeOut": 0 },
+    "night": { "gain": 1.9 }
+  },
   "preloadBgm": ["title", "town"],
   "se": [
     "cursor", "ok", "cancel", "buzzer", "text", "start", "equip", "save", "chest", "item_get", "gold_get",

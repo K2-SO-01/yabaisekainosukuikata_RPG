@@ -79,7 +79,7 @@ export class Input {
 
   onKey(e, down) {
     const target = e.target;
-    if (target instanceof HTMLTextAreaElement || target instanceof HTMLInputElement) return;
+    if (target instanceof HTMLTextAreaElement || target instanceof HTMLInputElement || target instanceof HTMLSelectElement) return;
     const action = KEYMAP[e.code];
     if (!action) return;
     e.preventDefault();
