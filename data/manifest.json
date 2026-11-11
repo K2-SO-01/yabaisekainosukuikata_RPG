@@ -27,6 +27,7 @@
     "testroom": "data/maps/testroom.json"
   },
   "dialogues": {
+    "story": "data/dialogues/story.json",
     "test": "data/dialogues/test.json"
   }
 }

@@ -1,11 +1,10 @@
 // タイトル画面（段階2で、ぴぽやのタイルで描いた城下町の背景に仕上げる）
 import { HEIGHT, WIDTH } from '../../config.js';
 import { hasAnySave } from '../../core/save.js';
-import { createNewGame } from '../../core/state.js';
 import { COLORS, drawSkyGradient } from '../draw.js';
 import { Menu } from '../menu.js';
 import { Scene } from '../scene.js';
-import { FieldScene } from './field.js';
+import { NewGameScene } from './newgame.js';
 import { SaveLoadScene } from './saveload.js';
 import { SettingsScene } from './settings.js';
 
@@ -45,10 +44,7 @@ export class TitleScene extends Scene {
     const r = this.menu.update(g.input, g.audio);
     if (!r || r.type !== 'select') return;
     if (r.item.value === 'new') {
-      g.scenes.fadeTo(() => {
-        g.state = createNewGame();
-        g.scenes.replaceAll(new FieldScene());
-      }, 400);
+      g.scenes.fadeTo(() => g.scenes.replaceAll(new NewGameScene()), 400);
     } else if (r.item.value === 'continue') {
       g.scenes.push(new SaveLoadScene({ mode: 'load' }));
     } else if (r.item.value === 'settings') {
