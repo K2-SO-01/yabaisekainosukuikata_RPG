@@ -1,0 +1,142 @@
+{
+  "type": "map",
+  "version": "1.10",
+  "tiledversion": "1.10.2",
+  "orientation": "orthogonal",
+  "renderorder": "right-down",
+  "infinite": false,
+  "width": 20,
+  "height": 11,
+  "tilewidth": 32,
+  "tileheight": 32,
+  "nextlayerid": 5,
+  "nextobjectid": 5,
+  "properties": [
+    { "name": "name", "type": "string", "value": "テストの部屋" },
+    { "name": "bgm", "type": "string", "value": "town" }
+  ],
+  "tilesets": [
+    {
+      "firstgid": 1,
+      "name": "BaseChip",
+      "image": "../../assets/tiles/Pipoya RPG Tileset 32x32/[Base]BaseChip_pipo.png",
+      "imagewidth": 256,
+      "imageheight": 4256,
+      "tilewidth": 32,
+      "tileheight": 32,
+      "columns": 8,
+      "tilecount": 1064,
+      "margin": 0,
+      "spacing": 0
+    }
+  ],
+  "layers": [
+    {
+      "id": 1,
+      "type": "tilelayer",
+      "name": "ground",
+      "x": 0,
+      "y": 0,
+      "width": 20,
+      "height": 11,
+      "opacity": 1,
+      "visible": true,
+      "data": [
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+      ]
+    },
+    {
+      "id": 2,
+      "type": "tilelayer",
+      "name": "deco",
+      "x": 0,
+      "y": 0,
+      "width": 20,
+      "height": 11,
+      "opacity": 1,
+      "visible": true,
+      "data": [
+        41,42,41,42,41,42,41,42,41,42,41,42,41,42,41,42,41,42,41,42,
+        42,0,0,0,0,0,53,0,0,0,0,0,0,0,56,0,0,0,0,41,
+        41,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,42,
+        42,0,0,65,0,0,0,0,0,0,0,0,0,0,0,0,0,65,0,41,
+        41,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,42,
+        42,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,41,
+        41,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,42,
+        42,0,53,0,0,0,0,0,0,0,0,0,0,0,0,0,0,56,0,41,
+        41,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,42,
+        42,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,41,
+        42,41,42,41,42,41,42,41,42,41,42,41,42,41,42,41,42,41,42,41
+      ]
+    },
+    {
+      "id": 3,
+      "type": "tilelayer",
+      "name": "collision",
+      "x": 0,
+      "y": 0,
+      "width": 20,
+      "height": 11,
+      "opacity": 0.5,
+      "visible": false,
+      "data": [
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+        1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+        1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,
+        1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+        1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+        1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+        1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+        1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+        1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+      ]
+    },
+    {
+      "id": 4,
+      "type": "objectgroup",
+      "name": "events",
+      "x": 0,
+      "y": 0,
+      "opacity": 1,
+      "visible": true,
+      "draworder": "topdown",
+      "objects": [
+        {
+          "id": 1, "name": "start", "type": "start", "x": 288, "y": 224, "width": 32, "height": 32, "rotation": 0, "visible": true,
+          "properties": [{ "name": "dir", "type": "string", "value": "up" }]
+        },
+        {
+          "id": 2, "name": "おじさん", "type": "npc", "x": 160, "y": 96, "width": 32, "height": 32, "rotation": 0, "visible": true,
+          "properties": [
+            { "name": "character", "type": "string", "value": "oji" },
+            { "name": "dialogue", "type": "string", "value": "test_oji" },
+            { "name": "dir", "type": "string", "value": "down" }
+          ]
+        },
+        {
+          "id": 3, "name": "町の人", "type": "npc", "x": 448, "y": 96, "width": 32, "height": 32, "rotation": 0, "visible": true,
+          "properties": [
+            { "name": "character", "type": "string", "value": "villager_f1" },
+            { "name": "dialogue", "type": "string", "value": "test_villager" },
+            { "name": "dir", "type": "string", "value": "down" }
+          ]
+        },
+        {
+          "id": 4, "name": "光の結晶", "type": "savepoint", "x": 480, "y": 224, "width": 32, "height": 32, "rotation": 0, "visible": true
+        }
+      ]
+    }
+  ]
+}

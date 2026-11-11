@@ -1,0 +1,24 @@
+{
+  "bgm": [
+    "title", "castle", "town", "field",
+    "dungeon_lake", "dungeon_tower", "dungeon_volcano", "dungeon_storm", "dungeon_demon",
+    "battle", "boss", "demon1", "demon2", "ending",
+    "jingle_victory", "jingle_inn", "jingle_gameover", "jingle_rare",
+    "sad", "night"
+  ],
+  "preloadBgm": ["title", "town"],
+  "se": [
+    "cursor", "ok", "cancel", "buzzer", "text", "start", "equip", "save", "chest", "item_get", "gold_get",
+    "levelup", "warp", "open_path", "awaken", "slash", "hit", "critical", "miss", "damage", "dead",
+    "enemy_down", "escape", "magic_fire", "magic_thunder", "magic_water", "magic_wind", "magic_holy",
+    "magic_dark", "explosion", "heal", "revive", "cure", "status", "poison", "buff", "debuff", "charge",
+    "warning", "transform", "dragon_roar"
+  ],
+  "characters": "data/characters.json",
+  "maps": {
+    "testroom": "data/maps/testroom.json"
+  },
+  "dialogues": {
+    "test": "data/dialogues/test.json"
+  }
+}

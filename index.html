@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#000000">
+<title>ヤバい世界の救い方</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="stage"><canvas id="screen" width="640" height="360"></canvas></div>
+
+<div id="touch" hidden>
+  <div id="pad">
+    <span class="arrow up">▲</span>
+    <span class="arrow left">◀</span>
+    <span class="arrow right">▶</span>
+    <span class="arrow down">▼</span>
+  </div>
+  <div id="buttons">
+    <button type="button" class="act ok" data-action="ok">決定</button>
+    <button type="button" class="act cancel" data-action="cancel">キャンセル</button>
+    <button type="button" class="act dash" data-action="dash">ダッシュ</button>
+  </div>
+</div>
+
+<div id="rotate" hidden><div>横向きにしてください</div></div>
+
+<div id="textio" hidden>
+  <div class="box">
+    <p class="title"></p>
+    <p class="note"></p>
+    <textarea spellcheck="false" autocomplete="off"></textarea>
+    <div class="row"><button type="button" class="primary"></button><button type="button" class="close">とじる</button></div>
+    <p class="status"></p>
+  </div>
+</div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
