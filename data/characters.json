@@ -3,6 +3,10 @@
   "hero_m_mage": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 04-1.png" },
   "hero_f_sword": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 10-1.png" },
   "hero_f_mage": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 13-1.png" },
+  "king": { "name": "王様", "main": true, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 06-1.png" },
   "oji": { "name": "おじさん", "main": true, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 11-1.png" },
+  "minister": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 07-1.png" },
+  "priestess": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 05-1.png" },
+  "soldier_castle": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Soldier/Soldier 01-1.png" },
   "villager_f1": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 01-1.png" }
 }

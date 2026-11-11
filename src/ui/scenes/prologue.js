@@ -43,7 +43,7 @@ export class PrologueScene extends Scene {
       this.blink = 0;
     } else {
       this.leaving = true;
-      // 段階2の途中：王様の謁見（玉座の間）ができるまでは、テストの部屋へ進む
+      // 玉座の間（新しいゲームの最初の場所）へ進み、王様の謁見が始まる
       g.scenes.fadeTo(() => g.scenes.replaceAll(new FieldScene()), 900);
     }
   }

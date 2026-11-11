@@ -1,0 +1,13 @@
+{
+  "throne_intro": [
+    { "wait": 500 },
+    { "say": "king_audience" },
+    { "gold": 500 },
+    { "se": "gold_get" },
+    { "notice": "〇〇は 500ゴールドを 受け取った！" },
+    { "flag": "audience_done" }
+  ],
+  "talk_king": [
+    { "if": "home_event_done", "then": [{ "say": "king_after_home" }], "else": [{ "say": "king_before_home" }] }
+  ]
+}

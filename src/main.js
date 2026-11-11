@@ -98,6 +98,11 @@ async function loadGameData(game) {
     jobs.push(assets.loadJson(`dialogue:${key}`, path).then((d) => Object.assign(game.dialogues, d ?? {})));
   }
 
+  game.scripts = {};
+  for (const [key, path] of Object.entries(manifest.events ?? {})) {
+    jobs.push(assets.loadJson(`events:${key}`, path).then((d) => Object.assign(game.scripts, d ?? {})));
+  }
+
   game.maps = new Map();
   for (const [id, path] of Object.entries(manifest.maps ?? {})) {
     jobs.push(

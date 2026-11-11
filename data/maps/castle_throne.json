@@ -1,0 +1,66 @@
+{
+  "type": "map", "version": "1.10", "tiledversion": "1.10.2", "orientation": "orthogonal", "renderorder": "right-down", "infinite": false,
+  "width": 19, "height": 11, "tilewidth": 32, "tileheight": 32, "nextlayerid": 5, "nextobjectid": 9,
+  "properties": [
+    { "name": "name", "type": "string", "value": "王様のお城" },
+    { "name": "bgm", "type": "string", "value": "castle" }
+  ],
+  "tilesets": [
+    { "firstgid": 1, "name": "BaseChip", "image": "../../assets/tiles/Pipoya RPG Tileset 32x32/[Base]BaseChip_pipo.png", "imagewidth": 256, "imageheight": 4256, "tilewidth": 32, "tileheight": 32, "columns": 8, "tilecount": 1064, "margin": 0, "spacing": 0 }
+  ],
+  "layers": [
+    { "id": 1, "type": "tilelayer", "name": "ground", "x": 0, "y": 0, "width": 19, "height": 11, "opacity": 1, "visible": true,
+      "data": [
+        418,418,418,418,418,418,418,418,418,418,418,418,418,418,418,418,418,418,418,
+        426,426,426,426,426,426,426,426,426,426,426,426,426,426,426,426,426,426,426,
+        292,292,292,292,292,292,292,292,292,292,292,292,292,292,292,292,292,292,292,
+        292,292,292,292,292,292,292,292,790,791,792,292,292,292,292,292,292,292,292,
+        292,292,292,292,292,292,292,292,798,799,800,292,292,292,292,292,292,292,292,
+        292,292,292,292,292,292,292,292,798,799,800,292,292,292,292,292,292,292,292,
+        292,292,292,292,292,292,292,292,798,799,800,292,292,292,292,292,292,292,292,
+        292,292,292,292,292,292,292,292,798,799,800,292,292,292,292,292,292,292,292,
+        292,292,292,292,292,292,292,292,798,799,800,292,292,292,292,292,292,292,292,
+        292,292,292,292,292,292,292,292,798,799,800,292,292,292,292,292,292,292,292,
+        0,0,0,0,0,0,0,0,798,799,800,0,0,0,0,0,0,0,0
+      ] },
+    { "id": 2, "type": "tilelayer", "name": "deco", "x": 0, "y": 0, "width": 19, "height": 11, "opacity": 1, "visible": true,
+      "data": [
+        0,0,0,0,0,0,829,0,0,0,0,0,829,0,0,0,0,0,0,
+        0,0,0,0,0,0,837,0,0,813,0,0,837,0,0,0,0,0,0,
+        0,912,0,0,907,0,0,0,0,821,0,0,0,0,907,0,0,912,0,
+        0,920,0,0,915,0,0,0,0,0,0,0,0,0,915,0,0,920,0,
+        0,0,0,0,923,0,0,0,0,0,0,0,0,0,923,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,907,0,0,0,0,0,0,0,0,0,907,0,0,0,0,
+        0,0,0,0,915,0,0,0,0,0,0,0,0,0,915,0,0,0,0,
+        0,0,0,0,923,0,0,0,0,0,0,0,0,0,923,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+      ] },
+    { "id": 3, "type": "tilelayer", "name": "collision", "x": 0, "y": 0, "width": 19, "height": 11, "opacity": 1, "visible": false,
+      "data": [
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+        0,1,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,1,0,
+        0,1,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,1,0,
+        0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+        0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+        0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        1,1,1,1,1,1,1,1,0,0,0,1,1,1,1,1,1,1,1
+      ] },
+    { "id": 4, "type": "objectgroup", "name": "events", "x": 0, "y": 0, "opacity": 1, "visible": true, "draworder": "topdown",
+      "objects": [
+        { "id": 1, "name": "start", "type": "start", "x": 288, "y": 192, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "dir", "type": "string", "value": "up" }] },
+        { "id": 2, "name": "王様", "type": "npc", "x": 288, "y": 64, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "character", "type": "string", "value": "king" }, { "name": "dir", "type": "string", "value": "down" }, { "name": "script", "type": "string", "value": "talk_king" }] },
+        { "id": 3, "name": "大臣", "type": "npc", "x": 352, "y": 96, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "character", "type": "string", "value": "minister" }, { "name": "dialogue", "type": "string", "value": "minister" }, { "name": "dir", "type": "string", "value": "down" }] },
+        { "id": 4, "name": "巫女", "type": "npc", "x": 224, "y": 96, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "character", "type": "string", "value": "priestess" }, { "name": "dialogue", "type": "string", "value": "priestess" }, { "name": "dir", "type": "string", "value": "down" }] },
+        { "id": 5, "name": "謁見", "type": "auto", "x": 0, "y": 0, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "script", "type": "string", "value": "throne_intro" }, { "name": "unless", "type": "string", "value": "audience_done" }] },
+        { "id": 6, "name": "出口", "type": "exit", "x": 256, "y": 320, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "dir", "type": "string", "value": "down" }, { "name": "map", "type": "string", "value": "testroom" }, { "name": "x", "type": "string", "value": "9" }, { "name": "y", "type": "string", "value": "8" }] },
+        { "id": 7, "name": "出口", "type": "exit", "x": 288, "y": 320, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "dir", "type": "string", "value": "down" }, { "name": "map", "type": "string", "value": "testroom" }, { "name": "x", "type": "string", "value": "9" }, { "name": "y", "type": "string", "value": "8" }] },
+        { "id": 8, "name": "出口", "type": "exit", "x": 320, "y": 320, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "dir", "type": "string", "value": "down" }, { "name": "map", "type": "string", "value": "testroom" }, { "name": "x", "type": "string", "value": "9" }, { "name": "y", "type": "string", "value": "8" }] }
+      ] }
+  ]
+}

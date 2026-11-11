@@ -58,14 +58,15 @@ export function isWallTile(map, x, y) {
   return !!c && c.data[y * map.width + x] !== 0;
 }
 
-export function entityAt(map, x, y) {
-  return map.objects.find((o) => o.x === x && o.y === y && o.type !== 'start') ?? null;
+// isOn：その物が今あるかどうかを返す関数（フラグで出たり消えたりする物のため）
+export function entityAt(map, x, y, isOn = () => true) {
+  return map.objects.find((o) => o.x === x && o.y === y && o.type !== 'start' && o.type !== 'auto' && isOn(o)) ?? null;
 }
 
-export function canWalk(map, x, y) {
+export function canWalk(map, x, y, isOn) {
   if (!isInside(map, x, y) || isWallTile(map, x, y)) return false;
-  const e = entityAt(map, x, y);
-  return !e || e.props.walkable === true;
+  const e = entityAt(map, x, y, isOn);
+  return !e || e.props.walkable === true || e.type === 'exit' || e.type === 'trigger';
 }
 
 export function stepTarget(pos, dir) {
@@ -73,9 +74,9 @@ export function stepTarget(pos, dir) {
   return { x: pos.x + dx, y: pos.y + dy };
 }
 
-export function tryMove(map, pos, dir) {
+export function tryMove(map, pos, dir, isOn) {
   const t = stepTarget(pos, dir);
-  return canWalk(map, t.x, t.y) ? t : null;
+  return canWalk(map, t.x, t.y, isOn) ? t : null;
 }
 
 export function findStart(map) {

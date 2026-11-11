@@ -40,8 +40,9 @@ export class FieldMenuScene extends Scene {
     const g = this.game;
     this.menu.draw(ctx, g.font);
     const st = g.state;
-    drawWindow(ctx, WIDTH - 196, 176, 180, 62);
+    drawWindow(ctx, WIDTH - 196, 176, 180, 84);
     g.font.draw(ctx, st.player.name, WIDTH - 178, 190, COLORS.text);
-    g.font.draw(ctx, `プレイ時間 ${formatPlayTime(st.playTimeMs)}`, WIDTH - 178, 212, COLORS.textDim);
+    g.font.draw(ctx, `${st.gold ?? 0} ゴールド`, WIDTH - 178, 212, COLORS.text);
+    g.font.draw(ctx, `プレイ時間 ${formatPlayTime(st.playTimeMs)}`, WIDTH - 178, 234, COLORS.textDim);
   }
 }

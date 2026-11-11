@@ -14,7 +14,7 @@
     "sad": { "start": 0.85, "end": 118.0, "gain": 2.0, "loop": "restart", "overlap": 0.3, "fadeIn": 0.005, "fadeOut": 0 },
     "night": { "gain": 1.9 }
   },
-  "preloadBgm": ["title", "town"],
+  "preloadBgm": ["title", "castle"],
   "se": [
     "cursor", "ok", "cancel", "buzzer", "text", "start", "equip", "save", "chest", "item_get", "gold_get",
     "levelup", "warp", "open_path", "awaken", "slash", "hit", "critical", "miss", "damage", "dead",
@@ -24,7 +24,11 @@
   ],
   "characters": "data/characters.json",
   "maps": {
+    "castle_throne": "data/maps/castle_throne.json",
     "testroom": "data/maps/testroom.json"
+  },
+  "events": {
+    "story": "data/events/story.json"
   },
   "dialogues": {
     "story": "data/dialogues/story.json",

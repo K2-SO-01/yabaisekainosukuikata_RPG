@@ -43,9 +43,12 @@ export class MessageScene extends Scene {
     this.name = showName ? line.speaker : null;
     this.textX = this.face ? BOX.x + 22 + FACE + 14 : BOX.x + 22;
     const maxW = BOX.x + BOX.w - 30 - this.textX;
-    const lines = wrapText(line.body, maxW, (s) => g.font.width(s));
+    // セリフの中の改行は、ページの区切りにする（長いセリフを、文のまとまりごとに見せる）
     this.pages = [];
-    for (let k = 0; k < lines.length; k += LINES_PER_PAGE) this.pages.push(lines.slice(k, k + LINES_PER_PAGE));
+    for (const part of line.body.split('\n')) {
+      const lines = wrapText(part, maxW, (s) => g.font.width(s));
+      for (let k = 0; k < lines.length; k += LINES_PER_PAGE) this.pages.push(lines.slice(k, k + LINES_PER_PAGE));
+    }
     this.openPage(0);
   }
 
