@@ -43,11 +43,7 @@ html, body {
 /* スマホ・タブレットの画面ボタン */
 #touch { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
 #touch[hidden], #rotate[hidden], #textio[hidden] { display: none; }
-#pad, #buttons, #stickzone { position: absolute; touch-action: none; }
-#buttons, #stickzone { pointer-events: auto; }
-#pad { pointer-events: none; transition: opacity 0.15s; }
-#stickzone { left: 0; top: 0; bottom: 0; width: 45%; }
-#touch.swap #stickzone { left: auto; right: 0; }
+#pad, #buttons { position: absolute; pointer-events: auto; touch-action: none; }
 #touch.overlay #pad, #touch.overlay #buttons { opacity: 0.55; }
 
 #pad {
@@ -161,4 +157,3 @@ html, body {
 #dev button { font: 11px monospace; margin: 2px 4px 2px 0; }
 #dev .missing { color: #ffb36b; }
 #dev select { font: 11px monospace; max-width: 150px; }
-#touch #pad.idle { opacity: 0.3; }

@@ -1,5 +1,5 @@
 // 操作（キーボードと、スマホ・タブレットの画面ボタン）を「上・下・左・右・決定・キャンセル・ダッシュ」にまとめる
-// スマホ・タブレットの移動は「さわった所が中心になるスティック」。画面のタップも拾う
+// スマホ・タブレットの移動は、決まった場所にある十字キー。画面のタップも拾う
 import { HEIGHT, WIDTH } from '../config.js';
 
 const KEYMAP = {
@@ -20,7 +20,7 @@ const DIR_ACTIONS = ['up', 'down', 'left', 'right'];
 const REPEAT_DELAY = 320;
 const REPEAT_EVERY = 90;
 const STICK_DEAD = 13; // これより小さい動きは「たおしていない」
-const STICK_MAX = 38; // これより大きく動かすと、中心が指についてくる
+const STICK_MAX = Infinity; // 十字キーの中心は動かさない（固定）
 const TAP_MS = 350; // これより短くて動かないタッチは「タップ」
 
 // 指が要素の外に出ても、離すまでその要素の操作として扱う（使えない時は何もしない）
@@ -119,8 +119,8 @@ export class Input {
   setupTouch() {
     const root = this.touchRoot;
     if (!root) return;
-    const zone = root.querySelector('#stickzone');
     const pad = root.querySelector('#pad');
+    const zone = pad; // 十字キーそのものをさわって操作する
     let id = null;
     let cx = 0;
     let cy = 0;
@@ -148,14 +148,14 @@ export class Input {
       e.preventDefault();
       id = e.pointerId;
       capture(zone, id);
-      cx = e.clientX;
-      cy = e.clientY;
+      const r = pad.getBoundingClientRect();
+      cx = r.left + r.width / 2;
+      cy = r.top + r.height / 2;
       t0 = performance.now();
       moved = false;
-      pad.className = '';
-      place();
+      steer(e);
     });
-    zone.addEventListener('pointermove', (e) => {
+    const steer = (e) => {
       if (e.pointerId !== id) return;
       let dx = e.clientX - cx;
       let dy = e.clientY - cy;
@@ -178,17 +178,13 @@ export class Input {
       const ax = Math.abs(dx) * (dir === 'left' || dir === 'right' ? 1.25 : 1);
       const ay = Math.abs(dy) * (dir === 'up' || dir === 'down' ? 1.25 : 1);
       setDir(ax > ay ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up');
-    });
+    };
+    zone.addEventListener('pointermove', steer);
     const end = (e) => {
       if (e.pointerId !== id) return;
       id = null;
       const quick = e.type === 'pointerup' && !moved && performance.now() - t0 < TAP_MS;
       setDir(null);
-      pad.className = 'idle';
-      if (pad.dataset.homeLeft) {
-        pad.style.left = pad.dataset.homeLeft;
-        pad.style.top = pad.dataset.homeTop;
-      }
       if (quick) this.queueTap(e.clientX, e.clientY);
     };
     zone.addEventListener('pointerup', end);
