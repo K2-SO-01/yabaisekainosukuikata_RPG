@@ -9,5 +9,39 @@
   ],
   "talk_king": [
     { "if": "home_event_done", "then": [{ "say": "king_after_home" }], "else": [{ "say": "king_before_home" }] }
+  ],
+  "home_event": [
+    { "wait": 500 },
+    { "say": "home_a" },
+    { "bgm": "sad" },
+    { "say": "home_b" },
+    { "wait": 1200 },
+    { "say": "home_c" },
+    { "bgm": "town" },
+    { "say": "home_d" },
+    { "keyItem": "shunsoku" },
+    { "flag": "dash" },
+    { "se": "item_get" },
+    { "notice": "〇〇は シュンソクを 手に入れた！" },
+    { "notice": "ダッシュが できるようになった！" },
+    { "notice": { "pc": "Shiftキーを押している間、走れる", "touch": "ダッシュボタンで、走る・歩くを切りかえられる" } },
+    { "say": "home_e" },
+    { "flag": "home_event_done" }
+  ],
+  "talk_oba": [
+    {
+      "ask": "oba_ask",
+      "choice": ["はい", "いいえ"],
+      "do": [
+        [
+          { "rest": { "pick": ["oba_rest_1", "oba_rest_2", "oba_rest_3"], "pickIf": { "luke_joined": "oba_rest_4" } } },
+          { "say": "oba_morning" }
+        ],
+        [{ "say": "oba_no" }]
+      ]
+    }
+  ],
+  "gate_wip": [
+    { "notice": "（この先は、まだ作っているところです）" }
   ]
 }

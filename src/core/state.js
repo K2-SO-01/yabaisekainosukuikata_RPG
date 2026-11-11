@@ -9,7 +9,8 @@ export function createNewGame({ name = '', gender = 'male', job = 'swordsman', m
     player: { name: name || DEFAULT_NAMES[gender] || DEFAULT_NAMES.male, gender, job },
     gold: 0,
     stats: { goldEarned: 0 },
-    flags: {},
+    flags: { dash: false }, // ダッシュは、シュンソクをもらうまで使えない
+    keyItems: [], // 大事なもの
     // x・y が null の時は、マップの「start」の位置から始める
     location: { map, x: null, y: null, dir: 'down', placeName: '' },
     playTimeMs: 0,
@@ -34,4 +35,10 @@ export function addGold(state, amount) {
     state.stats ??= {};
     state.stats.goldEarned = (state.stats.goldEarned ?? 0) + amount;
   }
+}
+
+// 大事なものを手に入れる（同じ物は1つだけ）
+export function addKeyItem(state, id) {
+  state.keyItems ??= [];
+  if (!state.keyItems.includes(id)) state.keyItems.push(id);
 }

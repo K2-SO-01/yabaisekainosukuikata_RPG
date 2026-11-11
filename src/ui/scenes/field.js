@@ -2,12 +2,15 @@
 import { HEIGHT, TILE, WIDTH } from '../../config.js';
 import { isActive, runScript } from '../../core/events.js';
 import { entityAt, findStart, stepTarget, tryMove } from '../../core/map.js';
+import { writeSlot } from '../../core/save.js';
 import { addPlayTime } from '../../core/state.js';
+import { fillName } from '../../core/text.js';
 import { COLORS, drawWindow } from '../draw.js';
 import { ChoiceScene } from '../menu.js';
 import { MessageScene } from '../message.js';
 import { Scene } from '../scene.js';
 import { FieldMenuScene } from './fieldmenu.js';
+import { RestScene } from './rest.js';
 import { SaveLoadScene } from './saveload.js';
 
 const DIR_ROW = { down: 0, left: 1, right: 2, up: 3 };
@@ -28,7 +31,8 @@ export class FieldScene extends Scene {
       loc.y = s.y;
       loc.dir = s.props.dir ?? 'down';
     }
-    loc.placeName = this.map.props.name ?? '';
+    this.placeLabel = fillName(this.map.props.name ?? '', g.state.player.name);
+    loc.placeName = this.placeLabel;
     this.pos = { x: loc.x, y: loc.y };
     this.dir = loc.dir ?? 'down';
     this.moving = null;
@@ -150,7 +154,35 @@ export class FieldScene extends Scene {
       new Promise((done) => g.scenes.push(new MessageScene(lines, { defaultFaceKey: npc?.props.character ?? null, onDone: done })));
     return {
       say: (what) => show(Array.isArray(what) ? what : g.dialogues[what] ?? [`（セリフ「${what}」が見つかりません）`]),
-      notice: (text) => show([text]),
+      notice: (text) => show([typeof text === 'string' ? text : g.screen.touchEnabled ? text.touch : text.pc]),
+      // たずねる：セリフの窓を残したまま選択肢を出し、選んだ番号を返す（キャンセルは最後の選択肢）
+      choice: (what, items) =>
+        new Promise((done) => {
+          const lines = Array.isArray(what) ? what : g.dialogues[what] ?? [''];
+          const msg = new MessageScene(lines, {
+            defaultFaceKey: npc?.props.character ?? null,
+            keepOpen: true,
+            onDone: () => {
+              const finish = (i) => {
+                g.scenes.pop(msg);
+                done(i);
+              };
+              g.scenes.push(
+                new ChoiceScene({
+                  items: items.map((label, i) => ({ label, value: i })),
+                  x: WIDTH - 150,
+                  y: HEIGHT - 124 - items.length * 26 - 22,
+                  width: 130,
+                  onSelect: (item) => finish(item.value),
+                  onCancel: () => finish(items.length - 1),
+                }),
+              );
+            },
+          });
+          g.scenes.push(msg);
+        }),
+      rest: (what) => new Promise((done) => g.scenes.push(new RestScene({ lines: g.dialogues[what] ?? [''], onDone: done }))),
+      autosave: () => writeSlot(g.store, 'auto', g.state),
       se: (name) => g.audio.playSe(name),
       bgm: (name) => g.audio.playBgm(name),
       bgmStop: (ms) => g.audio.stopBgm(ms ?? 500),
@@ -256,7 +288,7 @@ export class FieldScene extends Scene {
 
   // マップに入った時、場所の名前を画面の上に2秒ほど出す
   drawBanner(ctx) {
-    const name = this.map.props.name;
+    const name = this.placeLabel;
     const t = performance.now() - this.enterAt; // 会話の途中でも消えるように、実際の時間で数える
     if (!name || t > 2400) return;
     const a = t < 2000 ? 1 : 1 - (t - 2000) / 400;

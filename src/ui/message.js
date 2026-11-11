@@ -13,12 +13,15 @@ const FACE = 63;
 export class MessageScene extends Scene {
   // entries：「名前「セリフ」」の形の文字列の配列
   // defaultFaceKey：名前のないセリフ（村人など）に出す顔
-  constructor(entries, { onDone, defaultFaceKey = null } = {}) {
+  // keepOpen：最後まで出したら、窓を残したまま onDone を呼ぶ（このあと選択肢を出す時に使う）
+  constructor(entries, { onDone, defaultFaceKey = null, keepOpen = false } = {}) {
     super();
     this.transparent = true;
     this.entries = entries;
     this.onDone = onDone;
     this.defaultFaceKey = defaultFaceKey;
+    this.keepOpen = keepOpen;
+    this.finished = false;
     this.entryIndex = 0;
     this.blink = 0;
   }
@@ -36,6 +39,7 @@ export class MessageScene extends Scene {
       const info = g.speakerInfo(line.speaker);
       faceKey = info.faceKey;
       showName = info.showName;
+      line.speaker = info.displayName ?? line.speaker;
     } else if (/^「/.test(line.body)) {
       faceKey = this.defaultFaceKey; // 村人などは顔だけ出す
     }
@@ -74,6 +78,14 @@ export class MessageScene extends Scene {
       return;
     }
     this.blink += dt;
+    const last = this.pageIndex + 1 >= this.pages.length && this.entryIndex + 1 >= this.entries.length;
+    if (last && this.keepOpen) {
+      if (!this.finished) {
+        this.finished = true;
+        this.onDone?.();
+      }
+      return;
+    }
     if (!(input.pressed('ok') || input.tapped())) return;
     if (this.pageIndex + 1 < this.pages.length) {
       this.openPage(this.pageIndex + 1);

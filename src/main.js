@@ -124,6 +124,10 @@ async function loadGameData(game) {
   game.faces = new Map();
   for (const id of Object.keys(characters)) game.faces.set(id, makeFace(assets.image(`char:${id}`)));
   game.speakerInfo = (speaker) => {
+    if (speaker === '主人公' && game.state) {
+      const p = game.state.player;
+      return { faceKey: `hero_${p.gender === 'female' ? 'f' : 'm'}_${p.job === 'mage' ? 'mage' : 'sword'}`, showName: true, displayName: p.name };
+    }
     for (const [id, c] of Object.entries(characters)) {
       if (c.name === speaker) return { faceKey: id, showName: c.main === true };
     }

@@ -25,6 +25,9 @@
   "characters": "data/characters.json",
   "maps": {
     "castle_throne": "data/maps/castle_throne.json",
+    "castle_hall": "data/maps/castle_hall.json",
+    "town": "data/maps/town.json",
+    "home": "data/maps/home.json",
     "testroom": "data/maps/testroom.json"
   },
   "events": {
