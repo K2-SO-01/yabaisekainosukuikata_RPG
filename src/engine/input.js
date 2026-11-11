@@ -1,4 +1,6 @@
 // 操作（キーボードと、スマホ・タブレットの画面ボタン）を「上・下・左・右・決定・キャンセル・ダッシュ」にまとめる
+// スマホ・タブレットの移動は「さわった所が中心になるスティック」。画面のタップも拾う
+import { HEIGHT, WIDTH } from '../config.js';
 
 const KEYMAP = {
   ArrowUp: 'up',
@@ -17,6 +19,9 @@ const KEYMAP = {
 const DIR_ACTIONS = ['up', 'down', 'left', 'right'];
 const REPEAT_DELAY = 320;
 const REPEAT_EVERY = 90;
+const STICK_DEAD = 13; // これより小さい動きは「たおしていない」
+const STICK_MAX = 38; // これより大きく動かすと、中心が指についてくる
+const TAP_MS = 350; // これより短くて動かないタッチは「タップ」
 
 // 指が要素の外に出ても、離すまでその要素の操作として扱う（使えない時は何もしない）
 function capture(el, pointerId) {
@@ -29,12 +34,13 @@ function capture(el, pointerId) {
 
 export class Input {
   constructor({ canvas, touchRoot }) {
+    this.canvas = canvas;
     this.keys = new Set();
     this.touchHeld = new Set();
     this.pressedQueue = new Set();
     this.pressedNow = new Set();
-    this.tapQueue = false;
-    this.tappedNow = false;
+    this.tapQueue = null;
+    this.tapNow = null;
     this.dirOrder = [];
     this.dashToggle = false;
     this.enabled = true;
@@ -57,7 +63,7 @@ export class Input {
 
     canvas.addEventListener('pointerdown', (e) => {
       e.preventDefault();
-      this.tapQueue = true;
+      this.queueTap(e.clientX, e.clientY);
     });
 
     // ピンチやダブルタップでの拡大、長押しのメニューを防ぐ
@@ -101,44 +107,92 @@ export class Input {
     }
   }
 
+  // 画面をタップした場所を、ゲーム画面（640×360）の中の位置にして覚える
+  queueTap(clientX, clientY) {
+    const r = this.canvas.getBoundingClientRect();
+    const x = ((clientX - r.left) / r.width) * WIDTH;
+    const y = ((clientY - r.top) / r.height) * HEIGHT;
+    const inside = x >= 0 && y >= 0 && x < WIDTH && y < HEIGHT;
+    this.tapQueue = { pos: inside ? { x, y } : null };
+  }
+
   setupTouch() {
     const root = this.touchRoot;
     if (!root) return;
+    const zone = root.querySelector('#stickzone');
     const pad = root.querySelector('#pad');
-    let padPointer = null;
-    const setPadDir = (dir) => {
-      for (const d of DIR_ACTIONS) {
-        if (d !== dir) this.touchHeld.delete(d);
-      }
-      pad.className = dir ? `dir-${dir}` : '';
-      if (dir && !this.touchHeld.has(dir)) {
-        this.touchHeld.add(dir);
-        this.press(dir);
+    let id = null;
+    let cx = 0;
+    let cy = 0;
+    let t0 = 0;
+    let moved = false;
+    let dir = null;
+
+    const place = () => {
+      pad.style.left = `${cx - pad.offsetWidth / 2}px`;
+      pad.style.top = `${cy - pad.offsetHeight / 2}px`;
+    };
+    const setDir = (d) => {
+      if (d === dir) return;
+      if (dir) this.touchHeld.delete(dir);
+      dir = d;
+      pad.className = d ? `dir-${d}` : '';
+      if (d) {
+        this.touchHeld.add(d);
+        this.press(d);
       }
     };
-    const dirFromEvent = (e) => {
-      const r = pad.getBoundingClientRect();
-      const dx = e.clientX - (r.left + r.width / 2);
-      const dy = e.clientY - (r.top + r.height / 2);
-      if (Math.hypot(dx, dy) < r.width * 0.12) return null;
-      return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up';
-    };
-    pad.addEventListener('pointerdown', (e) => {
+
+    zone.addEventListener('pointerdown', (e) => {
+      if (id !== null) return;
       e.preventDefault();
-      padPointer = e.pointerId;
-      capture(pad, e.pointerId);
-      setPadDir(dirFromEvent(e));
+      id = e.pointerId;
+      capture(zone, id);
+      cx = e.clientX;
+      cy = e.clientY;
+      t0 = performance.now();
+      moved = false;
+      pad.className = '';
+      place();
     });
-    pad.addEventListener('pointermove', (e) => {
-      if (e.pointerId === padPointer) setPadDir(dirFromEvent(e));
+    zone.addEventListener('pointermove', (e) => {
+      if (e.pointerId !== id) return;
+      let dx = e.clientX - cx;
+      let dy = e.clientY - cy;
+      const dist = Math.hypot(dx, dy);
+      if (dist > STICK_MAX) {
+        // 中心が指についてくるので、反対へ切り返す時もすぐ反応する
+        const k = (dist - STICK_MAX) / dist;
+        cx += dx * k;
+        cy += dy * k;
+        dx = e.clientX - cx;
+        dy = e.clientY - cy;
+        place();
+      }
+      if (dist < (dir ? STICK_DEAD * 0.6 : STICK_DEAD)) {
+        setDir(null);
+        return;
+      }
+      moved = true;
+      // 今の向きを少し優先して、ななめの時に向きがぶれないようにする
+      const ax = Math.abs(dx) * (dir === 'left' || dir === 'right' ? 1.25 : 1);
+      const ay = Math.abs(dy) * (dir === 'up' || dir === 'down' ? 1.25 : 1);
+      setDir(ax > ay ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up');
     });
-    const padEnd = (e) => {
-      if (e.pointerId !== padPointer) return;
-      padPointer = null;
-      setPadDir(null);
+    const end = (e) => {
+      if (e.pointerId !== id) return;
+      id = null;
+      const quick = e.type === 'pointerup' && !moved && performance.now() - t0 < TAP_MS;
+      setDir(null);
+      pad.className = 'idle';
+      if (pad.dataset.homeLeft) {
+        pad.style.left = pad.dataset.homeLeft;
+        pad.style.top = pad.dataset.homeTop;
+      }
+      if (quick) this.queueTap(e.clientX, e.clientY);
     };
-    pad.addEventListener('pointerup', padEnd);
-    pad.addEventListener('pointercancel', padEnd);
+    zone.addEventListener('pointerup', end);
+    zone.addEventListener('pointercancel', end);
 
     for (const btn of root.querySelectorAll('.act')) {
       const action = btn.dataset.action;
@@ -154,12 +208,12 @@ export class Input {
         this.touchHeld.add(action);
         this.press(action);
       });
-      const end = () => {
+      const up = () => {
         btn.classList.remove('pressed');
         if (action !== 'dash') this.touchHeld.delete(action);
       };
-      btn.addEventListener('pointerup', end);
-      btn.addEventListener('pointercancel', end);
+      btn.addEventListener('pointerup', up);
+      btn.addEventListener('pointercancel', up);
     }
   }
 
@@ -167,8 +221,8 @@ export class Input {
     this.dt = dt;
     this.pressedNow = this.pressedQueue;
     this.pressedQueue = new Set();
-    this.tappedNow = this.tapQueue;
-    this.tapQueue = false;
+    this.tapNow = this.tapQueue;
+    this.tapQueue = null;
     for (const a of DIR_ACTIONS) {
       if (this.isDown(a)) this.repeatTime[a] = (this.repeatTime[a] ?? -1) + (this.pressedNow.has(a) ? 0 : dt);
       else this.repeatTime[a] = -1;
@@ -184,8 +238,14 @@ export class Input {
     return this.enabled && this.pressedNow.has(action);
   }
 
+  // このフレームで画面がタップ（クリック）されたか
   tapped() {
-    return this.enabled && this.tappedNow;
+    return this.enabled && !!this.tapNow;
+  }
+
+  // タップされた場所（ゲーム画面の中なら { x, y }。外なら null）
+  tap() {
+    return this.enabled && this.tapNow ? this.tapNow.pos : null;
   }
 
   // メニューのカーソル用：押した時と、押し続けた時に少しずつ反応する
@@ -205,7 +265,7 @@ export class Input {
     return DIR_ACTIONS.find((d) => this.isDown(d)) ?? null;
   }
 
-  // このフレームで押された方向（すぐ離した短いタップでも1歩進めるように使う）
+  // このフレームで押された方向（すぐ離した短い操作でも1歩進めるように使う）
   pressedDir() {
     if (!this.enabled) return null;
     for (let i = this.dirOrder.length - 1; i >= 0; i--) {
@@ -223,6 +283,8 @@ export class Input {
     this.touchHeld.clear();
     this.pressedQueue.clear();
     this.pressedNow.clear();
+    this.tapQueue = null;
+    this.tapNow = null;
     this.repeatTime = {};
   }
 }

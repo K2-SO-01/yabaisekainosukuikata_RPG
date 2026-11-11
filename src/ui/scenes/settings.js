@@ -1,12 +1,13 @@
 // せってい（タイトル画面と、フィールドのメニューから開く）
 import { HEIGHT, WIDTH } from '../../config.js';
-import { ANIM_SPEED_LABELS, TEXT_SPEED_LABELS } from '../../core/settings.js';
+import { ANIM_SPEED_LABELS, MOVE_SPEED_LABELS, TEXT_SPEED_LABELS } from '../../core/settings.js';
 import { COLORS, drawCursor, drawWindow } from '../draw.js';
 import { ChoiceScene } from '../menu.js';
 import { Scene } from '../scene.js';
 import { TextIOScene } from '../textio.js';
 
-const ROW_H = 25;
+const ROW_H = 23;
+const TOP = 40;
 
 export class SettingsScene extends Scene {
   constructor({ inGame = false } = {}) {
@@ -14,6 +15,7 @@ export class SettingsScene extends Scene {
     this.transparent = true;
     this.inGame = inGame;
     this.index = 0;
+    this.box = null;
   }
 
   enter() {
@@ -23,6 +25,8 @@ export class SettingsScene extends Scene {
       { key: 'se', label: '効果音の音量', type: 'num', min: 0, max: 10 },
       { key: 'textSpeed', label: '文字の速さ', type: 'choice', options: TEXT_SPEED_LABELS },
       { key: 'animSpeed', label: '戦闘アニメの速さ', type: 'choice', options: ANIM_SPEED_LABELS },
+      { key: 'moveSpeed', label: '歩く速さ', type: 'choice', options: MOVE_SPEED_LABELS },
+      { key: 'alwaysDash', label: 'ダッシュ', type: 'bool', options: ['ボタンで走る', 'いつも走る'] },
       g.screen.touchEnabled ? { key: 'swapButtons', label: 'ボタン配置', type: 'bool', options: ['ふつう', '左右反転'] } : null,
       { key: 'help', label: 'そうさ', type: 'action' },
       { key: 'export', label: 'セーブの書き出し', type: 'action' },
@@ -52,9 +56,36 @@ export class SettingsScene extends Scene {
     g.audio.playSe('cursor');
   }
 
+  activate(row) {
+    const g = this.game;
+    if (row.type !== 'action') {
+      this.change(row, +1);
+      return;
+    }
+    g.audio.playSe('ok');
+    if (row.key === 'back') g.scenes.pop(this);
+    else if (row.key === 'help') g.scenes.push(new HelpScene());
+    else if (row.key === 'export') g.scenes.push(new TextIOScene('export'));
+    else if (row.key === 'import') g.scenes.push(new TextIOScene('import'));
+    else if (row.key === 'title') this.confirmTitle();
+  }
+
   update() {
     const g = this.game;
     const input = g.input;
+    const tap = input.tap();
+    if (tap && this.box) {
+      const b = this.box;
+      const i = Math.floor((tap.y - (b.y + TOP - 3)) / ROW_H);
+      if (tap.x >= b.x && tap.x <= b.x + b.w && i >= 0 && i < this.rows.length) {
+        this.index = i;
+        const r = this.rows[i];
+        if (r.type === 'action') this.activate(r);
+        else if (tap.x > b.x + b.w - 200) this.change(r, tap.x > b.x + b.w - 100 ? +1 : -1);
+        else g.audio.playSe('cursor');
+      }
+      return;
+    }
     const row = this.rows[this.index];
     if (input.repeat('up')) {
       this.index = (this.index - 1 + this.rows.length) % this.rows.length;
@@ -70,16 +101,7 @@ export class SettingsScene extends Scene {
       g.audio.playSe('cancel');
       g.scenes.pop(this);
     } else if (input.pressed('ok')) {
-      if (row.type !== 'action') {
-        this.change(row, +1);
-        return;
-      }
-      g.audio.playSe('ok');
-      if (row.key === 'back') g.scenes.pop(this);
-      else if (row.key === 'help') g.scenes.push(new HelpScene());
-      else if (row.key === 'export') g.scenes.push(new TextIOScene('export'));
-      else if (row.key === 'import') g.scenes.push(new TextIOScene('import'));
-      else if (row.key === 'title') this.confirmTitle();
+      this.activate(row);
     }
   }
 
@@ -114,14 +136,15 @@ export class SettingsScene extends Scene {
 
   draw(ctx) {
     const g = this.game;
-    const w = 420;
-    const h = this.rows.length * ROW_H + 56;
+    const w = 440;
+    const h = this.rows.length * ROW_H + TOP + 12;
     const x = Math.round(WIDTH / 2 - w / 2);
     const y = Math.round(HEIGHT / 2 - h / 2);
+    this.box = { x, y, w };
     drawWindow(ctx, x, y, w, h);
-    g.font.draw(ctx, 'せってい', x + 22, y + 14, COLORS.title);
+    g.font.draw(ctx, 'せってい', x + 22, y + 12, COLORS.title);
     this.rows.forEach((row, i) => {
-      const ty = y + 44 + i * ROW_H;
+      const ty = y + TOP + i * ROW_H;
       g.font.draw(ctx, row.label, x + 40, ty, COLORS.text);
       if (row.type !== 'action') {
         const value = this.valueText(row);
@@ -147,7 +170,7 @@ class HelpScene extends Scene {
 
   update() {
     const input = this.game.input;
-    if (input.pressed('ok') || input.pressed('cancel')) {
+    if (input.pressed('ok') || input.pressed('cancel') || input.tapped()) {
       this.game.audio.playSe('cancel');
       this.game.scenes.pop(this);
     }
@@ -159,24 +182,27 @@ class HelpScene extends Scene {
       ? [
           'スマホ・タブレットの操作',
           '',
-          '移動　　　　　：左の十字キー',
-          '決定　　　　　：決定ボタン',
-          'キャンセル　　：キャンセルボタン',
-          'メニュー　　　：歩いている時にキャンセルボタン',
-          'ダッシュ　　　：ダッシュボタンで、走る・歩くを切りかえ',
-          '人と話す・調べる：目の前で決定ボタン',
+          '移動　　　　：画面の左側をさわって、行きたい方へずらす',
+          '決定　　　　：決定ボタン',
+          'キャンセル　：キャンセルボタン',
+          'メニュー　　：歩いている時にキャンセルボタン',
+          'ダッシュ　　：ダッシュボタンで、走る・歩くを切りかえ',
+          '話す・調べる：目の前で決定ボタン',
+          '会話を進める：画面のどこかをタップ',
+          'メニュー　　：項目を直接タップしても選べる',
         ]
       : [
           'パソコンの操作',
           '',
-          '移動　　　　　：矢印キー',
-          '決定　　　　　：Enter・Z・スペース',
-          'キャンセル　　：X・Esc',
-          'メニュー　　　：歩いている時にX・Esc',
-          'ダッシュ　　　：Shiftを押している間',
-          '人と話す・調べる：目の前で決定',
+          '移動　　　　：矢印キー',
+          '決定　　　　：Enter・Z・スペース',
+          'キャンセル　：X・Esc',
+          'メニュー　　：歩いている時にX・Esc',
+          'ダッシュ　　：Shiftを押している間',
+          '話す・調べる：目の前で決定',
+          '会話を進める：決定（画面のクリックでもよい）',
         ];
-    const w = 470;
+    const w = 500;
     const h = lines.length * 24 + 40;
     const x = Math.round(WIDTH / 2 - w / 2);
     const y = Math.round(HEIGHT / 2 - h / 2);

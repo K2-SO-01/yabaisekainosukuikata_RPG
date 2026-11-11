@@ -38,6 +38,16 @@ export class SaveLoadScene extends Scene {
   update() {
     const g = this.game;
     const input = g.input;
+    const tap = input.tap();
+    if (tap && this.box) {
+      const i = Math.floor((tap.y - (this.box.y + 40)) / ROW_H);
+      if (tap.x >= this.box.x && tap.x <= this.box.x + this.box.w && i >= 0 && i < this.rows.length) {
+        this.index = i;
+        if (this.mode === 'save') this.trySave(this.rows[i]);
+        else this.tryLoad(this.rows[i]);
+      }
+      return;
+    }
     if (input.repeat('up')) {
       this.index = (this.index - 1 + this.rows.length) % this.rows.length;
       g.audio.playSe('cursor');
@@ -111,6 +121,7 @@ export class SaveLoadScene extends Scene {
     const h = this.rows.length * ROW_H + 52;
     const x = Math.round(WIDTH / 2 - w / 2);
     const y = Math.round(HEIGHT / 2 - h / 2);
+    this.box = { x, y, w };
     drawWindow(ctx, x, y, w, h);
     g.font.draw(ctx, this.mode === 'save' ? 'どこにセーブしますか？' : 'どれをロードしますか？', x + 22, y + 14, COLORS.title);
     this.rows.forEach((row, i) => {

@@ -11,8 +11,8 @@ import { SaveLoadScene } from './saveload.js';
 
 const DIR_ROW = { down: 0, left: 1, right: 2, up: 3 };
 const OPPOSITE = { up: 'down', down: 'up', left: 'right', right: 'left' };
-const WALK_MS = 210;
-const DASH_MS = 115;
+const WALK_MS = 200;
+const DASH_MS = 110;
 const STEP_FRAMES = [0, 1, 2, 1];
 
 export class FieldScene extends Scene {
@@ -52,11 +52,13 @@ export class FieldScene extends Scene {
     this.time += dt;
     this.bannerT += dt;
 
+    let carry = 0; // 1歩が終わった時のあまりの時間。次の1歩に回して、歩きが止まって見えないようにする
     if (this.moving) {
       const m = this.moving;
       m.t += dt;
       this.animT += dt;
       if (m.t < m.dur) return;
+      carry = m.t - m.dur;
       this.pos = m.to;
       loc.x = m.to.x;
       loc.y = m.to.y;
@@ -80,7 +82,11 @@ export class FieldScene extends Scene {
     this.dir = dir;
     loc.dir = dir;
     const to = tryMove(this.map, this.pos, dir);
-    if (to) this.moving = { from: { ...this.pos }, to, t: 0, dur: input.dash() ? DASH_MS : WALK_MS };
+    if (to) {
+      const dashing = g.state.flags.dash !== false && (g.settings.alwaysDash ? !input.dash() : input.dash());
+      const dur = (dashing ? DASH_MS : WALK_MS) * (g.settings.moveSpeed === 1 ? 0.8 : 1);
+      this.moving = { from: { ...this.pos }, to, t: Math.min(carry, dur * 0.9), dur };
+    }
   }
 
   interact() {
@@ -131,8 +137,11 @@ export class FieldScene extends Scene {
     const p = this.playerPixel();
     const mapW = map.width * TILE;
     const mapH = map.height * TILE;
-    const camX = mapW <= WIDTH ? Math.round((mapW - WIDTH) / 2) : clamp(Math.round(p.x + TILE / 2 - WIDTH / 2), 0, mapW - WIDTH);
-    const camY = mapH <= HEIGHT ? Math.round((mapH - HEIGHT) / 2) : clamp(Math.round(p.y + TILE / 2 - HEIGHT / 2), 0, mapH - HEIGHT);
+    // 位置は、実際の画面の1画素の単位にそろえる（なめらかに動き、タイルのすき間も出ない）
+    const S = this.game.screen.renderScale || 1;
+    const snap = (v) => Math.round(v * S) / S;
+    const camX = mapW <= WIDTH ? Math.round((mapW - WIDTH) / 2) : clamp(snap(p.x + TILE / 2 - WIDTH / 2), 0, mapW - WIDTH);
+    const camY = mapH <= HEIGHT ? Math.round((mapH - HEIGHT) / 2) : clamp(snap(p.y + TILE / 2 - HEIGHT / 2), 0, mapH - HEIGHT);
 
     ctx.fillStyle = '#2b2b2b';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -153,7 +162,7 @@ export class FieldScene extends Scene {
       }
     }
     const frame = this.moving ? STEP_FRAMES[Math.floor((this.stepCount * 2 + this.moving.t / this.moving.dur * 2)) % 4] : 1;
-    sprites.push({ y: p.y, draw: () => drawChar(ctx, this.playerSprite, p.x - camX, p.y - camY, this.dir, frame) });
+    sprites.push({ y: p.y, draw: () => drawChar(ctx, this.playerSprite, snap(p.x) - camX, snap(p.y) - camY, this.dir, frame) });
     sprites.sort((a, b) => a.y - b.y).forEach((s) => s.draw());
 
     this.drawBanner(ctx);
@@ -211,8 +220,6 @@ function tilesetFor(map, gid) {
 }
 
 function drawChar(ctx, img, x, y, dir, frame) {
-  x = Math.round(x);
-  y = Math.round(y);
   if (!img) {
     ctx.fillStyle = '#e8a0a0';
     ctx.fillRect(x + 6, y + 4, 20, 26);
@@ -223,8 +230,6 @@ function drawChar(ctx, img, x, y, dir, frame) {
 
 // 光の結晶（セーブポイント）。段階9までの仮の絵
 function drawCrystal(ctx, x, y, t) {
-  x = Math.round(x);
-  y = Math.round(y);
   const bob = Math.round(Math.sin(t / 400) * 2);
   const glow = 0.25 + 0.15 * Math.sin(t / 300);
   ctx.fillStyle = `rgba(255, 250, 200, ${glow})`;
@@ -235,7 +240,7 @@ function drawCrystal(ctx, x, y, t) {
   rows.forEach((w, i) => {
     const yy = y + 7 + i * 1.6 + bob;
     ctx.fillStyle = i < 6 ? '#bfe9ff' : '#8fd3f5';
-    ctx.fillRect(x + 16 - w / 2, Math.round(yy), w, 2);
+    ctx.fillRect(x + 16 - w / 2, yy, w, 2);
   });
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(x + 13, y + 10 + bob, 2, 4);

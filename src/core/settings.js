@@ -3,6 +3,7 @@ import { SETTINGS_VERSION } from '../config.js';
 
 export const TEXT_SPEED_LABELS = ['おそい', 'ふつう', 'はやい', '一瞬'];
 export const ANIM_SPEED_LABELS = ['ふつう', 'はやい'];
+export const MOVE_SPEED_LABELS = ['ふつう', 'はやい'];
 // 1秒に出す文字数（一瞬は全部いっぺんに出す）
 export const TEXT_SPEED_CPS = [12, 24, 48, Infinity];
 
@@ -16,6 +17,8 @@ export function defaultSettings() {
     textSpeed: 1,
     animSpeed: 0,
     swapButtons: false,
+    alwaysDash: false,
+    moveSpeed: 0,
   };
 }
 
@@ -33,6 +36,8 @@ export function normalizeSettings(raw) {
     textSpeed: clampInt(raw.textSpeed, 0, TEXT_SPEED_LABELS.length - 1, d.textSpeed),
     animSpeed: clampInt(raw.animSpeed, 0, ANIM_SPEED_LABELS.length - 1, d.animSpeed),
     swapButtons: raw.swapButtons === true,
+    alwaysDash: raw.alwaysDash === true,
+    moveSpeed: clampInt(raw.moveSpeed, 0, MOVE_SPEED_LABELS.length - 1, d.moveSpeed),
   };
 }
 

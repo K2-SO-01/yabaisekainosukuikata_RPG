@@ -54,6 +54,7 @@ async function boot() {
     try {
       game.input.update(dt);
       if (!game.screen.portrait) game.scenes.update(dt);
+      useScale(ctx);
       ctx.fillStyle = '#000';
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
       game.scenes.draw(ctx);
@@ -137,7 +138,15 @@ function makeFace(img) {
   return c;
 }
 
+// 640×360 の座標のまま、拡大したキャンバスに描けるようにする
+function useScale(ctx) {
+  const s = ctx.canvas.width / WIDTH;
+  ctx.setTransform(s, 0, 0, s, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+}
+
 function drawLoading(ctx, text) {
+  useScale(ctx);
   ctx.fillStyle = '#1d1730';
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
   ctx.fillStyle = '#f4ead5';
@@ -149,6 +158,7 @@ function drawLoading(ctx, text) {
 
 function showError(ctx, e) {
   console.error(e);
+  useScale(ctx);
   ctx.fillStyle = '#300';
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
   ctx.fillStyle = '#fdd';

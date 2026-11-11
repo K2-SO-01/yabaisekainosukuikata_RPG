@@ -1,10 +1,12 @@
-// 画面の大きさ。内部は 640×360 で描き、端末の実際の画素で整数倍に拡大する（余白は黒）
+// 画面の大きさ。ゲームの中は 640×360 として描き、端末の実際の画素で整数倍に拡大する（余白は黒）
+// 描く先のキャンバスは拡大後の画素数で持つので、歩きやスクロールが細かい単位でなめらかに動く
 import { WIDTH, HEIGHT } from '../config.js';
 
 const PAD_SIZE = 132;
 const BTN_W = 170;
 const BTN_H = 150;
 const ROOMY_MARGIN = 150; // 画面の横の余白がこれだけあれば、ボタンを余白に置く
+const MAX_RENDER_SCALE = 6;
 
 export class Screen {
   constructor({ canvas, touchRoot, rotateEl, isTouch, getSettings }) {
@@ -16,6 +18,7 @@ export class Screen {
     this.getSettings = getSettings;
     this.portrait = false;
     this.scale = 1;
+    this.renderScale = 1;
     const relayout = () => this.layout();
     window.addEventListener('resize', relayout);
     window.addEventListener('orientationchange', () => setTimeout(relayout, 150));
@@ -34,16 +37,33 @@ export class Screen {
     const fit = Math.min((vw * dpr) / WIDTH, (vh * dpr) / HEIGHT);
     let cssW;
     let cssH;
+    let render = 1;
     if (fit >= 1) {
       this.scale = Math.floor(fit);
       cssW = (WIDTH * this.scale) / dpr;
       cssH = (HEIGHT * this.scale) / dpr;
+      // 描く倍率は、表示の倍率をきれいに割り切れる数にする（にじみを出さないため）
+      render = this.scale;
+      if (render > MAX_RENDER_SCALE) {
+        render = 1;
+        for (let d = MAX_RENDER_SCALE; d > 1; d--) {
+          if (this.scale % d === 0) {
+            render = d;
+            break;
+          }
+        }
+      }
     } else {
       // 画面がとても小さい時だけ、整数倍ではなく縮める
       this.scale = fit;
       const s = Math.min(vw / WIDTH, vh / HEIGHT);
       cssW = WIDTH * s;
       cssH = HEIGHT * s;
+    }
+    this.renderScale = render;
+    if (this.canvas.width !== WIDTH * render || this.canvas.height !== HEIGHT * render) {
+      this.canvas.width = WIDTH * render;
+      this.canvas.height = HEIGHT * render;
     }
     this.canvas.style.width = `${cssW}px`;
     this.canvas.style.height = `${cssH}px`;
@@ -68,7 +88,9 @@ export class Screen {
     const sideL = side - sal;
     const sideR = side - sar;
     const roomy = Math.min(sideL, sideR) >= ROOMY_MARGIN;
+    const swap = this.getSettings().swapButtons;
     root.classList.toggle('overlay', !roomy);
+    root.classList.toggle('swap', swap);
 
     let padX;
     let padY;
@@ -85,8 +107,8 @@ export class Screen {
       padY = vh - sab - PAD_SIZE - 14;
       btnY = vh - sab - BTN_H - 8;
     }
-    if (this.getSettings().swapButtons) {
-      // 左右反転：十字キーを右に、ボタンを左に
+    if (swap) {
+      // 左右反転：スティックを右に、ボタンを左に
       const newPadX = vw - padX - PAD_SIZE;
       const newBtnX = vw - btnX - BTN_W;
       padX = newPadX;
@@ -95,8 +117,11 @@ export class Screen {
     const clampY = (y, h) => Math.min(Math.max(8, y), vh - h - 8);
     const pad = root.querySelector('#pad');
     const buttons = root.querySelector('#buttons');
-    pad.style.left = `${padX}px`;
-    pad.style.top = `${clampY(padY, PAD_SIZE)}px`;
+    // スティックのふだんの場所（さわっていない時に、うすく出しておく目印）
+    pad.dataset.homeLeft = `${padX}px`;
+    pad.dataset.homeTop = `${clampY(padY, PAD_SIZE)}px`;
+    pad.style.left = pad.dataset.homeLeft;
+    pad.style.top = pad.dataset.homeTop;
     buttons.style.left = `${btnX}px`;
     buttons.style.top = `${clampY(btnY, BTN_H)}px`;
   }

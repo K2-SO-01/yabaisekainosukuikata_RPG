@@ -61,7 +61,7 @@ export class MessageScene extends Scene {
     const input = g.input;
     if (this.shown < this.pageChars) {
       const cps = TEXT_SPEED_CPS[g.settings.textSpeed];
-      if (input.pressed('ok') || cps === Infinity) {
+      if ((input.pressed('ok') || input.tapped()) || cps === Infinity) {
         this.shown = this.pageChars;
         return;
       }
@@ -71,7 +71,7 @@ export class MessageScene extends Scene {
       return;
     }
     this.blink += dt;
-    if (!input.pressed('ok')) return;
+    if (!(input.pressed('ok') || input.tapped())) return;
     if (this.pageIndex + 1 < this.pages.length) {
       this.openPage(this.pageIndex + 1);
     } else if (this.entryIndex + 1 < this.entries.length) {
