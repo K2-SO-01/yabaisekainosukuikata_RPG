@@ -202,7 +202,11 @@ export class FieldScene extends Scene {
     const t = this.time;
     const k = o.props.kind;
     if (k === 'water') drawGid(ctx, map, 1200 + 454, x, y);
-    else if (k === 'sign') drawGid(ctx, map, 230, x, y);
+    else if (k === 'sign') {
+      const img = this.game.assets.image('img:blockers');
+      if (img) ctx.drawImage(img, 64, 0, 32, 32, x, y, 32, 32);
+      else drawGid(ctx, map, 230, x, y);
+    }
     else if (k === 'gust') {
       ctx.strokeStyle = 'rgba(255,255,255,0.75)';
       ctx.lineWidth = 2;
@@ -214,13 +218,16 @@ export class FieldScene extends Scene {
         ctx.stroke();
       }
     } else if (k === 'statue') {
-      // 炎の銅像（段階9までの仮の絵）：像の上に炎がゆらめく
-      drawGid(ctx, map, 917, x, y);
-      drawGid(ctx, map, 909, x, y - TILE);
-      for (let i = 0; i < 5; i++) {
-        const h = 6 + ((Math.sin(t / 120 + i * 1.7) + 1) * 4);
-        ctx.fillStyle = i % 2 ? 'rgba(255,200,60,0.9)' : 'rgba(240,90,30,0.85)';
-        ctx.fillRect(x + 6 + i * 4, y - TILE - h + 6, 4, h);
+      // 炎の銅像：炎の四天王の銅像（tools/draw_blockers.ps1）。頭の炎がゆらめく
+      // 2マスにまたがる像は、いちばん下のマスで1回だけ描く
+      if (map.objects.some((b) => b.type === 'block' && b.props.kind === 'statue' && b.x === o.x && b.y === o.y + 1 && this.isOn(b))) return;
+      const img = this.game.assets.image('img:blockers');
+      const sx = x + TILE / 2 - 32, sy = y + TILE - 96;
+      if (img) ctx.drawImage(img, 0, 0, 64, 96, sx, sy, 64, 96);
+      for (let i = 0; i < 4; i++) {
+        const h = 2 + ((Math.sin(t / 110 + i * 1.9) + 1) * 2);
+        ctx.fillStyle = i % 2 ? 'rgba(255,220,90,0.85)' : 'rgba(255,110,40,0.8)';
+        ctx.fillRect(sx + 26 + i * 4, sy + 6 - h, 2, h);
       }
     } else if (k === 'barrier') {
       ctx.fillStyle = `rgba(255,240,120,${0.25 + 0.15 * Math.sin(t / 90)})`;
@@ -630,7 +637,7 @@ export class FieldScene extends Scene {
         const opened = this.game.state.flags[`got_${this.game.state.location.map}_${o.id}`];
         sprites.push({ y: o.y * TILE - 1, draw: () => drawGid(ctx, map, opened ? CHEST_OPEN : CHEST_CLOSED, o.x * TILE - camX, o.y * TILE - camY) });
       } else if (o.type === 'savepoint') {
-        sprites.push({ y: o.y * TILE, draw: () => drawCrystal(ctx, o.x * TILE - camX, o.y * TILE - camY, this.time) });
+        sprites.push({ y: o.y * TILE, draw: () => drawCrystal(ctx, o.x * TILE - camX, o.y * TILE - camY, this.time, this.game.assets.image('img:blockers')) });
       }
     }
     const frame = this.moving ? STEP_FRAMES[Math.floor(this.stepCount * 2 + (this.moving.t / this.moving.dur) * 2) % 4] : 1;
@@ -771,19 +778,22 @@ function drawChar(ctx, img, x, y, dir, frame) {
   ctx.drawImage(img, frame * 32, (DIR_ROW[dir] ?? 0) * 32, 32, 32, x, y, 32, 32);
 }
 
-// 光の結晶（セーブポイント）。段階9までの仮の絵
-function drawCrystal(ctx, x, y, t) {
+// 光の結晶（セーブポイント）：台座の上に、女神の光のかけらが浮かんで光る（絵は tools/draw_blockers.ps1）
+function drawCrystal(ctx, x, y, t, img) {
   const bob = Math.round(Math.sin(t / 400) * 2);
-  const glow = 0.25 + 0.15 * Math.sin(t / 300);
-  ctx.fillStyle = `rgba(255, 250, 200, ${glow})`;
-  ctx.fillRect(x + 4, y + 4 + bob, 24, 24);
-  ctx.fillStyle = 'rgba(80, 60, 40, 0.25)';
-  ctx.fillRect(x + 9, y + 28, 14, 3);
-  const rows = [2, 4, 6, 8, 10, 12, 12, 10, 8, 6, 4, 2];
-  rows.forEach((w, i) => {
-    ctx.fillStyle = i < 6 ? '#bfe9ff' : '#8fd3f5';
-    ctx.fillRect(x + 16 - w / 2, y + 7 + Math.round(i * 1.6) + bob, w, 2);
-  });
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(x + 13, y + 10 + bob, 2, 4);
+  const glow = 0.22 + 0.14 * Math.sin(t / 300);
+  ctx.fillStyle = `rgba(255, 250, 210, ${glow})`;
+  ctx.beginPath();
+  ctx.arc(x + 16, y + 10 + bob, 13, 0, Math.PI * 2);
+  ctx.fill();
+  if (!img) return;
+  ctx.drawImage(img, 64, 64, 32, 14, x, y + 18, 32, 14);
+  ctx.drawImage(img, 72, 32, 16, 21, x + 8, y - 2 + bob, 16, 21);
+  // ときどき、きらりと光る
+  const k = (t % 2400) / 2400;
+  if (k < 0.12) {
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillRect(x + 21, y + 1 + bob, 1, 5);
+    ctx.fillRect(x + 19, y + 3 + bob, 5, 1);
+  }
 }
