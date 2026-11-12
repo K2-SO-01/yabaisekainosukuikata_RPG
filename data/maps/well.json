@@ -1,0 +1,51 @@
+{
+  "type": "map", "version": "1.10", "tiledversion": "1.10.2", "orientation": "orthogonal", "renderorder": "right-down", "infinite": false,
+  "width": 9, "height": 7, "tilewidth": 32, "tileheight": 32, "nextlayerid": 5, "nextobjectid": 4,
+  "properties": [
+    { "name": "name", "type": "string", "value": "井戸の底" },
+    { "name": "bgm", "type": "string", "value": "town" },
+    { "name": "back", "type": "string", "value": "#0d0b10" }
+  ],
+  "tilesets": [
+    { "firstgid": 1, "name": "BaseChip", "image": "../../assets/tiles/Pipoya RPG Tileset 32x32/[Base]BaseChip_pipo.png", "imagewidth": 256, "imageheight": 4256, "tilewidth": 32, "tileheight": 32, "columns": 8, "tilecount": 1064, "margin": 0, "spacing": 0 },
+    { "firstgid": 1065, "name": "CastleExtra", "image": "../../assets/tiles/extra/castle_extra.png", "imagewidth": 256, "imageheight": 320, "tilewidth": 32, "tileheight": 32, "columns": 8, "tilecount": 80, "margin": 0, "spacing": 0 }
+  ],
+  "layers": [
+    { "id": 1, "type": "tilelayer", "name": "ground", "x": 0, "y": 0, "width": 9, "height": 7, "opacity": 1, "visible": true,
+      "data": [
+        449,449,449,449,449,449,449,449,449,
+        457,457,457,457,457,457,457,457,457,
+        449,6,6,6,6,6,6,6,449,
+        449,6,6,6,6,6,6,6,449,
+        449,6,6,6,6,6,6,6,449,
+        449,6,6,6,6,6,6,6,449,
+        449,449,449,449,449,449,449,449,449
+      ] },
+    { "id": 2, "type": "tilelayer", "name": "deco", "x": 0, "y": 0, "width": 9, "height": 7, "opacity": 1, "visible": true,
+      "data": [
+        0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,
+        0,0,0,0,295,0,0,0,0,
+        0,0,0,0,303,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,
+        0,0,65,0,0,0,0,65,0,
+        0,0,0,0,0,0,0,0,0
+      ] },
+    { "id": 3, "type": "tilelayer", "name": "collision", "x": 0, "y": 0, "width": 9, "height": 7, "opacity": 1, "visible": false,
+      "data": [
+        1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,
+        1,0,0,0,0,0,0,0,1,
+        1,0,0,0,0,0,0,0,1,
+        1,0,0,0,0,0,0,0,1,
+        1,0,1,0,0,0,0,1,1,
+        1,1,1,1,1,1,1,1,1
+      ] },
+    { "id": 4, "type": "objectgroup", "name": "events", "x": 0, "y": 0, "opacity": 1, "visible": true, "draworder": "topdown",
+      "objects": [
+        { "id": 1, "name": "はしご", "type": "exit", "x": 128, "y": 96, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "dir", "type": "string", "value": "down" }, { "name": "map", "type": "string", "value": "town" }, { "name": "x", "type": "int", "value": 12 }, { "name": "y", "type": "int", "value": 29 }] },
+        { "id": 2, "name": "宝箱", "type": "search", "x": 192, "y": 96, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "item", "type": "string", "value": "potion_m" }, { "name": "kind", "type": "string", "value": "chest" }] },
+        { "id": 3, "name": "start", "type": "start", "x": 128, "y": 128, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "dir", "type": "string", "value": "down" }] }
+      ] }
+  ]
+}

@@ -3,7 +3,7 @@ export const WIDTH = 640;
 export const HEIGHT = 360;
 export const TILE = 32;
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 export const SETTINGS_VERSION = 1;
 export const STORAGE_PREFIX = 'yabai-sekai:';
 

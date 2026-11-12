@@ -1,0 +1,29 @@
+{
+  "_note": "kind: item / weapon / shield / armor / helm / accessory / key / material. equip: who can wear it (swordsman, mage, priest). Numbers for equipment are provisional until stage 8.",
+  "potion_s": { "name": "回復ポーション小", "kind": "item", "price": 10, "desc": "HPを30回復", "use": { "hp": 30 }, "target": "ally" },
+  "potion_m": { "name": "回復ポーション中", "kind": "item", "price": 50, "desc": "HPを80回復", "use": { "hp": 80 }, "target": "ally" },
+  "potion_l": { "name": "回復ポーション大", "kind": "item", "price": 200, "desc": "HPを200回復", "use": { "hp": 200 }, "target": "ally" },
+  "mana_potion": { "name": "マナポーション", "kind": "item", "price": 60, "desc": "MPを30回復", "use": { "mp": 30 }, "target": "ally" },
+  "cure_potion": { "name": "キュアポーション", "kind": "item", "price": 20, "desc": "状態異常を全部治す（1人）", "use": { "cure": true }, "target": "ally" },
+  "revive_potion": { "name": "リバイブポーション", "kind": "item", "price": 300, "desc": "戦闘不能から復活（最大HPの半分）", "use": { "revive": 0.5 }, "target": "ally_down" },
+  "warp_potion": { "name": "ワープポーション", "kind": "item", "price": 20, "desc": "行ったことのある町や村に一瞬で戻れる。ダンジョンの中と戦闘中では使えない", "use": { "warp": true }, "target": "none", "battle": false },
+
+  "wood_sword": { "name": "ウッドソード", "kind": "weapon", "price": 120, "desc": "騎士見習いの練習用の剣", "equip": ["swordsman"], "atk": 2 },
+  "bronze_sword": { "name": "ブロンズソード", "kind": "weapon", "price": 200, "desc": "青銅でできた剣", "equip": ["swordsman"], "atk": 5 },
+  "iron_sword": { "name": "アイアンソード", "kind": "weapon", "price": 300, "desc": "兵士が愛用する鉄の剣", "equip": ["swordsman"], "atk": 8 },
+  "wood_staff": { "name": "ウッドスタッフ", "kind": "weapon", "price": 120, "desc": "魔法使い見習いの杖", "equip": ["mage", "priest"], "atk": 1, "mat": 2 },
+  "bronze_rod": { "name": "ブロンズロッド", "kind": "weapon", "price": 200, "desc": "青銅でできた杖", "equip": ["mage", "priest"], "atk": 3, "mat": 4 },
+  "iron_rod": { "name": "アイアンロッド", "kind": "weapon", "price": 300, "desc": "旅人が愛用する鉄の杖", "equip": ["mage", "priest"], "atk": 4, "mat": 6 },
+
+  "leather_armor": { "name": "レザーアーマー", "kind": "armor", "price": 160, "desc": "なめし革の鎧", "equip": ["swordsman"], "def": 6 },
+  "travel_clothes": { "name": "旅人の服", "kind": "armor", "price": 160, "desc": "旅人が着る丈夫な服", "equip": ["priest"], "def": 5, "mat": 1 },
+  "cotton_robe": { "name": "コットンローブ", "kind": "armor", "price": 160, "desc": "見習い魔法使いのローブ", "equip": ["mage"], "def": 4, "mat": 2 },
+  "wood_shield": { "name": "ウッドシールド", "kind": "shield", "price": 150, "desc": "木の盾", "equip": ["swordsman", "priest"], "def": 3 },
+  "leather_cap": { "name": "レザーキャップ", "kind": "helm", "price": 100, "desc": "革の帽子", "equip": ["swordsman", "mage", "priest"], "def": 2 },
+  "power_ring": { "name": "ちからのゆびわ", "kind": "accessory", "price": 300, "desc": "はめると力がわいてくる指輪", "equip": ["swordsman", "mage", "priest"], "atk": 5 },
+
+  "shunsoku": { "name": "シュンソク", "kind": "key", "desc": "旅立ちの時におばさんからもらった靴。ダッシュができる" },
+
+  "slime_goo": { "name": "べちょべちょ", "kind": "material", "sell": 35, "desc": "スライムのかけら。べちょべちょしている" },
+  "nitari_cap": { "name": "ニタリのかさ", "kind": "material", "sell": 35, "desc": "ニタリダケのかさ。まだ少しニタっとしている" }
+}

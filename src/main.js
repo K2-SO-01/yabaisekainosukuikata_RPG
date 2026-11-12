@@ -90,6 +90,7 @@ async function loadGameData(game) {
   for (const name of manifest.preloadBgm ?? []) jobs.push(audio.prefetchBgm(name).then(() => audio.ensureBgm(name)));
 
   const characters = (await assets.loadJson('characters', manifest.characters ?? 'data/characters.json')) ?? {};
+  for (const k of Object.keys(characters)) if (k.startsWith('_')) delete characters[k];
   game.characters = characters;
   for (const [id, c] of Object.entries(characters)) jobs.push(assets.loadImage(`char:${id}`, c.sprite));
 
@@ -98,6 +99,10 @@ async function loadGameData(game) {
     jobs.push(assets.loadJson(`dialogue:${key}`, path).then((d) => Object.assign(game.dialogues, d ?? {})));
   }
 
+  jobs.push(assets.loadJson('items', manifest.items).then((d) => (game.items = Object.fromEntries(Object.entries(d ?? {}).filter(([k]) => !k.startsWith('_'))))));
+  jobs.push(assets.loadJson('skills', manifest.skills).then((d) => (game.skills = Object.fromEntries(Object.entries(d ?? {}).filter(([k]) => !k.startsWith('_'))))));
+  jobs.push(assets.loadJson('shops', manifest.shops).then((d) => (game.shops = d ?? {})));
+  jobs.push(assets.loadJson('warps', manifest.warps).then((d) => (game.warps = d ?? {})));
   game.scripts = {};
   for (const [key, path] of Object.entries(manifest.events ?? {})) {
     jobs.push(assets.loadJson(`events:${key}`, path).then((d) => Object.assign(game.scripts, d ?? {})));
@@ -123,6 +128,8 @@ async function loadGameData(game) {
   // 会話の顔アイコン（段階9までの仮：歩行グラフィックの顔を切り出して拡大する）
   game.faces = new Map();
   for (const id of Object.keys(characters)) game.faces.set(id, makeFace(assets.image(`char:${id}`)));
+  // 町の人は、男女2種類の顔を使い回す（face に書いた人の顔）
+  for (const [id, c] of Object.entries(characters)) if (c.face && game.faces.has(c.face)) game.faces.set(id, game.faces.get(c.face));
   game.speakerInfo = (speaker) => {
     if (speaker === '主人公' && game.state) {
       const p = game.state.player;

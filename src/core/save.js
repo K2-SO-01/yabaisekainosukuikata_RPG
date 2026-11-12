@@ -1,5 +1,6 @@
 // セーブとロード（保存先は store が決める。ブラウザでは localStorage）
 import { SAVE_VERSION } from '../config.js';
+import { baseStats, heroStartEquip } from './party.js';
 
 export const SLOT_IDS = ['auto', '1', '2', '3'];
 export const MANUAL_SLOTS = ['1', '2', '3'];
@@ -17,6 +18,14 @@ export function migrate(data) {
   const d = clone(data);
   // 版を上げた時は、ここに1つずつ変換を足す。
   // 例：if (d.version === 1) { d.state.newThing = 0; d.version = 2; }
+  if (d.version === 1) {
+    // 段階3：仲間・袋を足した
+    const job = d.state.player?.job ?? 'swordsman';
+    const s = baseStats(job, 1);
+    d.state.party ??= [{ id: 'hero', job, level: 1, exp: 0, equip: { weapon: heroStartEquip(job).weapon, shield: null, armor: null, helm: null, accessory: null }, ailments: [], hp: s.hp, mp: s.mp }];
+    d.state.bag ??= {};
+    d.version = 2;
+  }
   if (d.version > SAVE_VERSION) return null; // これより新しいゲームで作ったデータは読めない
   return d;
 }

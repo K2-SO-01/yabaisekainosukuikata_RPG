@@ -1,9 +1,11 @@
 // ゲームの状態（セーブするもの）。画面には依存しない
 import { SAVE_VERSION } from '../config.js';
+import { createMember, heroStartEquip } from './party.js';
 
 export const DEFAULT_NAMES = { male: 'アレン', female: 'エマ' };
 
-export function createNewGame({ name = '', gender = 'male', job = 'swordsman', map = 'castle_throne' } = {}) {
+// items：data/items.json の中身（最初の装備の能力を計算するのに使う）
+export function createNewGame({ name = '', gender = 'male', job = 'swordsman', map = 'castle_throne' } = {}, items = {}) {
   return {
     version: SAVE_VERSION,
     player: { name: name || DEFAULT_NAMES[gender] || DEFAULT_NAMES.male, gender, job },
@@ -11,6 +13,8 @@ export function createNewGame({ name = '', gender = 'male', job = 'swordsman', m
     stats: { goldEarned: 0 },
     flags: { dash: false }, // ダッシュは、シュンソクをもらうまで使えない
     keyItems: [], // 大事なもの
+    party: [createMember({ id: 'hero', job, equip: heroStartEquip(job) }, items)],
+    bag: {}, // 道具の袋 { アイテムのid: 個数 }
     // x・y が null の時は、マップの「start」の位置から始める
     location: { map, x: null, y: null, dir: 'down', placeName: '' },
     playTimeMs: 0,

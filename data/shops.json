@@ -1,0 +1,4 @@
+{
+  "town_weapon": { "type": "weapon", "keeper": "shop_weapon", "stock": ["wood_sword", "bronze_sword", "iron_sword", "wood_staff", "bronze_rod", "iron_rod", "leather_armor", "travel_clothes", "cotton_robe", "wood_shield", "leather_cap", "power_ring"] },
+  "town_item": { "type": "item", "keeper": "shop_item", "stock": ["potion_s", "cure_potion", "warp_potion"] }
+}

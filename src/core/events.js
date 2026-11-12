@@ -15,6 +15,8 @@
 //                                       休む：暗くなり、pick のどれか1つが出て、朝になる。オートセーブもする
 //   { "transfer": { "map": "…", "x": 0, "y": 0, "dir": "down" } }   別のマップへ移る
 //   { "run": "台本の名前" }             別の台本を呼ぶ
+//   { "shop": "お店の名前" }            お店を開く（data/shops.json）
+//   { "join": "luke" }                  仲間に加える
 import { addGold, addKeyItem } from './state.js';
 
 export function checkCond(state, cond) {
@@ -54,8 +56,11 @@ export async function runScript(commands, ctx) {
       const picks = [...(cmd.rest.pick ?? [])];
       for (const [flag, key] of Object.entries(cmd.rest.pickIf ?? {})) if (checkCond(state, flag)) picks.push(key);
       await ui.rest(picks[Math.floor(random() * picks.length)]);
-      ui.autosave(); // 全回復は、戦闘（段階4）を作る時にここへ足す
+      ui.recover(); // 全回復（倒れた人も生き返る）
+      ui.autosave();
     } else if ('transfer' in cmd) await ui.transfer(cmd.transfer);
     else if ('run' in cmd) await runScript(scripts?.[cmd.run], ctx);
+    else if ('shop' in cmd) await ui.shop(cmd.shop);
+    else if ('join' in cmd) ui.join(cmd.join);
   }
 }

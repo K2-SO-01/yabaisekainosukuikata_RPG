@@ -1,23 +1,30 @@
 // マップを歩く場面。人と話す、調べる、出口で別のマップへ移る、イベントの台本を動かす
 import { HEIGHT, TILE, WIDTH } from '../../config.js';
 import { isActive, runScript } from '../../core/events.js';
-import { entityAt, findStart, stepTarget, tryMove } from '../../core/map.js';
+import { canWalk, entityAt, findStart, stepTarget, tryMove } from '../../core/map.js';
+import { addItem, createMember, fullRecover, MEMBER_DEFS } from '../../core/party.js';
 import { writeSlot } from '../../core/save.js';
-import { addPlayTime } from '../../core/state.js';
+import { addGold, addPlayTime } from '../../core/state.js';
 import { fillName } from '../../core/text.js';
 import { COLORS, drawWindow } from '../draw.js';
+import { say } from '../flow.js';
 import { ChoiceScene } from '../menu.js';
 import { MessageScene } from '../message.js';
 import { Scene } from '../scene.js';
 import { FieldMenuScene } from './fieldmenu.js';
 import { RestScene } from './rest.js';
 import { SaveLoadScene } from './saveload.js';
+import { openShop } from './shop.js';
 
 const DIR_ROW = { down: 0, left: 1, right: 2, up: 3 };
 const OPPOSITE = { up: 'down', down: 'up', left: 'right', right: 'left' };
 const WALK_MS = 200;
 const DASH_MS = 110;
 const STEP_FRAMES = [0, 1, 2, 1];
+const NPC_STEP_MS = 320;
+const CHEST_CLOSED = 863;
+const CHEST_OPEN = 871;
+const SEARCH_WORDS = { pot: 'つぼ', drawer: 'タンス' };
 
 export class FieldScene extends Scene {
   enter() {
@@ -47,6 +54,21 @@ export class FieldScene extends Scene {
     this.autoDone = new Set();
     this.checkAuto = true;
     this.isOn = (o) => isActive(g.state, o);
+    // 行ったことのある町や村（ワープポーションの行き先）
+    if (this.map.props.town) {
+      g.state.visited ??= [];
+      if (!g.state.visited.includes(this.map.props.town)) g.state.visited.push(this.map.props.town);
+    }
+    // 歩き回る人は、マップに入るたびに元の場所へ戻す
+    for (const o of this.map.objects) {
+      if (o.type !== 'npc' || !o.props.wander) continue;
+      o.home ??= { x: o.x, y: o.y };
+      o.x = o.home.x;
+      o.y = o.home.y;
+      o.mv = null;
+      o.wait = 1000 + Math.random() * 2500;
+    }
+    g.warpTo = (dest) => this.transfer(dest);
     g.audio.playBgm(this.map.props.bgm ?? 'town');
   }
 
@@ -70,6 +92,8 @@ export class FieldScene extends Scene {
       }
     }
 
+    this.updateWalkers(dt);
+
     let carry = 0; // 1歩が終わった時のあまりの時間。次の1歩に回して、歩きが止まって見えないようにする
     if (this.moving) {
       const m = this.moving;
@@ -90,7 +114,7 @@ export class FieldScene extends Scene {
     }
 
     if (input.pressed('cancel')) {
-      g.scenes.push(new FieldMenuScene());
+      g.scenes.push(new FieldMenuScene({ mapProps: this.map.props }));
       return;
     }
     if (input.pressed('ok')) {
@@ -106,6 +130,33 @@ export class FieldScene extends Scene {
       const dashing = g.state.flags.dash !== false && (g.settings.alwaysDash ? !input.dash() : input.dash());
       const dur = (dashing ? DASH_MS : WALK_MS) * (g.settings.moveSpeed === 1 ? 0.8 : 1);
       this.moving = { from: { ...this.pos }, to, t: Math.min(carry, dur * 0.9), dur };
+    }
+  }
+
+  // 歩き回る町の人（家から2マスまで。イベント中と、主人公が話しかけている間は止まる）
+  updateWalkers(dt) {
+    for (const o of this.map.objects) {
+      if (o.type !== 'npc' || !o.props.wander || !this.isOn(o)) continue;
+      if (o.mv) {
+        o.mv.t += dt;
+        if (o.mv.t >= NPC_STEP_MS) o.mv = null;
+        continue;
+      }
+      if (this.busy || this.npcDirs.has(o.id)) continue;
+      o.wait -= dt;
+      if (o.wait > 0) continue;
+      o.wait = 1200 + Math.random() * 2800;
+      const dir = ['up', 'down', 'left', 'right'][Math.floor(Math.random() * 4)];
+      const t = stepTarget(o, dir);
+      o.facing = dir;
+      if (Math.abs(t.x - o.home.x) > 2 || Math.abs(t.y - o.home.y) > 2) continue;
+      if (!canWalk(this.map, t.x, t.y, this.isOn)) continue;
+      const p = this.moving ? this.moving.to : this.pos;
+      if ((t.x === p.x && t.y === p.y) || (t.x === this.pos.x && t.y === this.pos.y)) continue;
+      if (this.map.objects.some((x) => x !== o && (x.type === 'exit' || x.type === 'trigger') && x.x === t.x && x.y === t.y)) continue;
+      o.mv = { from: { x: o.x, y: o.y }, t: 0 };
+      o.x = t.x;
+      o.y = t.y;
     }
   }
 
@@ -140,6 +191,8 @@ export class FieldScene extends Scene {
     g.input.clear();
     try {
       await runScript(commands, { state: g.state, scripts: g.scripts, ui: this.ui(npc) });
+    } catch (err) {
+      console.error(err);
     } finally {
       this.busy = false;
       if (npc) this.npcDirs.delete(npc.id);
@@ -183,6 +236,13 @@ export class FieldScene extends Scene {
         }),
       rest: (what) => new Promise((done) => g.scenes.push(new RestScene({ lines: g.dialogues[what] ?? [''], onDone: done }))),
       autosave: () => writeSlot(g.store, 'auto', g.state),
+      recover: () => fullRecover(g.state, g.items),
+      shop: (id) => openShop(g, id),
+      join: (id) => {
+        if (g.state.party.some((m) => m.id === id)) return;
+        const def = MEMBER_DEFS[id] ?? {};
+        g.state.party.push(createMember({ id, job: def.job ?? 'priest', level: def.level ?? 1, equip: def.equip ?? {} }, g.items));
+      },
       se: (name) => g.audio.playSe(name),
       bgm: (name) => g.audio.playBgm(name),
       bgmStop: (ms) => g.audio.stopBgm(ms ?? 500),
@@ -210,8 +270,18 @@ export class FieldScene extends Scene {
   interact() {
     const g = this.game;
     const f = stepTarget(this.pos, this.dir);
-    const e = entityAt(this.map, f.x, f.y, this.isOn);
+    let e = entityAt(this.map, f.x, f.y, this.isOn);
+    if (!e) {
+      // カウンターの向こうの人（お店の人）とも話せる
+      const f2 = stepTarget(f, this.dir);
+      const e2 = entityAt(this.map, f2.x, f2.y, this.isOn);
+      if (e2?.type === 'npc' && e2.props.counter) e = e2;
+    }
     if (!e) return;
+    if (e.type === 'search') {
+      this.search(e);
+      return;
+    }
     if (e.type === 'npc') {
       this.npcDirs.set(e.id, OPPOSITE[this.dir]);
       this.run(e.props.script ? g.scripts[e.props.script] : [{ say: e.props.dialogue }], e);
@@ -219,6 +289,48 @@ export class FieldScene extends Scene {
       g.scenes.push(new MessageScene(['光の結晶が、やさしく光っている…'], { onDone: () => this.savePointMenu() }));
     } else if (e.type === 'sign') {
       this.run(e.props.script ? g.scripts[e.props.script] : [{ notice: e.props.text ?? '' }]);
+    }
+  }
+
+  // 壺・タンス・宝箱を調べる。中身は1回だけ取れる
+  async search(o) {
+    const g = this.game;
+    const st = g.state;
+    const p = o.props;
+    const key = `got_${st.location.map}_${o.id}`;
+    const name = st.player.name;
+    const itemName = g.items[p.item]?.name ?? p.item;
+    const full = p.item && (st.bag?.[p.item] ?? 0) >= 99;
+    this.busy = true;
+    g.input.clear();
+    try {
+      if (p.kind === 'chest') {
+        if (st.flags[key]) return await say(g, '宝箱は からっぽだ。');
+        if (full) return await say(g, [`${name}は 宝箱を開けた！`, `${itemName}が 入っている。`, 'しかし これ以上 持てない！']);
+        st.flags[key] = true;
+        g.audio.playSe('chest');
+        if (p.gold) {
+          addGold(st, Number(p.gold));
+          return await say(g, [`${name}は 宝箱を開けた！`, `${p.gold}ゴールドを 手に入れた！`]);
+        }
+        addItem(st, p.item, Number(p.count ?? 1));
+        return await say(g, [`${name}は 宝箱を開けた！`, `${itemName}を 手に入れた！`]);
+      }
+      const where = SEARCH_WORDS[p.kind] ?? 'つぼ';
+      if (st.flags[key] || (!p.item && !p.gold)) return await say(g, `${where}の中は からっぽだ。`);
+      if (full) return await say(g, [`${where}の中に ${itemName}が 入っている。`, 'しかし これ以上 持てない！']);
+      st.flags[key] = true;
+      if (p.gold) {
+        addGold(st, Number(p.gold));
+        g.audio.playSe('gold_get');
+        return await say(g, `${name}は ${where}の中から ${p.gold}ゴールドを 見つけた！`);
+      }
+      addItem(st, p.item, Number(p.count ?? 1));
+      g.audio.playSe('item_get');
+      await say(g, `${name}は ${where}の中から ${itemName}を 見つけた！`);
+    } finally {
+      this.busy = false;
+      g.input.clear();
     }
   }
 
@@ -275,7 +387,20 @@ export class FieldScene extends Scene {
       if (!this.isOn(o)) continue;
       if (o.type === 'npc') {
         const img = this.game.assets.image(`char:${o.props.character}`);
-        sprites.push({ y: o.y * TILE, draw: () => drawChar(ctx, img, o.x * TILE - camX, o.y * TILE - camY, this.npcDirs.get(o.id) ?? o.props.dir ?? 'down', 1) });
+        let px = o.x * TILE;
+        let py = o.y * TILE;
+        let frame = 1;
+        if (o.mv) {
+          const k = Math.min(1, o.mv.t / NPC_STEP_MS);
+          px = (o.mv.from.x + (o.x - o.mv.from.x) * k) * TILE;
+          py = (o.mv.from.y + (o.y - o.mv.from.y) * k) * TILE;
+          frame = k < 0.5 ? 0 : 2;
+        }
+        const dir = this.npcDirs.get(o.id) ?? o.facing ?? o.props.dir ?? 'down';
+        sprites.push({ y: py, draw: () => drawChar(ctx, img, snap(px) - camX, snap(py) - camY, dir, frame) });
+      } else if (o.type === 'search' && o.props.kind === 'chest') {
+        const opened = this.game.state.flags[`got_${this.game.state.location.map}_${o.id}`];
+        sprites.push({ y: o.y * TILE - 1, draw: () => drawGid(ctx, map, opened ? CHEST_OPEN : CHEST_CLOSED, o.x * TILE - camX, o.y * TILE - camY) });
       } else if (o.type === 'savepoint') {
         sprites.push({ y: o.y * TILE, draw: () => drawCrystal(ctx, o.x * TILE - camX, o.y * TILE - camY, this.time) });
       }
@@ -341,6 +466,13 @@ function drawTileLayer(ctx, map, layer, camX, camY) {
       ctx.drawImage(ts.img, (local % ts.columns) * TILE, Math.floor(local / ts.columns) * TILE, TILE, TILE, dx, dy, TILE, TILE);
     }
   }
+}
+
+function drawGid(ctx, map, gid, dx, dy) {
+  const ts = tilesetFor(map, gid);
+  if (!ts?.img) return;
+  const local = gid - ts.firstgid;
+  ctx.drawImage(ts.img, (local % ts.columns) * TILE, Math.floor(local / ts.columns) * TILE, TILE, TILE, dx, dy, TILE, TILE);
 }
 
 function tilesetFor(map, gid) {

@@ -112,7 +112,7 @@ export class NewGameScene extends Scene {
   start() {
     const g = this.game;
     g.scenes.fadeTo(() => {
-      g.state = createNewGame({ name: this.name, gender: this.gender, job: this.job });
+      g.state = createNewGame({ name: this.name, gender: this.gender, job: this.job }, g.items);
       g.scenes.replaceAll(new PrologueScene());
     }, 700);
   }

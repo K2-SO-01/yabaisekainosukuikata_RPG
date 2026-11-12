@@ -1,0 +1,59 @@
+{
+  "type": "map", "version": "1.10", "tiledversion": "1.10.2", "orientation": "orthogonal", "renderorder": "right-down", "infinite": false,
+  "width": 11, "height": 9, "tilewidth": 32, "tileheight": 32, "nextlayerid": 5, "nextobjectid": 7,
+  "properties": [
+    { "name": "name", "type": "string", "value": "城下町" },
+    { "name": "bgm", "type": "string", "value": "town" }
+  ],
+  "tilesets": [
+    { "firstgid": 1, "name": "BaseChip", "image": "../../assets/tiles/Pipoya RPG Tileset 32x32/[Base]BaseChip_pipo.png", "imagewidth": 256, "imageheight": 4256, "tilewidth": 32, "tileheight": 32, "columns": 8, "tilecount": 1064, "margin": 0, "spacing": 0 },
+    { "firstgid": 1065, "name": "CastleExtra", "image": "../../assets/tiles/extra/castle_extra.png", "imagewidth": 256, "imageheight": 320, "tilewidth": 32, "tileheight": 32, "columns": 8, "tilecount": 80, "margin": 0, "spacing": 0 }
+  ],
+  "layers": [
+    { "id": 1, "type": "tilelayer", "name": "ground", "x": 0, "y": 0, "width": 11, "height": 9, "opacity": 1, "visible": true,
+      "data": [
+        498,498,498,498,498,498,498,498,498,498,498,
+        506,506,506,506,506,506,506,506,506,506,506,
+        305,305,305,305,305,305,305,305,305,305,305,
+        305,305,305,305,305,305,305,305,305,305,305,
+        305,305,305,305,305,305,305,305,305,305,305,
+        305,305,305,305,305,305,305,305,305,305,305,
+        305,305,305,305,305,305,305,305,305,305,305,
+        305,305,305,305,305,305,305,305,305,305,305,
+        0,0,0,0,0,305,0,0,0,0,0
+      ] },
+    { "id": 2, "type": "tilelayer", "name": "deco", "x": 0, "y": 0, "width": 11, "height": 9, "opacity": 1, "visible": true,
+      "data": [
+        0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,713,0,716,716,0,0,0,
+        0,778,0,0,721,0,724,724,0,857,0,
+        0,786,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,717,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,
+        0,857,0,0,0,0,0,0,0,857,0,
+        0,0,0,0,0,0,0,0,0,0,0
+      ] },
+    { "id": 3, "type": "tilelayer", "name": "collision", "x": 0, "y": 0, "width": 11, "height": 9, "opacity": 1, "visible": false,
+      "data": [
+        1,1,1,1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1,1,1,1,
+        0,1,0,0,1,0,1,1,0,1,0,
+        0,1,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,1,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,
+        0,1,0,0,0,0,0,0,0,1,0,
+        1,1,1,1,1,0,1,1,1,1,1
+      ] },
+    { "id": 4, "type": "objectgroup", "name": "events", "x": 0, "y": 0, "opacity": 1, "visible": true, "draworder": "topdown",
+      "objects": [
+        { "id": 1, "name": "start", "type": "start", "x": 160, "y": 224, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "dir", "type": "string", "value": "up" }] },
+        { "id": 2, "name": "外へ", "type": "exit", "x": 160, "y": 256, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "dir", "type": "string", "value": "down" }, { "name": "map", "type": "string", "value": "town" }, { "name": "x", "type": "int", "value": 32 }, { "name": "y", "type": "int", "value": 33 }] },
+        { "id": 3, "name": "タンス", "type": "search", "x": 128, "y": 64, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "count", "type": "int", "value": 2 }, { "name": "item", "type": "string", "value": "potion_s" }, { "name": "kind", "type": "string", "value": "drawer" }] },
+        { "id": 4, "name": "つぼ", "type": "search", "x": 288, "y": 64, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "item", "type": "string", "value": "warp_potion" }, { "name": "kind", "type": "string", "value": "pot" }] },
+        { "id": 5, "name": "つぼ", "type": "search", "x": 32, "y": 224, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "kind", "type": "string", "value": "pot" }] },
+        { "id": 6, "name": "つぼ", "type": "search", "x": 288, "y": 224, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "gold", "type": "int", "value": 20 }, { "name": "kind", "type": "string", "value": "pot" }] }
+      ] }
+  ]
+}

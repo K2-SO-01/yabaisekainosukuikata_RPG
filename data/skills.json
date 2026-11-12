@@ -1,0 +1,30 @@
+{
+  "_note": "kind: physical / magic / status / support / heal. target: enemy / enemies / ally / allies / self / ally_down. power: damage multiplier. learn: level (1 = from the start).",
+  "slash": { "name": "スラッシュ", "job": "swordsman", "learn": 1, "mp": 1, "kind": "physical", "element": "none", "power": 1.5, "target": "enemy" },
+  "cover": { "name": "かばう", "job": "swordsman", "learn": 1, "mp": 2, "kind": "support", "target": "self", "effect": "cover" },
+  "focus": { "name": "フォーカス", "job": "swordsman", "learn": 1, "mp": 3, "kind": "support", "target": "allies", "buff": "focus" },
+  "stun": { "name": "スタン", "job": "swordsman", "learn": 2, "mp": 2, "kind": "physical", "element": "none", "power": 1, "target": "enemy", "inflict": "paralysis" },
+  "power_up": { "name": "パワーアップ", "job": "swordsman", "learn": 7, "mp": 4, "kind": "support", "target": "allies", "buff": "atkUp" },
+  "guard_up": { "name": "防御アップ", "job": "swordsman", "learn": 7, "mp": 4, "kind": "support", "target": "allies", "buff": "defUp" },
+  "wide_slash": { "name": "ワイドスラッシュ", "job": "swordsman", "learn": 10, "mp": 6, "kind": "physical", "element": "none", "power": 1.4, "target": "enemies" },
+  "high_slash": { "name": "ハイスラッシュ", "job": "swordsman", "learn": 12, "mp": 4, "kind": "physical", "element": "none", "power": 2, "target": "enemy" },
+  "giga_slash": { "name": "ギガスラッシュ", "job": "swordsman", "learn": 22, "mp": 9, "kind": "physical", "element": "none", "power": 3, "target": "enemy" },
+
+  "fire": { "name": "ファイア", "job": "mage", "learn": 1, "mp": 6, "kind": "magic", "element": "fire", "power": 2, "target": "enemy" },
+  "poison": { "name": "ポイズン", "job": "mage", "learn": 2, "mp": 8, "kind": "status", "target": "enemy", "inflict": "poison" },
+  "burn": { "name": "バーン", "job": "mage", "learn": 3, "mp": 8, "kind": "status", "target": "enemy", "inflict": "burn" },
+  "thunder": { "name": "サンダー", "job": "mage", "learn": 5, "mp": 6, "kind": "magic", "element": "thunder", "power": 2, "target": "enemy" },
+  "sleep": { "name": "スリープ", "job": "mage", "learn": 8, "mp": 10, "kind": "status", "target": "enemy", "inflict": "sleep" },
+  "aqua": { "name": "アクア", "job": "mage", "learn": 12, "mp": 6, "kind": "magic", "element": "water", "power": 2, "target": "enemy" },
+  "break": { "name": "ブレイク", "job": "mage", "learn": 14, "mp": 10, "kind": "support", "target": "enemy", "debuff": "defDown" },
+  "wind": { "name": "ウィンド", "job": "mage", "learn": 17, "mp": 6, "kind": "magic", "element": "wind", "power": 2, "target": "enemy" },
+  "meteor": { "name": "メテオ", "job": "mage", "learn": 20, "mp": 25, "kind": "magic", "element": "none", "power": 1.4, "target": "enemies" },
+  "explosion": { "name": "エクスプロージョン", "job": "mage", "learn": 30, "mp": 60, "kind": "magic", "element": "none", "power": 5, "target": "enemy" },
+
+  "heal": { "name": "ヒール", "job": "priest", "learn": 1, "mp": 4, "kind": "heal", "target": "ally", "heal": [1.5, 20], "field": true },
+  "holy_light": { "name": "ホーリーライト", "job": "priest", "learn": 1, "mp": 4, "kind": "magic", "element": "light", "power": 1.5, "target": "enemy" },
+  "cure": { "name": "キュア", "job": "priest", "learn": 4, "mp": 3, "kind": "heal", "target": "ally", "cure": true, "field": true },
+  "high_heal": { "name": "ハイヒール", "job": "priest", "learn": 9, "mp": 8, "kind": "heal", "target": "ally", "heal": [3, 40], "field": true },
+  "heal_all": { "name": "ヒールオール", "job": "priest", "learn": 11, "mp": 12, "kind": "heal", "target": "allies", "heal": [1.5, 20], "field": true },
+  "resurrection": { "name": "リザレクション", "job": "priest", "learn": 20, "mp": 60, "kind": "heal", "target": "ally_down", "revive": 0.5, "field": true }
+}

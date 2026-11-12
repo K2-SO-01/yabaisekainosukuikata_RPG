@@ -1,6 +1,6 @@
 {
   "type": "map", "version": "1.10", "tiledversion": "1.10.2", "orientation": "orthogonal", "renderorder": "right-down", "infinite": false,
-  "width": 11, "height": 9, "tilewidth": 32, "tileheight": 32, "nextlayerid": 5, "nextobjectid": 6,
+  "width": 11, "height": 9, "tilewidth": 32, "tileheight": 32, "nextlayerid": 5, "nextobjectid": 8,
   "properties": [
     { "name": "name", "type": "string", "value": "〇〇の家" },
     { "name": "bgm", "type": "string", "value": "town" }
@@ -49,10 +49,12 @@
     { "id": 4, "type": "objectgroup", "name": "events", "x": 0, "y": 0, "opacity": 1, "visible": true, "draworder": "topdown",
       "objects": [
         { "id": 1, "name": "start", "type": "start", "x": 160, "y": 224, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "dir", "type": "string", "value": "up" }] },
-        { "id": 2, "name": "おじさん", "type": "npc", "x": 128, "y": 128, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "character", "type": "string", "value": "oji" }, { "name": "dialogue", "type": "string", "value": "oji_after" }, { "name": "dir", "type": "string", "value": "down" }] },
-        { "id": 3, "name": "おばさん", "type": "npc", "x": 192, "y": 128, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "character", "type": "string", "value": "oba" }, { "name": "dir", "type": "string", "value": "down" }, { "name": "script", "type": "string", "value": "talk_oba" }] },
-        { "id": 4, "name": "旅立ち", "type": "auto", "x": 0, "y": 0, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "script", "type": "string", "value": "home_event" }, { "name": "unless", "type": "string", "value": "home_event_done" }] },
-        { "id": 5, "name": "外へ", "type": "exit", "x": 160, "y": 256, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "dir", "type": "string", "value": "down" }, { "name": "map", "type": "string", "value": "town" }, { "name": "x", "type": "int", "value": 7 }, { "name": "y", "type": "int", "value": 24 }] }
+        { "id": 2, "name": "外へ", "type": "exit", "x": 160, "y": 256, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "dir", "type": "string", "value": "down" }, { "name": "map", "type": "string", "value": "town" }, { "name": "x", "type": "int", "value": 7 }, { "name": "y", "type": "int", "value": 24 }] },
+        { "id": 3, "name": "タンス", "type": "search", "x": 128, "y": 64, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "item", "type": "string", "value": "cure_potion" }, { "name": "kind", "type": "string", "value": "drawer" }] },
+        { "id": 4, "name": "つぼ", "type": "search", "x": 32, "y": 224, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "item", "type": "string", "value": "potion_s" }, { "name": "kind", "type": "string", "value": "pot" }] },
+        { "id": 5, "name": "おじさん", "type": "npc", "x": 128, "y": 128, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "character", "type": "string", "value": "oji" }, { "name": "dialogue", "type": "string", "value": "oji_after" }, { "name": "dir", "type": "string", "value": "down" }] },
+        { "id": 6, "name": "おばさん", "type": "npc", "x": 192, "y": 128, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "character", "type": "string", "value": "oba" }, { "name": "dir", "type": "string", "value": "down" }, { "name": "script", "type": "string", "value": "talk_oba" }] },
+        { "id": 7, "name": "旅立ち", "type": "auto", "x": 0, "y": 0, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "script", "type": "string", "value": "home_event" }, { "name": "unless", "type": "string", "value": "home_event_done" }] }
       ] }
   ]
 }

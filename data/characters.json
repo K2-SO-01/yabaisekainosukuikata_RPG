@@ -1,8 +1,10 @@
 {
+  "_note": "face: use another character's face icon (townspeople share two faces, male and female)",
   "hero_m_sword": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 01-1.png" },
   "hero_m_mage": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 04-1.png" },
   "hero_f_sword": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 10-1.png" },
   "hero_f_mage": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 13-1.png" },
+  "luke": { "name": "ルーク", "main": true, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 05-1.png" },
   "king": { "name": "王様", "main": true, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 06-1.png" },
   "oji": { "name": "おじさん", "main": true, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 11-1.png" },
   "oba": { "name": "おばさん", "main": true, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 18-1.png" },
@@ -10,5 +12,18 @@
   "minister": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 07-1.png" },
   "priestess": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 05-1.png" },
   "soldier_castle": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Soldier/Soldier 01-1.png" },
-  "villager_f1": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 01-1.png" }
+  "villager_m": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 03-1.png" },
+  "villager_f": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 02-1.png" },
+  "town_a": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 03-1.png", "face": "villager_m" },
+  "town_b": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 09-1.png", "face": "villager_m" },
+  "town_c": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 12-1.png", "face": "villager_m" },
+  "town_d": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 13-1.png", "face": "villager_m" },
+  "town_e": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 14-1.png", "face": "villager_m" },
+  "town_f": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 10-1.png", "face": "villager_m" },
+  "town_g": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 02-1.png", "face": "villager_f" },
+  "town_h": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 19-1.png", "face": "villager_f" },
+  "town_i": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 20-1.png", "face": "villager_f" },
+  "science": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Other/pipo-charachip_otaku01.png" },
+  "shop_weapon": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Male/Male 17-1.png", "face": "villager_m" },
+  "shop_item": { "name": null, "sprite": "assets/chars/PIPOYA FREE RPG Character Sprites 32x32/Female/Female 14-1.png", "face": "villager_f" }
 }
