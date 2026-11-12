@@ -19,7 +19,7 @@ const FRAME_Y = 280;
 const FRAME_H = 76;
 const GROUND_Y = 192;
 const MSG_Y = 229; // 戦いの文の窓
-const CMD = { x: 8, y: 90, w: 176, head: 36 }; // コマンドの窓（左下。上に行動する人の顔と名前）
+const CMD = { x: 8, bottom: 274, w: 176, head: 36 }; // コマンドの窓（左下。上に行動する人の顔と名前。下のはしは bottom）
 const DOWN_RED = '#ff6a5a';
 
 export class BattleScene extends Scene {
@@ -101,14 +101,14 @@ export class BattleScene extends Scene {
   }
 
   msgDelay() {
-    return this.game.settings.animSpeed === 1 ? 420 : 760;
+    return 760;
   }
 
   step(dt) {
     const g = this.game;
     if (this.talking) return;
     if (this.hitstop > 0) return; // 当たった瞬間、少しだけ止める
-    if (this.textShown < (this.text?.length ?? 0)) this.textShown += dt / (g.settings.animSpeed === 1 ? 10 : 22);
+    if (this.textShown < (this.text?.length ?? 0)) this.textShown += dt / 22;
     if (this.waitT > 0) {
       this.waitT -= dt;
       if (g.input.pressed('ok') || g.input.tapped()) {
@@ -117,7 +117,7 @@ export class BattleScene extends Scene {
       }
       return;
     }
-    const fast = g.settings.animSpeed === 1;
+    const fast = false; // 速さは、時間を2倍に進めて決める（update の speed）
     while (this.queue.length) {
       const e = this.queue.shift();
       if (e.t === 'msg') {
@@ -314,12 +314,43 @@ export class BattleScene extends Scene {
         { label: 'どうぐ', value: 'item' },
         { label: 'ぼうぎょ', value: 'guard' },
         { label: 'にげる', value: 'escape' },
+        ...(this.lastCommands && this.who === this.firstInputIndex() ? [{ label: 'くり返す', value: 'repeat' }] : []),
       ],
-      x: CMD.x, y: CMD.y + CMD.head, width: CMD.w, index,
+      x: CMD.x, y: 0, width: CMD.w, index,
     });
+    // 窓の下のはしをそろえる（項目が多い時は上にのびる）
+    this.cmdY = CMD.bottom - (CMD.head + 18 + this.menu.items.length * 26);
+    this.menu.y = this.cmdY + CMD.head;
+  }
+
+  toggleSpeed() {
+    const g = this.game;
+    g.settings.animSpeed = g.settings.animSpeed === 1 ? 0 : 1;
+    g.saveSettings?.();
+    g.audio.playSe('cursor');
+  }
+
+  // くり返す：前のターンと同じ行動を、まだ選んでいない全員に入れる（MPや道具が足りない時は、たたかう）
+  repeatLast() {
+    const g = this.game;
+    const last = this.lastCommands ?? [];
+    for (let i = this.who; i < this.b.allies.length; i++) {
+      const u = this.b.allies[i];
+      if (!alive(u) || mustSkipInput(u)) {
+        this.commands[i] = { type: 'none' };
+        continue;
+      }
+      let c = last[i] ? { ...last[i] } : { type: 'attack', target: 0 };
+      if (c.type === 'skill' && (g.skills[c.skill]?.mp ?? 0) > u.m.mp) c = { type: 'attack', target: c.target ?? 0 };
+      if (c.type === 'item' && itemCount(g.state, c.item) <= this.commands.filter((x, k) => k < i && x?.type === 'item' && x.item === c.item).length) c = { type: 'attack', target: 0 };
+      if (c.type === 'escape' || c.type === 'none') c = { type: 'attack', target: 0 };
+      this.commands[i] = c;
+    }
+    this.runTurn();
   }
 
   runTurn() {
+    this.lastCommands = this.commands.map((c) => ({ ...c }));
     this.phase = 'play';
     const events = resolveTurn(this.b, this.commands);
     this.play(events, () => this.startTurn());
@@ -370,6 +401,9 @@ export class BattleScene extends Scene {
   // ---- 入力 ----
   update(dt) {
     const g = this.game;
+    // 戦闘の速さ：×2 の時は、時間を2倍に進める（Shift キー、またはコマンドの窓の「×1／×2」で切りかえ）
+    if (g.input.pressed('dash')) this.toggleSpeed();
+    if (g.settings.animSpeed === 1) dt *= 2;
     this.t += dt;
     this.introT += dt;
     this.effects.update(this.hitstop > 0 ? 0 : dt);
@@ -427,6 +461,10 @@ export class BattleScene extends Scene {
 
   updateCommand() {
     const g = this.game;
+    // 「×1／×2」をタップ
+    const tap = g.input.tap();
+    const sp = this.speedChip;
+    if (tap && sp && tap.x >= sp.x && tap.x <= sp.x + sp.w && tap.y >= sp.y && tap.y <= sp.y + sp.h) return this.toggleSpeed();
     const r = this.menu.update(g.input, g.audio);
     if (!r) return;
     if (r.type === 'cancel') {
@@ -444,6 +482,7 @@ export class BattleScene extends Scene {
     this.memory[this.who] = { ...(this.memory[this.who] ?? {}), cmd: this.menu.index };
     if (v === 'attack') return this.chooseTarget('enemy', (t) => this.setCommand({ type: 'attack', target: t }));
     if (v === 'guard') return this.setCommand({ type: 'guard' });
+    if (v === 'repeat') return this.repeatLast();
     if (v === 'escape') {
       if (this.b.boss) return this.notice('逃げられない！', 4);
       this.commands = this.b.allies.map(() => ({ type: 'none' }));
@@ -651,18 +690,29 @@ export class BattleScene extends Scene {
     const u = this.b.allies[this.who];
     const menu = this.menu;
     if (!u || !menu) return;
+    const top = this.cmdY ?? 90;
     const h = CMD.head + 9 + menu.items.length * 26 + 9;
-    drawWindow(ctx, CMD.x, CMD.y, CMD.w, h);
+    drawWindow(ctx, CMD.x, top, CMD.w, h);
+    // 速さの切りかえ（×1／×2）
+    const fast = g.settings.animSpeed === 1;
+    this.speedChip = { x: CMD.x + CMD.w - 44, y: top + 9, w: 34, h: 20 };
+    const sc = this.speedChip;
+    ctx.fillStyle = fast ? 'rgba(255,224,138,0.3)' : 'rgba(122,208,255,0.15)';
+    ctx.fillRect(sc.x, sc.y, sc.w, sc.h);
+    ctx.strokeStyle = fast ? COLORS.title : COLORS.textDim;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(sc.x + 0.5, sc.y + 0.5, sc.w - 1, sc.h - 1);
+    g.font.drawCentered(ctx, fast ? '×2' : '×1', sc.x + sc.w / 2, sc.y + 2, fast ? COLORS.title : COLORS.textDim);
     const face = g.assets.image(`face:${faceKey(g, u.m)}`);
     if (face) {
       ctx.fillStyle = COLORS.winInner;
-      ctx.fillRect(CMD.x + 9, CMD.y + 7, 33, 33);
-      ctx.drawImage(face, CMD.x + 10, CMD.y + 8, 31, 31);
+      ctx.fillRect(CMD.x + 9, top + 7, 33, 33);
+      ctx.drawImage(face, CMD.x + 10, top + 8, 31, 31);
     }
-    g.font.draw(ctx, u.name, CMD.x + 50, CMD.y + 7, COLORS.title);
-    g.font.draw(ctx, `Lv${u.m.level}`, CMD.x + 50, CMD.y + 23, COLORS.textDim);
+    g.font.draw(ctx, u.name, CMD.x + 50, top + 7, COLORS.title);
+    g.font.draw(ctx, `Lv${u.m.level}`, CMD.x + 50, top + 23, COLORS.textDim);
     ctx.fillStyle = 'rgba(216,192,122,0.5)';
-    ctx.fillRect(CMD.x + 8, CMD.y + CMD.head + 6, CMD.w - 16, 1);
+    ctx.fillRect(CMD.x + 8, top + CMD.head + 6, CMD.w - 16, 1);
     menu.w = CMD.w;
     const active = this.phase === 'command';
     menu.items.forEach((it, i) => {
@@ -674,7 +724,7 @@ export class BattleScene extends Scene {
         ctx.fillStyle = active ? COLORS.accent : COLORS.textDim;
         ctx.fillRect(CMD.x + 8, ry, 2, 24);
       }
-      const icon = it.value === 'attack' ? 'sword' : it.value === 'skill' ? (u.m.job === 'swordsman' ? 'spark' : 'staff') : it.value === 'item' ? 'bag' : it.value === 'guard' ? 'shield' : 'foot';
+      const icon = it.value === 'attack' ? 'sword' : it.value === 'skill' ? (u.m.job === 'swordsman' ? 'spark' : 'staff') : it.value === 'item' ? 'bag' : it.value === 'guard' ? 'shield' : it.value === 'repeat' ? 'repeat' : 'foot';
       drawCommandIcon(ctx, icon, CMD.x + 16, ry + 3, this.t);
       g.font.draw(ctx, it.label, CMD.x + 46, ry + 4, sel ? COLORS.text : COLORS.textDim);
     });
@@ -1272,6 +1322,17 @@ function drawCommandIcon(ctx, kind, x, y, t) {
     px(7, 14, 4, 2, '#7a8aa0');
     px(6, 4, 3, 7, '#c9d4e2');
     px(8, 2, 2, 12, '#d8c07a');
+  } else if (kind === 'repeat') {
+    // ぐるっと回る矢印
+    const c = '#8ef0a0';
+    px(4, 3, 8, 2, c);
+    px(12, 3, 2, 8, c);
+    px(4, 11, 8, 2, c);
+    px(2, 5, 2, 6, c);
+    px(14, 9, 2, 1, c);
+    px(10, 9, 6, 1, c);
+    px(11, 10, 4, 1, c);
+    px(12, 11, 2, 1, c);
   } else {
     // 足あと
     px(3, 8, 4, 6, '#c8b8a0');

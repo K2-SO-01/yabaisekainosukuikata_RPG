@@ -2,7 +2,7 @@
 import { SETTINGS_VERSION } from '../config.js';
 
 export const TEXT_SPEED_LABELS = ['おそい', 'ふつう', 'はやい', '一瞬'];
-export const ANIM_SPEED_LABELS = ['ふつう', 'はやい'];
+export const ANIM_SPEED_LABELS = ['×1（ふつう）', '×2（はやい）'];
 export const MOVE_SPEED_LABELS = ['ふつう', 'はやい'];
 // 1秒に出す文字数（一瞬は全部いっぺんに出す）
 export const TEXT_SPEED_CPS = [12, 24, 48, Infinity];

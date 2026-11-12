@@ -24,7 +24,7 @@ export class SettingsScene extends Scene {
       { key: 'bgm', label: 'BGMの音量', type: 'num', min: 0, max: 10 },
       { key: 'se', label: '効果音の音量', type: 'num', min: 0, max: 10 },
       { key: 'textSpeed', label: '文字の速さ', type: 'choice', options: TEXT_SPEED_LABELS },
-      { key: 'animSpeed', label: '戦闘アニメの速さ', type: 'choice', options: ANIM_SPEED_LABELS },
+      { key: 'animSpeed', label: '戦闘の速さ', type: 'choice', options: ANIM_SPEED_LABELS },
       g.screen.touchEnabled ? { key: 'swapButtons', label: 'ボタン配置', type: 'bool', options: ['ふつう', '左右反転'] } : null,
       { key: 'help', label: 'そうさ', type: 'action' },
       { key: 'export', label: 'セーブの書き出し', type: 'action' },
