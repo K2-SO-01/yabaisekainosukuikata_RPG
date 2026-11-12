@@ -105,7 +105,8 @@ sub water { my ($m, @rects) = @_; my %set;
 sub bridge { my ($m, $x, $y, $dir) = @_; my $base = $dir eq 'ns' ? 268 : 265;
   for my $dy (0 .. 2) { for my $dx (0 .. 2) { put($m, 'd', $x + $dx, $y + $dy, $base + $dy * 8 + $dx);
     put($m, 'c', $x + $dx, $y + $dy, ($dir eq 'ns' ? $dx == 1 : $dy == 1) ? 0 : 1); } } }
-sub tree { my ($m, $x, $y) = @_; col2($m, 'd', $x, $y, 9, 17); put($m, 'c', $x, $y + 1, 1); }
+# a tree is 2x2 tiles (tileset rows 1-2, columns 0-1)
+sub tree { my ($m, $x, $y) = @_; for my $dy (0, 1) { for my $dx (0, 1) { put($m, 'd', $x + $dx, $y + $dy, 9 + $dx + $dy * 8); put($m, 'c', $x + $dx, $y + $dy, 1); } } }
 
 # ---- buildings you can walk into: the roof disappears while you are inside (the 'roof' layer and a 'house' object) ----
 my %ROOF = (red => [580, 588], blue => [579, 587], grey => [581, 589], orange => [578, 586], wood => [577, 585]);
@@ -196,7 +197,7 @@ sub counter2 { my ($m, $x0, $x1, $y) = @_; put($m, 'd', $x0, $y, 758); put($m, '
   put($m, 'd', 12, 20, 227); put($m, 'c', 12, 20, 1);
   obj($m, '井戸', 'sign', 12, 20, script => 'well_down');
   # trees and flowers
-  tree($m, @$_) for ([12, 13], [25, 12], [12, 28], [25, 28], [14, 30], [23, 30], [3, 21], [9, 21], [27, 18], [27, 20], [37, 30]);
+  tree($m, @$_) for ([12, 13], [25, 12], [12, 28], [27, 28], [14, 30], [23, 30], [3, 21], [9, 21], [27, 18], [27, 20], [37, 28]);
   put($m, 'd', $_->[0], $_->[1], 53) for ([4, 19], [15, 13], [23, 13], [10, 30], [28, 31], [16, 28], [22, 28], [2, 23]);
   put($m, 'd', $_->[0], $_->[1], 56) for ([8, 19], [24, 14], [13, 23], [27, 23], [11, 32], [26, 32]);
   # people
@@ -238,11 +239,15 @@ sub counter2 { my ($m, $x0, $x1, $y) = @_; put($m, 'd', $x0, $y, 758); put($m, '
   my $mount = sub { my ($x0, $y0, $x1, $y1, $snow) = @_; for my $y ($y0 .. $y1) { for my $x ($x0 .. $x1) {
     my $v = ($x * 7 + $y * 13) % 5; my $c = $snow && $v == 0 ? 2 : ($v % 2);
     put($m, 'd', $x, $y, E(10, $c)); put($m, 'c', $x, $y, 1); } } };
-  my $forest = sub { my ($x0, $y0, $x1, $y1) = @_; for my $y ($y0 .. $y1) { for my $x ($x0 .. $x1) { put($m, 'd', $x, $y, ($y % 2) ? 33 : 25); } } };
+  # forests (walkable): the fill is a 2x2 block; rounded treetops along the top edge and trunks along the bottom
+  my $forest = sub { my ($x0, $y0, $x1, $y1) = @_; for my $y ($y0 .. $y1) { for my $x ($x0 .. $x1) { put($m, 'd', $x, $y, 25 + (($x - $x0) % 2) + (($y - $y0) % 2) * 8); } }
+    for my $x ($x0 .. $x1) { my $k = ($x - $x0) % 2;
+      put($m, 'd', $x, $y0 - 1, 9 + $k) unless $m->{d}[$y0 - 1][$x] || $m->{c}[$y0 - 1][$x];
+      put($m, 'd', $x, $y1 + 1, 17 + $k) unless $m->{d}[$y1 + 1][$x] || $m->{c}[$y1 + 1][$x]; } };
   $mount->(0, 0, 59, 2, 1); $mount->(0, 37, 59, 39, 0); $mount->(0, 0, 2, 39, 1);
   $mount->(57, 0, 59, 17, 1); $mount->(57, 22, 59, 39, 0); $mount->(54, 15, 56, 17, 0); $mount->(54, 22, 56, 24, 0);
   $mount->(@$_) for ([8, 5, 13, 8, 1], [3, 3, 6, 5, 1], [6, 29, 11, 33, 0], [44, 4, 50, 7, 1], [24, 33, 31, 36, 0], [48, 31, 53, 36, 0], [20, 3, 23, 4, 1]);
-  $forest->(@$_) for ([14, 5, 19, 9], [5, 17, 10, 23], [43, 25, 49, 30], [47, 11, 52, 15], [25, 7, 30, 10], [13, 26, 18, 30], [34, 29, 36, 33]);
+  $forest->(@$_) for ([14, 5, 19, 9], [5, 17, 10, 23], [43, 25, 48, 30], [47, 11, 52, 15], [25, 7, 30, 10], [13, 26, 18, 30], [34, 29, 35, 33]);
   # river with a pond, and the bridge on the way east
   water($m, [39, 3, 41, 36], [42, 9, 44, 12], [15, 13, 19, 15]);
   bridge($m, 39, 19, 'ew');
