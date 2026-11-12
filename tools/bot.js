@@ -8,6 +8,8 @@ import { canWalk, findStart, parseTiledMap } from '../src/core/map.js';
 
 const json = (p) => fetch(p).then((r) => r.json());
 const [items, skills, enemyData, shops] = await Promise.all(['../data/items.json', '../data/skills.json', '../data/enemies.json', '../data/shops.json'].map(json));
+// 裏ボスの作戦の表（まだ学習していなければ無し）
+enemyData.brains = { shadow: await fetch('../data/brains/shadow.json').then((r) => (r.ok ? r.json() : null)).catch(() => null) };
 
 // ---- 道のり（効率よく進んだ時の順番）。walk：[マップ, 出発, 到着]（'start' はそのマップの始まり） ----
 const CHAPTERS = [
@@ -195,7 +197,7 @@ export class Sim {
 
   // ---- 戦闘 ----
   battle(enemyIds, area, boss) {
-    const b = createBattle({ state: this.st, items, skills, enemyData, area, enemyIds, rng: this.r, boss });
+    const b = createBattle({ state: this.st, items, skills, enemyData, area, enemyIds, rng: this.r, boss, think: this.think ?? null });
     const rec = { turns: 0, dmg: [] };
     rec.hpAvg = mean(this.party.map((m) => this.stats(m).hp));
     let form2 = null;
@@ -221,7 +223,7 @@ export class Sim {
       this.log.defeats++;
       applyDefeat(this.st, items, { map: 'x', x: 0, y: 0 });
     }
-    this.lastBattle = { rec, form2, result: b.result ?? 'lose' };
+    this.lastBattle = { rec, form2, result: b.result ?? 'lose', timeout: !b.result };
     return b.result ?? 'lose';
   }
 
@@ -252,6 +254,12 @@ export class Sim {
     const special = b.intents.some((l) => l?.some((it) => it.special));
     if (down.length && known.includes('resurrection')) return { type: 'skill', skill: 'resurrection', target: down[0].index };
     if (down.length && !this.strat.noItems && itemCount(this.st, 'revive_potion') && (boss || m.job === 'priest')) return { type: 'item', item: 'revive_potion', target: down[0].index };
+    // 眠り・混乱・麻痺・毒の仲間を治す（キュア、なければ毒消しの薬）
+    const sick = b.allies.filter((a) => alive(a) && a !== u && a.m.ailments.some((x) => ['confusion', 'sleep', 'paralysis'].includes(x)));
+    if (sick.length) {
+      if (known.includes('cure')) return { type: 'skill', skill: 'cure', target: sick[0].index };
+      if (!this.strat.noItems && itemCount(this.st, 'cure_potion') && boss) return { type: 'item', item: 'cure_potion', target: sick[0].index };
+    }
     if (lows.length) {
       if (known.includes('heal_all') && lows.length >= 2) return { type: 'skill', skill: 'heal_all' };
       for (const id of ['high_heal', 'heal']) if (known.includes(id)) return { type: 'skill', skill: id, target: lows[0].index };
@@ -261,6 +269,8 @@ export class Sim {
       }
     }
     if (boss && special && ratio(u) < 0.5) return { type: 'guard' };
+    // 大技が来る時はよく身を守る遊び方
+    if (boss && this.strat.guardBig && ratio(u) < 0.8 && b.intents.some((l) => l?.some((it) => it.special || (it.sk?.power ?? 0) >= 1.5 || it.targets === 'all'))) return { type: 'guard' };
     // ボス戦で、魔法を使う人のMPが切れかけたら魔法の水
     if (boss && m.job !== 'swordsman' && m.mp < 12 && !this.strat.noItems && itemCount(this.st, 'mana_potion')) return { type: 'item', item: 'mana_potion', target: i };
     // 雑魚戦で、仲間全員の攻撃がほとんど効かない（ウツロにMP切れ など）時は逃げる
@@ -656,6 +666,7 @@ const GEAR = {
   tower: { lv: 9, plv: 8, sw: ['steel_sword', 'chain_mail', 'bronze_shield', 'bronze_helm'], mg: ['magic_staff', 'silk_robe', 'bronze_helm'], pr: ['magic_staff', 'bronze_robe', 'bronze_shield'] },
   volcano: { lv: 13, plv: 12, sw: ['knight_sword', 'iron_armor', 'iron_shield', 'iron_helm'], mg: ['sage_staff', 'magic_robe', 'iron_helm'], pr: ['sage_staff', 'wind_robe', 'iron_shield'] },
   storm: { lv: 18, plv: 17, sw: ['platinum_sword', 'knight_armor', 'knight_shield', 'knight_helm'], mg: ['holy_staff', 'flame_robe', 'knight_helm'], pr: ['holy_staff', 'holy_robe', 'knight_shield'] },
+  post: { lv: 40, plv: 39, sw: ['orichalcum_sword', 'mithril_armor', 'mithril_shield', 'mithril_helm', 'life_charm'], mg: ['orichalcum_rod', 'sage_robe', 'mithril_helm', 'magic_earring'], pr: ['orichalcum_rod', 'light_robe', 'mithril_shield', 'mithril_helm', 'life_charm'] },
   demon: { lv: 24, plv: 23, sw: ['dragon_killer', 'mithril_armor', 'mithril_shield', 'mithril_helm'], mg: ['dragon_staff', 'sage_robe', 'mithril_helm'], pr: ['dragon_staff', 'light_robe', 'mithril_shield'] },
 };
 export function testParty(area, heroJob, lvAdj = 0) {
@@ -707,3 +718,97 @@ window.boss = (id, area, heroJob = 'swordsman', n = 40, lvAdj = 0) => {
   const f = (l, d = 1) => (l.length ? mean(l).toFixed(d) : '-');
   return `${id} ${heroJob} Lv${GEAR[area].lv + lvAdj}: 勝${Math.round((100 * r.win) / n)}% ${f(r.turns)}T 被${Math.round(100 * mean(r.dmg))}%` + (r.dmg2.length ? ` 第二${f(r.turns2)}T 被${Math.round(100 * mean(r.dmg2))}%` : '');
 };
+
+// ---- 裏ボス「影の勇者」を鍛える（クロスエントロピー法：よかった作戦の近くを何度も探しなおす） ----
+// 相手：いろいろな遊び方のボット × 主人公4通り。レベル40前後・最強の装備・薬あり。それぞれに「本編での癖」を持たせる
+import('../src/core/brain.js').then(({ FEATURES, think }) => {
+  const SHADOW_ACTS = enemyData.enemies.shadow_m_sword.actions;
+  const OPPONENTS = [
+    { strat: 'efficient', habits: { cmds: { attack: 40, physical: 30, magic: 30, heal: 20, item: 8, guard: 5 }, guardVsBig: [100, 15], healAt: [45, 100] } },
+    { strat: 'items', habits: { cmds: { attack: 40, physical: 20, magic: 20, heal: 10, item: 40, guard: 5 }, guardVsBig: [100, 10], healAt: [60, 100] } },
+    { strat: 'noitems', habits: { cmds: { attack: 50, physical: 30, magic: 30, heal: 30, guard: 10 }, guardVsBig: [100, 20], healAt: [40, 100] } },
+    { strat: 'guarder', habits: { cmds: { attack: 30, physical: 20, magic: 20, heal: 25, item: 10, guard: 40 }, guardVsBig: [100, 70], healAt: [55, 100] } },
+  ];
+  STRATEGIES.guarder = { label: '大技は身を守る', walk: 1, ai: 'smart', guardBig: true, healAt: 0.55 };
+  const toBrain = (v) => ({ weights: v.slice(0, FEATURES.length), bias: Object.fromEntries(SHADOW_ACTS.map((a, i) => [a, v[FEATURES.length + i]])), temp: 0.1, variety: window.trainVariety ?? 0 });
+
+  // 1回の戦い。勝てば1、負けても魔王…ではなく影のHPを多く残せば少し点が入る（ボスの側の点）
+  function fight(vec, heroIndex, opp, seed, lvAdj = 0) {
+    const hero = HEROES[heroIndex];
+    const sim = new Sim(hero, STRATEGIES[opp.strat], seed);
+    sim.st.party = testParty('post', hero.job, lvAdj);
+    for (const m of sim.party) if (m.id === 'partner') m.extraSkills = [m.job === 'mage' ? 'lightning_bolt' : 'lightning_slash'];
+    sim.party[0].extraSkills = [hero.job === 'mage' ? 'holy' : 'holy_slash'];
+    for (const [it, c] of Object.entries({ potion_l: 10, revive_potion: 3, mana_potion: 5, cure_potion: 5 })) addItem(sim.st, it, c);
+    sim.st.stats = { habits: JSON.parse(JSON.stringify(opp.habits)) };
+    const brain = vec ? (Array.isArray(vec) ? toBrain(vec) : vec) : null;
+    const used = {};
+    sim.think = brain
+      ? (b, e, allies) => {
+          const plan = think(b, e, allies, brain);
+          for (const p of plan ?? []) used[p.sid] = (used[p.sid] ?? 0) + 1;
+          return plan;
+        }
+      : null;
+    const id = `shadow_${hero.gender === 'female' ? 'f' : 'm'}_${hero.job === 'mage' ? 'mage' : 'sword'}`;
+    sim.battle([id], 'demon', true);
+    const lb = sim.lastBattle;
+    const r = lb.timeout ? 'timeout' : lb.result;
+    // 長引いて決着がつかない（300ターン）時は、ボスの勝ちにしない
+    return { bossWin: r === 'lose', draw: !['win', 'lose'].includes(r), turns: lb.rec.turns, used };
+  }
+
+  // 作戦 vec の強さ（ボスが勝った割合）
+  function score(vec, seeds) {
+    let s = 0;
+    for (const sd of seeds) s += fight(vec, sd.hero, OPPONENTS[sd.opp], sd.seed).bossWin ? 1 : 0;
+    return s / seeds.length;
+  }
+
+  window.trainShadow = async ({ generations = 20, pop = 30, elite = 6, battles = 16, onLog = console.log } = {}) => {
+    const dim = FEATURES.length + SHADOW_ACTS.length;
+    let mean = new Array(dim).fill(0);
+    let sd = new Array(dim).fill(1.5);
+    const gauss = () => Math.sqrt(-2 * Math.log(Math.random() + 1e-12)) * Math.cos(2 * Math.PI * Math.random());
+    let bestEver = { vec: mean.slice(), s: -1 };
+    for (let gen = 0; gen < generations; gen++) {
+      const seeds = Array.from({ length: battles }, (_, i) => ({ hero: i % 4, opp: Math.floor(i / 4) % OPPONENTS.length, seed: 50000 + gen * 1000 + i }));
+      const cands = [];
+      for (let k = 0; k < pop; k++) {
+        const v = k === 0 ? mean.slice() : mean.map((m, i) => m + sd[i] * gauss());
+        cands.push({ v, s: score(v, seeds) });
+        if (k % 5 === 4) await new Promise((r) => setTimeout(r, 0));
+      }
+      cands.sort((a, b) => b.s - a.s);
+      const top = cands.slice(0, elite);
+      mean = mean.map((_, i) => top.reduce((n, c) => n + c.v[i], 0) / elite);
+      sd = sd.map((_, i) => Math.sqrt(top.reduce((n, c) => n + (c.v[i] - mean[i]) ** 2, 0) / elite) + 0.05);
+      if (top[0].s > bestEver.s) bestEver = { vec: top[0].v.slice(), s: top[0].s };
+      onLog(`第${gen + 1}世代：いちばん強い作戦の勝率 ${Math.round(top[0].s * 100)}%、平均 ${Math.round((cands.reduce((n, c) => n + c.s, 0) / pop) * 100)}%`);
+    }
+    window.shadowBrain = toBrain(mean);
+    window.shadowBrainBest = toBrain(bestEver.vec);
+    return { brain: toBrain(mean), features: FEATURES };
+  };
+
+  // 作戦を、たくさんの戦いで試す（brain が null なら でたらめ）
+  window.evalShadow = (brain, n = 40, lvAdj = 0) => {
+    window.shadowUsed = {};
+    const vec = brain;
+    const out = [];
+    OPPONENTS.forEach((opp, oi) => {
+      HEROES.forEach((hero, hi) => {
+        let bw = 0, turns = 0, draws = 0;
+        for (let k = 0; k < n; k++) {
+          const r = fight(vec, hi, opp, 90000 + k, lvAdj);
+          bw += r.bossWin ? 1 : 0;
+          draws += r.draw ? 1 : 0;
+          turns += r.turns;
+          for (const [a, c] of Object.entries(r.used)) window.shadowUsed[a] = (window.shadowUsed[a] ?? 0) + c;
+        }
+        out.push(`${STRATEGIES[opp.strat]?.label ?? opp.strat} ${hero.label}：プレイヤーの勝率 ${Math.round(100 - (100 * (bw + draws)) / n)}%、引き分け${draws}（平均${(turns / n).toFixed(1)}ターン）`);
+      });
+    });
+    return out.join('\n');
+  };
+});

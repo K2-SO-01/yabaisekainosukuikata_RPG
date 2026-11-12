@@ -570,6 +570,8 @@ export class BattleScene extends Scene {
     if (it.icon === 'sword') drawSword(ctx, ix, y + 5, color);
     else if (it.icon === 'staff') drawStaff(ctx, ix, y + 5, color, this.t);
     else if (it.icon === 'skull') drawSkull(ctx, ix + 2, y + 7, AILMENT_COLOR[it.ailment] ?? '#9b59b6', 1);
+    else if (it.icon === 'heart') drawHeart(ctx, ix + 1, y + 8);
+    else if (it.icon === 'up' || it.icon === 'down') drawArrow(ctx, ix + 3, y + 6, it.icon === 'up');
     else drawShield(ctx, ix, y + 5);
     ix += 22;
     if (it.ailment && it.icon !== 'skull') {
@@ -776,4 +778,23 @@ function drawShield(ctx, x, y) {
   ctx.fillRect(x + 8, y + 17, 6, 3);
   ctx.fillStyle = '#c9d4e2';
   ctx.fillRect(x + 6, y + 4, 4, 8);
+}
+
+// 回復の予告（ハート）
+function drawHeart(ctx, x, y) {
+  ctx.fillStyle = '#e8506a';
+  const rows = [[2, 4, 10, 4], [0, 6, 16, 4], [2, 10, 12, 2], [4, 12, 8, 2], [6, 14, 4, 2]];
+  ctx.fillRect(x + 2, y + 2, 4, 2);
+  ctx.fillRect(x + 10, y + 2, 4, 2);
+  for (const [dx, dy, w, h] of rows) ctx.fillRect(x + dx, y + dy - 2, w, h);
+}
+
+// 強くする（上向き・赤）／弱くする（下向き・青）の予告
+function drawArrow(ctx, x, y, up) {
+  ctx.fillStyle = up ? '#e0543a' : '#3a78d8';
+  for (let i = 0; i < 6; i++) {
+    const w = 2 + i * 2;
+    ctx.fillRect(x + 7 - i, up ? y + i : y + 15 - i, w, 1);
+  }
+  ctx.fillRect(x + 5, up ? y + 6 : y + 3, 4, 7);
 }

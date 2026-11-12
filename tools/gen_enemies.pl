@@ -52,8 +52,25 @@ my @enemies = (
   [demon2 => '魔王', "$M/pipo-enemy044b.png", 1900, 32, 75, 30, 30, 'dark', 0, [0, 0], undef, [qw(dragon_claw tail_sweep dark_breath)],
     { boss => \1, acts => 3, special => 'abyss_flare', specialPlus => \1, chargeText => '魔王は 翼を 大きく広げた！', bgm => 'demon2', noJingle => \1, big => 1.25 }],
 );
+# 裏ボス「影の勇者」：クリア後に戦える。主人公の見た目（4種）ごとに絵だけちがう。
+# 強さは「理想の個体」として固定（レベルや勝率には合わせない）。行動は作戦の表（data/brains/shadow.json）を見て頭で決める
+my @SHADOW_ACTS = qw(attack kage_slash kage_wide kage_bolt kage_flare kage_sleep kage_confuse kage_heal kage_power kage_break);
+for my $look (qw(m_sword m_mage f_sword f_mage)) {
+  push @enemies, ["shadow_$look" => '影の勇者', "$X/shadow_$look.png", 3200, 54, 70, 48, 54, 'dark', 0, [0, 0], undef, [@SHADOW_ACTS],
+    { boss => \1, acts => 2, ai => 'shadow', immune => ['poison', 'burn'], bgm => 'shadow', noJingle => \1, big => 1.35 }];
+}
 # id => name, kind, element, power, target, text, extra
 my @skills = (
+  # 裏ボス「影の勇者」の技（攻撃・全体攻撃・攻撃魔法・状態異常・回復・補助・弱体。主人公たちの技の影）
+  [kage_slash => '影の一太刀', 'physical', 'dark', 1.8, 'one', '{actor}の 影の一太刀！'],
+  [kage_wide => '影のなぎ払い', 'physical', 'dark', 1.0, 'all', '{actor}の 影のなぎ払い！'],
+  [kage_bolt => '影の雷', 'magic', 'thunder', 1.6, 'one', '{actor}は 影の雷を 落とした！', { inflict => 'paralysis', chance => 0.2 }],
+  [kage_flare => '影の業火', 'magic', 'fire', 1.1, 'all', '{actor}は 影の業火を はなった！', { inflict => 'burn', chance => 0.25 }],
+  [kage_sleep => '影の子守歌', 'status', undef, undef, 'one', '{actor}は 影の子守歌を うたった…', { inflict => 'sleep', chance => 0.4 }],
+  [kage_confuse => '影のささやき', 'status', undef, undef, 'one', '{actor}は 影のささやきを 聞かせた…', { inflict => 'confusion', chance => 0.4 }],
+  [kage_heal => '影の再生', 'heal', undef, 0.12, 'self', '{actor}の 影が 傷をふさいでいく…', { cure => \1 }],
+  [kage_power => '影の力', 'buff', undef, undef, 'self', '{actor}は 影の力を まとった！', { buff => 'atkUp' }],
+  [kage_break => '影ののろい', 'debuff', undef, undef, 'one', '{actor}は 影ののろいを かけた！', { debuff => 'defDown' }],
   [attack => '攻撃', 'physical', 'none', 1, 'one', '{actor}の 攻撃！'],
   [small_fire => '火の玉', 'magic', 'fire', 1, 'one', '{actor}は 小さな火を はなった！'],
   [purupuru_guard => 'ぷるぷるガード', 'guard', undef, undef, 'self', '{actor}は ぷるぷるガードで 身を守っている！'],

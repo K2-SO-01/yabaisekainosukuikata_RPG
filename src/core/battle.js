@@ -3,6 +3,7 @@
 // → b.result が 'win' なら finishWin、'lose' なら全滅、'escape' なら逃げた
 import { addItem, applyRecovery, gainExp, healAmount, isDown, itemCount, memberName, removeItem, totalStats } from './party.js';
 import { addGold } from './state.js';
+import { recordHabits, think as thinkWithBrain } from './brain.js';
 
 const STRONG = { water: 'fire', fire: 'wind', wind: 'thunder', thunder: 'water' }; // 左が右に強い
 export const MAJOR_AILMENTS = ['sleep', 'confusion', 'paralysis'];
@@ -32,7 +33,7 @@ function makeEnemy(enemyData, id, index, name) {
   return { side: 'enemy', index, id, name: name ?? d.name, d, hp: d.hp, maxHp: d.hp, ailments: [], buffs: {}, guard: false, cover: false, coverOthers: false, sleepCount: 0, confuseCount: 0, history: [], cycle0: 0 };
 }
 
-export function createBattle({ state, items, skills, enemyData, area, enemyIds, rng = Math.random, boss = false }) {
+export function createBattle({ state, items, skills, enemyData, area, enemyIds, rng = Math.random, boss = false, think = null }) {
   const count = {};
   for (const id of enemyIds) count[id] = (count[id] ?? 0) + 1;
   const seen = {};
@@ -47,7 +48,7 @@ export function createBattle({ state, items, skills, enemyData, area, enemyIds, 
   const allies = state.party.map((m, i) => ({
     side: 'ally', index: i, m, name: memberName(state, m), buffs: {}, guard: false, cover: false, sleepCount: 0, confuseCount: 0,
   }));
-  return { state, items, skills, enemyData, area, rng, boss: boss || enemies.some((e) => e.d.boss), enemies, allies, turn: 0, intents: [], events: [], result: null };
+  return { state, items, skills, enemyData, area, rng, think, boss: boss || enemies.some((e) => e.d.boss), enemies, allies, turn: 0, intents: [], events: [], result: null };
 }
 
 // ---- 小さな道具 ----
@@ -70,7 +71,10 @@ export function stat(b, u, k) {
   } else if (k === 'def') {
     if (u.buffs.defUp) v *= 1.5;
     if (u.buffs.defDown) v *= 0.7;
-  } else if (k === 'mat' && has(u, 'poison')) v *= 0.75;
+  } else if (k === 'mat') {
+    if (has(u, 'poison')) v *= 0.75;
+    if (u.side === 'enemy' && u.buffs.atkUp) v *= 1.3; // 敵の「ちからをためる」は魔法も少し強くする
+  }
   return v;
 }
 
@@ -93,6 +97,9 @@ function iconFor(sk) {
   if (sk.kind === 'physical') return 'sword';
   if (sk.kind === 'magic') return 'staff';
   if (sk.kind === 'status') return 'skull';
+  if (sk.kind === 'heal') return 'heart';
+  if (sk.kind === 'buff') return 'up';
+  if (sk.kind === 'debuff') return 'down';
   return 'shield';
 }
 
@@ -128,6 +135,20 @@ export function planEnemies(b) {
   const allies = living(b.allies);
   b.intents = b.enemies.map((e) => {
     if (!alive(e)) return null;
+    // 頭で考えるボス（裏ボス）：作戦の表（b.enemyData.brains）を見て、行動とねらう相手を決める
+    if (e.d.ai) {
+      const plan = b.think ? b.think(b, e, allies) : thinkWithBrain(b, e, allies, b.enemyData.brains?.[e.d.ai]);
+      if (plan?.length) {
+        return plan.map((p) => {
+          e.history.push(p.sid);
+          const sk = b.enemyData.skills[p.sid];
+          const targets = sk.target === 'one' ? [p.target ?? pickOne(b, allies).index] : sk.target === 'all' ? 'all' : 'self';
+          return { actor: e.index, sid: p.sid, sk, targets, icon: iconFor(sk), element: sk.element ?? 'none', ailment: sk.inflict ?? null };
+        });
+      }
+      // 作戦の表がない時は、でたらめに選ぶ（学習前の状態）
+      return Array.from({ length: e.d.acts ?? 1 }, () => makeIntent(b, e, pickNormal(b, e), allies));
+    }
     if (e.d.boss) return planBoss(b, e, allies);
     return [makeIntent(b, e, pickOne(b, e.d.actions), allies)];
   });
@@ -144,6 +165,7 @@ const isGuardKind = (it) => it?.sk?.kind === 'guard' || it?.sk?.kind === 'guard_
 // ---- 1ターン ----
 // commands[味方の番号] = { type: 'attack'|'skill'|'item'|'guard'|'escape'|'none', skill, item, target }
 export function resolveTurn(b, commands) {
+  recordHabits(b, commands); // プレイヤーの戦い方の癖（裏ボスが読む）
   b.turn++;
   b.events = [];
   b.transformed = false;
@@ -530,6 +552,34 @@ function useItem(b, u, c) {
 // ---- 敵の行動 ----
 function enemyAction(b, e, it) {
   const sk = it.sk;
+  // 自分を回復する・強くする、相手を弱くする（裏ボスなどが使う）
+  if (sk.kind === 'heal') {
+    msg(b, sk.text, { actor: e.name });
+    const n = Math.floor(e.maxHp * (sk.power ?? 0.2));
+    const before = e.hp;
+    setHp(b, e, e.hp + n);
+    if (sk.cure) for (const a of ['poison', 'burn']) removeAilment(e, a);
+    emit(b, { t: 'se', name: 'heal' });
+    emit(b, { t: 'heal', side: 'enemy', i: e.index, amount: e.hp - before });
+    msg(b, '{a}の HPが {n} 回復した！', { a: e.name, n: e.hp - before });
+    return;
+  }
+  if (sk.kind === 'buff') {
+    msg(b, sk.text, { actor: e.name });
+    emit(b, { t: 'se', name: 'buff' });
+    e.buffs[sk.buff] = BUFF_TURNS + 1;
+    msg(b, sk.buff === 'defUp' ? '{a}の 防御力が 上がった！' : '{a}の 攻撃力が 上がった！', { a: e.name });
+    return;
+  }
+  if (sk.kind === 'debuff') {
+    const t = retargetAlly(b, it.targets[0]);
+    if (!t) return;
+    msg(b, sk.text, { actor: e.name });
+    emit(b, { t: 'se', name: 'debuff' });
+    t.buffs[sk.debuff] = BUFF_TURNS;
+    msg(b, '{t}の 防御力が 下がった！', { t: t.name });
+    return;
+  }
   const coverer = b.allies.find((a) => a.cover && alive(a));
   let targets;
   if (it.targets === 'all') targets = living(b.allies);
