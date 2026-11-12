@@ -33,15 +33,18 @@
     "shop_weapon": "data/maps/shop_weapon.json",
     "shop_item": "data/maps/shop_item.json",
     "well": "data/maps/well.json",
+    "field_town": "data/maps/field_town.json",
     "testroom": "data/maps/testroom.json"
   },
   "items": "data/items.json",
   "skills": "data/skills.json",
   "shops": "data/shops.json",
+  "enemies": "data/enemies.json",
   "warps": "data/warps.json",
   "events": {
     "story": "data/events/story.json",
-    "town": "data/events/town.json"
+    "town": "data/events/town.json",
+    "field": "data/events/field.json"
   },
   "dialogues": {
     "shop": "data/dialogues/shop.json",

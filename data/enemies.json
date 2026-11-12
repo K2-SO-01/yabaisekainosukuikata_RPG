@@ -1,0 +1,20 @@
+{
+  "_note": "Provisional numbers until stage 8. actions: skill ids from 'skills' below, chosen with equal chance. gold: [min, max]. drop: item id (30%).",
+  "areas": {
+    "field_town": { "enemies": ["blue_slime", "green_slime", "red_slime", "nitaridake"], "bg": ["#a9d8f2", "#e8f6d8"], "home": { "map": "town", "x": 7, "y": 24, "dir": "down" } }
+  },
+  "enemies": {
+    "blue_slime": { "name": "ブルースライム", "image": "assets/monsters/Pipoya RPG Monster Pack/shade/pipo-enemy009.png", "hp": 22, "atk": 9, "def": 14, "spd": 5, "mat": 3, "element": "none", "exp": 12, "gold": [25, 45], "drop": "slime_goo", "actions": ["attack", "purupuru_guard"] },
+    "green_slime": { "name": "グリーンスライム", "image": "assets/monsters/extra/slime_green.png", "hp": 18, "atk": 10, "def": 6, "spd": 13, "mat": 3, "element": "none", "exp": 12, "gold": [25, 45], "drop": "slime_goo", "actions": ["attack", "pyonpyon_attack"] },
+    "red_slime": { "name": "レッドスライム", "image": "assets/monsters/extra/slime_red.png", "hp": 18, "atk": 6, "def": 6, "spd": 8, "mat": 11, "element": "none", "exp": 12, "gold": [25, 45], "drop": "slime_goo", "actions": ["small_fire", "hinoko_ame"] },
+    "nitaridake": { "name": "ニタリダケ", "image": "assets/monsters/Pipoya RPG Monster Pack/shade/pipo-enemy008.png", "hp": 24, "atk": 10, "def": 8, "spd": 7, "mat": 5, "element": "none", "exp": 12, "gold": [25, 45], "drop": "nitari_cap", "actions": ["attack", "nemuri_houshi"] }
+  },
+  "skills": {
+    "attack": { "name": "攻撃", "kind": "physical", "element": "none", "power": 1, "target": "one", "text": "{actor}の 攻撃！" },
+    "small_fire": { "name": "火の玉", "kind": "magic", "element": "fire", "power": 1, "target": "one", "text": "{actor}は 小さな火を はなった！" },
+    "purupuru_guard": { "name": "ぷるぷるガード", "kind": "guard", "target": "self", "text": "{actor}は ぷるぷるガードで 身を守っている！" },
+    "pyonpyon_attack": { "name": "ぴょんぴょんアタック", "kind": "physical", "element": "none", "power": 1.3, "target": "one", "text": "{actor}の ぴょんぴょんアタック！" },
+    "hinoko_ame": { "name": "ひのこのあめ", "kind": "magic", "element": "fire", "power": 0.7, "target": "all", "text": "{actor}の ひのこのあめ！" },
+    "nemuri_houshi": { "name": "ねむりのほうし", "kind": "status", "inflict": "sleep", "target": "one", "text": "{actor}は ねむりのほうしを まきちらした！" }
+  }
+}

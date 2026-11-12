@@ -101,6 +101,10 @@ async function loadGameData(game) {
 
   jobs.push(assets.loadJson('items', manifest.items).then((d) => (game.items = Object.fromEntries(Object.entries(d ?? {}).filter(([k]) => !k.startsWith('_'))))));
   jobs.push(assets.loadJson('skills', manifest.skills).then((d) => (game.skills = Object.fromEntries(Object.entries(d ?? {}).filter(([k]) => !k.startsWith('_'))))));
+  jobs.push(assets.loadJson('enemies', manifest.enemies).then(async (d) => {
+    game.enemies = d ?? { areas: {}, enemies: {}, skills: {} };
+    await Promise.all(Object.entries(game.enemies.enemies).map(([id, e]) => assets.loadImage(`enemy:${id}`, e.image)));
+  }));
   jobs.push(assets.loadJson('shops', manifest.shops).then((d) => (game.shops = d ?? {})));
   jobs.push(assets.loadJson('warps', manifest.warps).then((d) => (game.warps = d ?? {})));
   game.scripts = {};

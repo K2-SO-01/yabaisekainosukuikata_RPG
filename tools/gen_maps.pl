@@ -241,3 +241,34 @@ sub counter { my ($m) = @_; put($m, 'd', 3, 3, 758); put($m, 'd', $_, 3, 759) fo
   put($m, 'c', $_->[0], $_->[1], 1) for ([2, 5], [7, 5]);
   obj($m, 'start', 'start', 4, 4, dir => 'down');
   emit($m, 'well', '井戸の底', 'town', back => '#0d0b10'); }
+
+# ---- field_town: the field around the castle town (60x40). Forest on the north, west and south; the way on is the east edge ----
+{ my $m = newmap(60, 40);
+  fill($m, 'g', 0, 0, 59, 39, 1);
+  my $forest = sub { my ($x0, $y0, $x1, $y1) = @_; for my $y ($y0 .. $y1) { for my $x ($x0 .. $x1) { put($m, 'd', $x, $y, ($y % 2) ? 33 : 25); put($m, 'c', $x, $y, 1); } } };
+  $forest->(0, 0, 59, 2); $forest->(0, 37, 59, 39); $forest->(0, 0, 2, 39);
+  $forest->(57, 0, 59, 16); $forest->(57, 23, 59, 39);
+  # tree groups and rocks to walk around
+  $forest->(@$_) for ([8, 5, 14, 9], [18, 28, 25, 33], [40, 6, 47, 11], [44, 27, 52, 32], [6, 24, 10, 30], [33, 30, 37, 34], [50, 14, 53, 16]);
+  for my $t ([20, 8], [24, 11], [36, 15], [15, 18], [12, 14], [46, 22], [52, 24], [26, 26], [6, 17]) { col2($m, 'd', $t->[0], $t->[1], 9, 17); put($m, 'c', $t->[0], $t->[1] + 1, 1); }
+  for my $r ([34, 21], [17, 23], [43, 18], [9, 33], [54, 8]) { put($m, 'd', $r->[0], $r->[1], 65); put($m, 'c', $r->[0], $r->[1], 1); }
+  put($m, 'd', $_->[0], $_->[1], 53) for ([22, 20], [38, 25], [13, 12], [49, 20], [30, 30]);
+  put($m, 'd', $_->[0], $_->[1], 56) for ([25, 15], [41, 29], [8, 20], [55, 33]);
+  put($m, 'd', $_->[0], $_->[1], 49) for ([27, 24], [44, 15], [16, 30], [53, 11], [11, 26]);
+  # the dirt road from the town to the east edge
+  fill($m, 'g', 29, 22, 30, 24, 6); fill($m, 'g', 30, 24, 39, 25, 6); fill($m, 'g', 38, 19, 39, 25, 6); fill($m, 'g', 38, 19, 59, 20, 6);
+  # the castle town (a small castle with two towers)
+  small_tower($m, 27, 17, 21); small_tower($m, 31, 17, 21);
+  put($m, 'd', $_, 19, E(3, 7)) for (29, 30);
+  put($m, 'g', $_, 20, E(4, 7)) for (29, 30);
+  put($m, 'g', $_, 21, E(6, 7)) for (29, 30);
+  col2($m, 'd', $_, 20, 392, 400) for (29, 30);
+  fill($m, 'c', 27, 17, 32, 21, 1);
+  obj($m, '城下町', 'exit', $_, 21, map => 'town', x => 19, y => 33, dir => 'up') for (29, 30);
+  # chests (small things: potions and gold)
+  obj($m, '宝箱', 'search', 11, 10, kind => 'chest', item => 'potion_s', count => 2);
+  obj($m, '宝箱', 'search', 49, 33, kind => 'chest', gold => 50);
+  # the east edge leads to the water area (stage 5)
+  obj($m, '東の出口', 'trigger', 59, $_, script => 'to_water_area') for (19, 20);
+  obj($m, 'start', 'start', 30, 22, dir => 'down');
+  emit($m, 'field_town', '城下町周辺', 'field', area => 'field_town'); }

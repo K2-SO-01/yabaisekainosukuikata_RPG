@@ -12,7 +12,7 @@
     { "flag": "luke_joined" }
   ],
   "leave_town": [
-    { "notice": "（この先は、まだ作っているところです）" }
+    { "transfer": { "map": "field_town", "x": 30, "y": 22, "dir": "down" } }
   ],
   "well_down": [
     { "se": "warp" },

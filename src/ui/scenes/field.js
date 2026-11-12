@@ -1,6 +1,7 @@
 // マップを歩く場面。人と話す、調べる、出口で別のマップへ移る、イベントの台本を動かす
 import { HEIGHT, TILE, WIDTH } from '../../config.js';
 import { isActive, runScript } from '../../core/events.js';
+import { rollEncounter } from '../../core/battle.js';
 import { canWalk, entityAt, findStart, stepTarget, tryMove } from '../../core/map.js';
 import { addItem, createMember, fullRecover, MEMBER_DEFS } from '../../core/party.js';
 import { writeSlot } from '../../core/save.js';
@@ -11,6 +12,7 @@ import { say } from '../flow.js';
 import { ChoiceScene } from '../menu.js';
 import { MessageScene } from '../message.js';
 import { Scene } from '../scene.js';
+import { BattleScene } from './battle.js';
 import { FieldMenuScene } from './fieldmenu.js';
 import { RestScene } from './rest.js';
 import { SaveLoadScene } from './saveload.js';
@@ -69,6 +71,7 @@ export class FieldScene extends Scene {
       o.wait = 1000 + Math.random() * 2500;
     }
     g.warpTo = (dest) => this.transfer(dest);
+    this.resetEncounter();
     g.audio.playBgm(this.map.props.bgm ?? 'town');
   }
 
@@ -106,6 +109,7 @@ export class FieldScene extends Scene {
       this.moving = null;
       this.stepCount++;
       if (this.afterStep()) return;
+      if (this.checkEncounter()) return;
     }
     if (this.busy) return;
     if (this.checkAuto) {
@@ -174,6 +178,48 @@ export class FieldScene extends Scene {
       return true;
     }
     return false;
+  }
+
+  // ---- エンカウント（フィールドとダンジョンだけ。30〜40歩に1回くらい） ----
+  resetEncounter() {
+    this.encSteps = 30 + Math.floor(Math.random() * 11);
+  }
+
+  checkEncounter() {
+    const g = this.game;
+    const areaId = this.map.props.area;
+    if (!areaId || g.dev?.noEncounter) return false;
+    const area = g.enemies?.areas?.[areaId];
+    if (!area) return false;
+    if (--this.encSteps > 0) return false;
+    this.resetEncounter();
+    this.startBattle({ enemyIds: rollEncounter(area), area: areaId });
+    return true;
+  }
+
+  startBattle({ enemyIds, area, boss = false, onEnd }) {
+    const g = this.game;
+    this.busy = true;
+    this.moving = null;
+    g.input.clear();
+    g.audio.playSe('ok');
+    g.scenes.fadeTo(() => {
+      g.scenes.push(
+        new BattleScene({
+          enemyIds, area, boss,
+          onEnd: (result) => {
+            if (result === 'lose') {
+              g.scenes.replaceAll(new FieldScene());
+              return;
+            }
+            this.busy = false;
+            g.input.clear();
+            g.audio.playBgm(this.map.props.bgm ?? 'town');
+            onEnd?.(result);
+          },
+        }),
+      );
+    }, 250);
   }
 
   // マップに入った時などに、自動で始まるイベント
