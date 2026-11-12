@@ -56,7 +56,13 @@ sub small_tower { my ($m, $x, $top, $bottom) = @_;
 # ---- castle_throne: throne room (21x15) ----
 { my $m = newmap(21, 15);
   palace($m, 9, 11);
-  fill($m, 'g', 6, 4, 8, 4, E(7, 7)); fill($m, 'g', 12, 4, 14, 4, E(7, 7));   # dais step
+  # throne dais: a platform one tile high (x 5..15, rows 2..3), front face on row 4, carpet stairs in the middle
+  for my $x (5 .. 15) {
+    my $front = $x == 5 ? E(8, 3) : $x == 15 ? E(8, 4) : $x == 9 ? E(8, 5) : $x == 10 ? E(8, 6) : $x == 11 ? E(8, 7) : E(8, 2);
+    put($m, 'g', $x, 4, $front);
+    put($m, 'c', $x, 4, 1) unless $x >= 9 && $x <= 11;   # only the stairs can be climbed
+  }
+  for my $y (2, 3) { put($m, 'g', 5, $y, E(9, 3)); put($m, 'g', 15, $y, E(9, 4)); }
   col2($m, 'd', 10, 1, 813, 821);                                             # throne
   col2($m, 'd', $_, 0, @$BANNER) for (8, 12, 5, 15);
   col2($m, 'd', $_, 0, @$STAINED) for (2, 18);

@@ -482,6 +482,48 @@ for ($i = 0; $i -lt 6; $i++) { $c = [System.Drawing.Color]::FromArgb(255, 150 - 
 Fill (64 + 14) (448 + 26) 4 4 (Hex '#000000')
 for ($i = 0; $i -lt 6; $i++) { $c = [System.Drawing.Color]::FromArgb(255, 120 + $i * 20, 110 + $i * 20, 100 + $i * 20); Fill (96 + 2 + $i * 2) (448 + 4 + (5 - $i) * 4) (28 - $i * 4) 4 $c }
 
+# ---- throne dais (r8 c2-7, r9 c3-4): a raised platform one tile high, with carpet stairs ----
+#   r8: c2 front face, c3 front face left end, c4 front face right end, c5-7 carpet stairs (left/middle/right)
+#   r9: c3 platform floor with the left edge, c4 platform floor with the right edge
+function DaisFront($ox, $oy, $leftEnd, $rightEnd) {
+  for ($ly = 0; $ly -lt 32; $ly++) {
+    for ($lx = 0; $lx -lt 32; $lx++) {
+      if ($ly -le 2) { $c = $gold[3 - $ly] }
+      elseif ($ly -le 24) { $c = Mix (Hex '#efe7d8') (Hex '#c8bba0') (($ly - 3) / 21.0); if (($lx % 16) -eq 15) { $c = Mix $c (Hex '#a8997c') 0.5 } }
+      elseif ($ly -eq 25) { $c = Hex '#8a7c60' }
+      else { $c = Mix (Hex '#b4a78c') (Hex '#d9cfbb') (($ly - 26) / 5.0) }
+      if ($leftEnd -and $lx -le 2 -and $ly -le 24) { $c = $gold[3 - $lx] }
+      if ($rightEnd -and $lx -ge 29 -and $ly -le 24) { $c = $gold[$lx - 28] }
+      P ($ox + $lx) ($oy + $ly) $c
+    }
+  }
+}
+DaisFront 64 256 $false $false; DaisFront 96 256 $true $false; DaisFront 128 256 $false $true
+$stepHi = Hex '#c8394c'; $stepLo = Hex '#5a0c18'
+foreach ($k in 0, 1, 2) {
+  $ox = 160 + $k * 32
+  Carpet $ox 256 ($k -eq 0) ($k -eq 2) $false
+  foreach ($sy in 2, 12, 22) {
+    for ($lx = 0; $lx -lt 32; $lx++) {
+      if (($k -eq 0 -and $lx -le 4) -or ($k -eq 2 -and $lx -ge 27)) { continue }
+      P ($ox + $lx) (256 + $sy) $stepHi; P ($ox + $lx) (256 + $sy + 1) $stepHi
+      P ($ox + $lx) (256 + $sy + 8) $stepLo; P ($ox + $lx) (256 + $sy + 9) $stepLo
+    }
+  }
+}
+# platform floor with an edge: copy the marble floor (r7 c0) and add a gold lip on one side
+foreach ($side in 0, 1) {
+  $ox = 96 + $side * 32
+  for ($ly = 0; $ly -lt 32; $ly++) {
+    for ($lx = 0; $lx -lt 32; $lx++) {
+      $c = $bmp.GetPixel($lx, 224 + $ly)
+      $d = if ($side -eq 0) { $lx } else { 31 - $lx }
+      if ($d -le 2) { $c = $gold[3 - $d] } elseif ($d -eq 3) { $c = Hex '#a8997c' }
+      P ($ox + $lx) (288 + $ly) $c
+    }
+  }
+}
+
 $out = Join-Path $outDir 'castle_extra.png'
 $bmp.Save($out, [System.Drawing.Imaging.ImageFormat]::Png)
 $bmp.Dispose()
