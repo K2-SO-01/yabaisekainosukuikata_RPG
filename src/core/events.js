@@ -17,6 +17,8 @@
 //   { "run": "台本の名前" }             別の台本を呼ぶ
 //   { "shop": "お店の名前" }            お店を開く（data/shops.json）
 //   { "join": "luke" }                  仲間に加える
+//   { "move": { "npc": "名前", "steps": ["down", ...], "ms": 1歩の時間 } }   マップの人を歩かせる（走らせる）
+//   { "face": { "npc": "名前", "dir": "left" } } / { "playerFace": "right" }  向きを変える
 import { addGold, addKeyItem } from './state.js';
 
 export function checkCond(state, cond) {
@@ -62,5 +64,8 @@ export async function runScript(commands, ctx) {
     else if ('run' in cmd) await runScript(scripts?.[cmd.run], ctx);
     else if ('shop' in cmd) await ui.shop(cmd.shop);
     else if ('join' in cmd) ui.join(cmd.join);
+    else if ('move' in cmd) await ui.moveNpc(cmd.move.npc, cmd.move.steps ?? [], cmd.move.ms);
+    else if ('face' in cmd) ui.faceNpc(cmd.face.npc, cmd.face.dir);
+    else if ('playerFace' in cmd) ui.facePlayer(cmd.playerFace);
   }
 }

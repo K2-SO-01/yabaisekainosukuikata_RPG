@@ -1,5 +1,20 @@
 {
   "to_water_area": [
     { "notice": "（この先の水エリアは、段階5で作ります）" }
+  ],
+  "luke_join_field": [
+    { "wait": 500 },
+    { "flag": "luke_appear" },
+    { "se": "escape" },
+    { "move": { "npc": "ルーク", "steps": ["down"], "ms": 130 } },
+    { "face": { "npc": "ルーク", "dir": "left" } },
+    { "playerFace": "right" },
+    { "wait": 300 },
+    { "say": "luke_join" },
+    { "join": "luke" },
+    { "se": "item_get" },
+    { "notice": "ルークが 仲間に なった！" },
+    { "flag": "luke_joined" },
+    { "flag": "luke_appear", "value": false }
   ]
 }

@@ -69,13 +69,14 @@ export class FieldScene extends Scene {
       g.state.visited ??= [];
       if (!g.state.visited.includes(this.map.props.town)) g.state.visited.push(this.map.props.town);
     }
-    // 歩き回る人は、マップに入るたびに元の場所へ戻す
+    // 人は、マップに入るたびに元の場所・元の向きへ戻す（歩き回る人や、イベントで動いた人）
     for (const o of this.map.objects) {
-      if (o.type !== 'npc' || !o.props.wander) continue;
+      if (o.type !== 'npc') continue;
       o.home ??= { x: o.x, y: o.y };
       o.x = o.home.x;
       o.y = o.home.y;
       o.mv = null;
+      o.facing = undefined;
       o.wait = 1000 + Math.random() * 2500;
     }
     g.warpTo = (dest) => this.transfer(dest);
@@ -148,12 +149,17 @@ export class FieldScene extends Scene {
   // 歩き回る町の人（家から2マスまで。イベント中と、主人公が話しかけている間は止まる）
   updateWalkers(dt) {
     for (const o of this.map.objects) {
-      if (o.type !== 'npc' || !o.props.wander || !this.isOn(o)) continue;
+      if (o.type !== 'npc' || !this.isOn(o)) continue;
       if (o.mv) {
         o.mv.t += dt;
-        if (o.mv.t >= NPC_STEP_MS) o.mv = null;
+        if (o.mv.t >= (o.mv.dur ?? NPC_STEP_MS)) {
+          const done = o.mv.done;
+          o.mv = null;
+          done?.();
+        }
         continue;
       }
+      if (!o.props.wander) continue;
       if (this.busy || this.npcDirs.has(o.id)) continue;
       o.wait -= dt;
       if (o.wait > 0) continue;
@@ -311,6 +317,28 @@ export class FieldScene extends Scene {
           this.waitDone = done;
         }),
       transfer: (to) => new Promise(() => this.transfer(to)), // 別のマップへ移るので、この先は実行しない
+      // マップの人を、名前で探して歩かせる（ms は1歩の時間。短いほど速い）
+      moveNpc: async (name, steps, ms) => {
+        const o = this.map.objects.find((x) => x.type === 'npc' && x.name === name && this.isOn(x));
+        if (!o) return;
+        for (const dir of steps) {
+          const t = stepTarget(o, dir);
+          o.facing = dir;
+          await new Promise((done) => {
+            o.mv = { from: { x: o.x, y: o.y }, t: 0, dur: ms ?? NPC_STEP_MS, done };
+            o.x = t.x;
+            o.y = t.y;
+          });
+        }
+      },
+      faceNpc: (name, dir) => {
+        const o = this.map.objects.find((x) => x.type === 'npc' && x.name === name);
+        if (o) o.facing = dir;
+      },
+      facePlayer: (dir) => {
+        this.dir = dir;
+        g.state.location.dir = dir;
+      },
     };
   }
 
@@ -450,7 +478,7 @@ export class FieldScene extends Scene {
         let py = o.y * TILE;
         let frame = 1;
         if (o.mv) {
-          const k = Math.min(1, o.mv.t / NPC_STEP_MS);
+          const k = Math.min(1, o.mv.t / (o.mv.dur ?? NPC_STEP_MS));
           px = (o.mv.from.x + (o.x - o.mv.from.x) * k) * TILE;
           py = (o.mv.from.y + (o.y - o.mv.from.y) * k) * TILE;
           frame = k < 0.5 ? 0 : 2;

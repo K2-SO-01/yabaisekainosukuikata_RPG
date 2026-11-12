@@ -1,6 +1,6 @@
 {
   "type": "map", "version": "1.10", "tiledversion": "1.10.2", "orientation": "orthogonal", "renderorder": "right-down", "infinite": false,
-  "width": 40, "height": 34, "tilewidth": 32, "tileheight": 32, "nextlayerid": 6, "nextobjectid": 41,
+  "width": 40, "height": 34, "tilewidth": 32, "tileheight": 32, "nextlayerid": 6, "nextobjectid": 40,
   "properties": [
     { "name": "name", "type": "string", "value": "城下町" },
     { "name": "bgm", "type": "string", "value": "town" },
@@ -201,8 +201,7 @@
         { "id": 36, "name": "光の結晶", "type": "savepoint", "x": 704, "y": 640, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [] },
         { "id": 37, "name": "門の兵士", "type": "npc", "x": 608, "y": 992, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "character", "type": "string", "value": "gate_soldier" }, { "name": "dialogue", "type": "string", "value": "gate_before" }, { "name": "dir", "type": "string", "value": "up" }, { "name": "unless", "type": "string", "value": "home_event_done" }] },
         { "id": 38, "name": "門の兵士", "type": "npc", "x": 640, "y": 960, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "character", "type": "string", "value": "gate_soldier" }, { "name": "dialogue", "type": "string", "value": "gate_after" }, { "name": "dir", "type": "string", "value": "left" }, { "name": "if", "type": "string", "value": "home_event_done" }] },
-        { "id": 39, "name": "ルーク", "type": "npc", "x": 576, "y": 960, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "character", "type": "string", "value": "luke" }, { "name": "dialogue", "type": "string", "value": "luke_join" }, { "name": "dir", "type": "string", "value": "right" }, { "name": "if", "type": "string", "value": "home_event_done" }, { "name": "unless", "type": "string", "value": "luke_joined" }] },
-        { "id": 40, "name": "町の門", "type": "trigger", "x": 608, "y": 1024, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "script", "type": "string", "value": "town_gate" }] }
+        { "id": 39, "name": "町の門", "type": "trigger", "x": 608, "y": 1024, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "script", "type": "string", "value": "town_gate" }] }
       ] }
   ]
 }

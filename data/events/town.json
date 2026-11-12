@@ -1,16 +1,7 @@
 {
   "talk_shop_weapon": [{ "shop": "town_weapon" }],
   "talk_shop_item": [{ "shop": "town_item" }],
-  "town_gate": [
-    { "if": "luke_joined", "then": [{ "run": "leave_town" }], "else": [{ "run": "luke_join" }] }
-  ],
-  "luke_join": [
-    { "say": "luke_join" },
-    { "join": "luke" },
-    { "se": "item_get" },
-    { "notice": "ルークが 仲間に なった！" },
-    { "flag": "luke_joined" }
-  ],
+  "town_gate": [{ "run": "leave_town" }],
   "leave_town": [
     { "transfer": { "map": "field_town", "x": 18, "y": 13, "dir": "down" } }
   ],

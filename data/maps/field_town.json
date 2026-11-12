@@ -1,6 +1,6 @@
 {
   "type": "map", "version": "1.10", "tiledversion": "1.10.2", "orientation": "orthogonal", "renderorder": "right-down", "infinite": false,
-  "width": 40, "height": 28, "tilewidth": 32, "tileheight": 32, "nextlayerid": 6, "nextobjectid": 10,
+  "width": 40, "height": 28, "tilewidth": 32, "tileheight": 32, "nextlayerid": 6, "nextobjectid": 12,
   "properties": [
     { "name": "name", "type": "string", "value": "城下町周辺" },
     { "name": "bgm", "type": "string", "value": "field" },
@@ -146,7 +146,9 @@
         { "id": 6, "name": "東の出口", "type": "trigger", "x": 1248, "y": 416, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "script", "type": "string", "value": "to_water_area" }] },
         { "id": 7, "name": "東の出口", "type": "trigger", "x": 1248, "y": 448, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "script", "type": "string", "value": "to_water_area" }] },
         { "id": 8, "name": "東の出口", "type": "trigger", "x": 1248, "y": 480, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "script", "type": "string", "value": "to_water_area" }] },
-        { "id": 9, "name": "start", "type": "start", "x": 576, "y": 416, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "dir", "type": "string", "value": "down" }] }
+        { "id": 9, "name": "ルーク", "type": "npc", "x": 608, "y": 384, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "character", "type": "string", "value": "luke" }, { "name": "dialogue", "type": "string", "value": "luke_join" }, { "name": "dir", "type": "string", "value": "down" }, { "name": "if", "type": "string", "value": "luke_appear" }, { "name": "unless", "type": "string", "value": "luke_joined" }] },
+        { "id": 10, "name": "ルーク加入", "type": "auto", "x": 0, "y": 0, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "if", "type": "string", "value": "home_event_done" }, { "name": "script", "type": "string", "value": "luke_join_field" }, { "name": "unless", "type": "string", "value": "luke_joined" }] },
+        { "id": 11, "name": "start", "type": "start", "x": 576, "y": 416, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "dir", "type": "string", "value": "down" }] }
       ] }
   ]
 }

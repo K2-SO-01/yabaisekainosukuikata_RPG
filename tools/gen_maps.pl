@@ -244,7 +244,6 @@ sub ttree { my ($m, @at) = @_; for my $p (@at) { put($m, 'd', $p->[0], $p->[1], 
   obj($m, '光の結晶', 'savepoint', 22, 20);
   obj($m, '門の兵士', 'npc', 19, 31, character => 'gate_soldier', dialogue => 'gate_before', dir => 'up', unless => 'home_event_done');
   obj($m, '門の兵士', 'npc', 20, 30, character => 'gate_soldier', dialogue => 'gate_after', dir => 'left', if => 'home_event_done');
-  obj($m, 'ルーク', 'npc', 18, 30, character => 'luke', dialogue => 'luke_join', dir => 'right', if => 'home_event_done', unless => 'luke_joined');
   obj($m, '町の門', 'trigger', 19, 32, script => 'town_gate');
   emit($m, "town", "城下町", "town", lift => "5,11,17", town => "town"); }
 
@@ -287,5 +286,8 @@ sub ttree { my ($m, @at) = @_; for my $p (@at) { put($m, 'd', $p->[0], $p->[1], 
   obj($m, '宝箱', 'search', 5, 4, kind => 'chest', item => 'potion_s', count => 2);
   obj($m, '宝箱', 'search', 33, 21, kind => 'chest', gold => 50);
   obj($m, '東の出口', 'trigger', 39, $_, script => 'to_water_area') for (12 .. 15);
+  # Luke runs out of the town after the hero the first time they leave it (he is shown only during that event)
+  obj($m, 'ルーク', 'npc', 19, 12, character => 'luke', dialogue => 'luke_join', dir => 'down', if => 'luke_appear', unless => 'luke_joined');
+  obj($m, 'ルーク加入', 'auto', 0, 0, script => 'luke_join_field', if => 'home_event_done', unless => 'luke_joined');
   obj($m, 'start', 'start', 18, 13, dir => 'down');
   emit($m, 'field_town', '城下町周辺', 'field', area => 'field_town'); }
