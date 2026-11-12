@@ -21,6 +21,8 @@ grep -ho '"image": *"[^"]*"' data/maps/*.json | sed 's/.*: *"//; s/"$//; s#^\.\.
 sed -n '/"bgm": \[/,/\]/p' data/manifest.json | grep -o '"[a-z0-9_]*"' | tr -d '"' | grep -v '^bgm$' | sed 's#^#assets/bgm/#; s#$#.mp3#' >> "$list"
 grep -o '"file": *"[a-z0-9_]*"' data/manifest.json | sed 's/.*"\([a-z0-9_]*\)"$/\1/; s#^#assets/bgm/#; s#$#.mp3#' >> "$list"
 sed -n '/"se": \[/,/\]/p' data/manifest.json | grep -o '"[a-z0-9_]*"' | tr -d '"' | grep -v '^se$' | sed 's#^#assets/se/#; s#$#.mp3#' >> "$list"
+# monster pictures
+grep -o '"image": *"[^"]*"' data/enemies.json | sed 's/.*: *"//; s/"$//' >> "$list"
 # fonts
 printf '%s\n' assets/fonts/DotGothic16-Regular.ttf assets/fonts/OFL.txt >> "$list"
 
