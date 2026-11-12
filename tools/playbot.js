@@ -245,6 +245,7 @@ export async function playthrough({ gender = 'male', job = 'swordsman', maxMinut
       }
       inBattle.turns = top.b.turn;
       inBattle.result = top.b.result;
+      if (top.phase === 'victory' && report.frames % 3 === 0) input.press('ok');
       return;
     }
     if (name !== 'FieldScene') {

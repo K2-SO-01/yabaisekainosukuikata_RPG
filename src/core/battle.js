@@ -189,6 +189,7 @@ export function resolveTurn(b, commands) {
       msg(b, '{a}は 身を守っている！', { a: u.name });
     } else if (c.type === 'skill' && b.skills[c.skill]?.effect === 'cover' && u.m.mp >= b.skills[c.skill].mp) {
       u.m.mp -= b.skills[c.skill].mp;
+      emit(b, { t: 'mp', i: u.index, amount: -b.skills[c.skill].mp });
       u.guard = true;
       u.cover = true;
       emit(b, { t: 'se', name: 'buff' });
@@ -260,7 +261,10 @@ export function resolveTurn(b, commands) {
         continue;
       }
     }
-    if (u.side === 'ally') allyAction(b, u, c);
+    if (u.side === 'ally') {
+      emit(b, { t: 'act', side: 'ally', i: u.index, kind: c.type === 'skill' ? b.skills[c.skill]?.kind : c.type });
+      allyAction(b, u, c);
+    }
     else {
       // ボスは自分の番が来たら、予告した行動を続けて行う
       for (const it of b.intents[u.index] ?? []) {
@@ -272,6 +276,7 @@ export function resolveTurn(b, commands) {
           continue;
         }
         if (isGuardKind(it)) continue;
+        emit(b, { t: 'act', side: 'enemy', i: u.index, kind: it.sk.kind, special: !!it.special });
         enemyAction(b, u, it);
         if (checkEnd(b)) break;
       }
@@ -475,6 +480,7 @@ function allyAction(b, u, c) {
     return;
   }
   m.mp -= sk.mp;
+  emit(b, { t: 'mp', i: u.index, amount: -sk.mp });
   const verb = sk.kind === 'physical' ? '{a}の {s}！' : m.job === 'swordsman' ? '{a}は {s}を 使った！' : '{a}は {s}を となえた！';
   msg(b, verb, { a: u.name, s: sk.name });
   if (sk.kind === 'physical' || sk.kind === 'magic') {
@@ -518,7 +524,7 @@ function recoverOne(b, t, effect) {
   if (!r) return false;
   if (r.revived) {
     emit(b, { t: 'se', name: 'revive' });
-    emit(b, { t: 'revive', side: 'ally', i: t.index });
+    emit(b, { t: 'revive', side: 'ally', i: t.index, hp: t.m.hp });
     msg(b, '{t}は 生き返った！', { t: t.name });
     return true;
   }
@@ -527,7 +533,10 @@ function recoverOne(b, t, effect) {
     emit(b, { t: 'heal', side: 'ally', i: t.index, amount: r.hp });
     msg(b, '{t}の HPが {n} 回復した！', { t: t.name, n: r.hp });
   }
-  if (r.mp) msg(b, '{t}の MPが {n} 回復した！', { t: t.name, n: r.mp });
+  if (r.mp) {
+    emit(b, { t: 'mp', i: t.index, amount: r.mp });
+    msg(b, '{t}の MPが {n} 回復した！', { t: t.name, n: r.mp });
+  }
   if (r.cured) {
     emit(b, { t: 'se', name: 'cure' });
     msg(b, '{t}の 状態異常が 治った！', { t: t.name });

@@ -9,13 +9,15 @@ import { ListMenu } from '../list.js';
 import { Menu } from '../menu.js';
 import { MessageScene } from '../message.js';
 import { Scene } from '../scene.js';
+import { battleBackground, drawBackgroundLife, drawIntro, Effects, INTRO_MS } from '../battlefx.js';
 
 const ELEMENT_COLOR = { none: '#8a8a8a', water: '#3b7dd8', wind: '#3aa45a', fire: '#e0503a', thunder: '#e6b800', dark: '#8a4fc8', light: '#e8c84a' };
 const AILMENT_COLOR = { poison: '#9b59b6', burn: '#e67e22', sleep: '#5dade2', confusion: '#ec7ab8', paralysis: '#f1c40f' };
 const BUFF_LABEL = { atkUp: '攻', defUp: '防', focus: '会', defDown: '防' };
-const FRAME_Y = 262;
-const FRAME_H = 92;
-const GROUND_Y = 212;
+const FRAME_Y = 280;
+const FRAME_H = 76;
+const GROUND_Y = 192;
+const MSG_Y = 229; // 戦いの文の窓
 const DOWN_RED = '#c0392b';
 
 export class BattleScene extends Scene {
@@ -34,8 +36,14 @@ export class BattleScene extends Scene {
     const g = this.game;
     this.area = g.enemies.areas[this.areaId] ?? { bg: ['#9ccbe8', '#e8f2d8'] };
     this.b = createBattle({ state: g.state, items: g.items, skills: g.skills, enemyData: g.enemies, area: this.area, enemyIds: this.enemyIds, boss: this.boss });
-    this.fx = this.b.enemies.map(() => ({ flash: 0, fade: 0, shake: 0 }));
-    this.allyFx = this.b.allies.map(() => ({ shake: 0 }));
+    this.fx = this.b.enemies.map(() => ({ flash: 0, fade: 0, shake: 0, lunge: 0 }));
+    this.allyFx = this.b.allies.map(() => ({ shake: 0, bounce: 0, red: 0, green: 0 }));
+    this.effects = new Effects();
+    this.shakeT = 0;
+    this.hitstop = 0;
+    this.syncDisp();
+    // 背景：エリアごと（影の勇者は専用の闇）
+    this.bgId = this.b.enemies.some((e) => e.d.ai === 'shadow') ? 'shadow' : this.areaId;
     this.pops = [];
     this.text = '';
     this.queue = [];
@@ -47,7 +55,23 @@ export class BattleScene extends Scene {
     this.boss = this.b.boss;
     g.audio.playBgm(this.b.enemies.find((e) => e.d.bgm)?.d.bgm ?? (this.boss ? 'boss' : 'battle'));
     const names = this.b.enemies.map((e) => e.name);
+    this.introDur = this.boss ? INTRO_MS.boss : INTRO_MS.normal;
+    if (this.boss) {
+      g.audio.playSe('warning');
+      setTimeout(() => g.audio.playSe('explosion'), 380);
+      this.shakeT = 900;
+      this.shakePow = 7;
+    }
     this.play([{ t: 'msg', text: names.length === 1 ? `${names[0]}が あらわれた！` : '魔物の群れが あらわれた！' }], () => this.startTurn());
+  }
+
+  // 画面に出すHP・MP（本当の値は、ターンの計算でもう決まっている。画面では、攻撃などを見せた時に減らす）
+  syncDisp() {
+    this.disp = {
+      ally: this.b.allies.map((u) => ({ hp: u.m.hp, mp: u.m.mp, lag: u.m.hp })),
+      enemy: this.b.enemies.map((e) => ({ hp: e.hp, max: e.maxHp, lag: e.hp })),
+    };
+    this.bossLag = this.b.enemies[0] ? this.b.enemies[0].hp / this.b.enemies[0].maxHp : 1;
   }
 
   // ---- 敵の並び ----
@@ -57,7 +81,7 @@ export class BattleScene extends Scene {
     this.enemyBoxes = this.b.enemies.map((e, i) => {
       const img = g.assets.image(`enemy:${e.id}`);
       const box = img ? alphaBox(img) : { x: 0, y: 0, w: 100, h: 100 };
-      const s = e.d.boss ? Math.min(1.1, (150 * (e.d.big ?? 1)) / box.h, 250 / box.w) : Math.min(0.75, 130 / box.h, 150 / box.w);
+      const s = e.d.boss ? Math.min(1.1, Math.min(150 * (e.d.big ?? 1), GROUND_Y - 44) / box.h, 260 / box.w) : Math.min(0.75, 120 / box.h, 150 / box.w);
       const w = Math.round(box.w * s);
       const h = Math.round(box.h * s);
       const cx = Math.round(WIDTH / 2 + 45 + (i - (n - 1) / 2) * 150); // 左のコマンドの窓に重ならないよう、少し右に寄せる
@@ -81,18 +105,24 @@ export class BattleScene extends Scene {
   step(dt) {
     const g = this.game;
     if (this.talking) return;
+    if (this.hitstop > 0) return; // 当たった瞬間、少しだけ止める
+    if (this.textShown < (this.text?.length ?? 0)) this.textShown += dt / (g.settings.animSpeed === 1 ? 10 : 22);
     if (this.waitT > 0) {
       this.waitT -= dt;
-      if (g.input.pressed('ok') || g.input.tapped()) this.waitT = Math.min(this.waitT, 60);
+      if (g.input.pressed('ok') || g.input.tapped()) {
+        this.textShown = 999;
+        this.waitT = Math.min(this.waitT, 60);
+      }
       return;
     }
+    const fast = g.settings.animSpeed === 1;
     while (this.queue.length) {
       const e = this.queue.shift();
-      const fast = g.settings.animSpeed === 1;
       if (e.t === 'msg') {
         this.prevText = this.text && this.text !== e.text ? this.text : '';
         this.text = e.text;
-        this.waitT = this.msgDelay();
+        this.textShown = 0;
+        this.waitT = this.msgDelay() + e.text.length * (fast ? 10 : 22);
         return;
       }
       if (e.t === 'talk') {
@@ -102,34 +132,130 @@ export class BattleScene extends Scene {
         return;
       }
       if (e.t === 'transform') {
-        this.fx[e.i] = { flash: 0, fade: 0, shake: 0 };
+        this.fx[e.i] = { flash: 0, fade: 0, shake: 0, lunge: 0 };
         this.layoutEnemies();
+        const en = this.b.enemies[e.i];
+        this.disp.enemy[e.i] = { hp: en.hp, max: en.maxHp, lag: en.hp };
+        this.bossLag = 1;
         g.audio.playSe('transform');
         setTimeout(() => g.audio.playSe('dragon_roar'), 700);
         if (e.bgm) g.audio.playBgm(e.bgm);
-        this.waitT = 900;
+        this.shakeT = 1200;
+        this.shakePow = 8;
+        this.flashColor = '#ffffff';
+        this.flashT = 260;
+        this.waitT = 1100;
         return;
       }
       if (e.t === 'shake') {
         this.fx[e.i].shake = 600;
         continue;
       }
-      if (e.t === 'se') g.audio.playSe(e.name);
-      else if (e.t === 'hit') {
-        this.pop(e.side, e.i, String(e.amount), e.crit ? '#ffef5a' : '#ffffff');
-        if (e.side === 'enemy') this.fx[e.i].flash = 300;
-        else this.allyFx[e.i].shake = 300;
-        this.waitT = fast ? 120 : 220;
+      if (e.t === 'act') {
+        // 行動する人：仲間は枠がはね、敵は前に出る
+        if (e.side === 'ally') this.allyFx[e.i].bounce = 280;
+        else {
+          this.fx[e.i].lunge = 260;
+          if (e.special) {
+            this.shakeT = 700;
+            this.shakePow = 9;
+            this.flashColor = '#ff2030';
+            this.flashT = 260;
+          }
+        }
+        this.lastActor = e;
+        this.recentFx = false;
+        this.waitT = fast ? 90 : 160;
         return;
-      } else if (e.t === 'heal') this.pop(e.side, e.i, String(e.amount), '#8ef0a0');
-      else if (e.t === 'miss') this.pop(e.side, e.i, 'ミス', '#dddddd');
+      }
+      if (e.t === 'mp') {
+        const d = this.disp.ally[e.i];
+        if (d) d.mp = Math.max(0, d.mp + e.amount);
+        continue;
+      }
+      if (e.t === 'se') {
+        g.audio.playSe(e.name);
+        // 補助の技は、矢印のエフェクト
+        if (e.name === 'buff' || e.name === 'debuff') {
+          const up = e.name === 'buff';
+          const enemyAct = this.lastActor?.side === 'enemy';
+          if (up === enemyAct || (!up && !enemyAct)) {
+            // 敵が自分を強くする／仲間が敵を弱くする → 敵の上
+            for (const box of this.enemyBoxes) this.effects.spawn(up ? 'buff' : 'debuff', box.cx, box.y + box.h / 2);
+          } else this.b.allies.forEach((u, i) => this.effects.spawn(up ? 'buff' : 'debuff', this.frameCenter(i).x, this.frameRect(i).y + 30));
+        }
+      } else if (e.t === 'hit') {
+        const crit = !!e.crit;
+        if (e.side === 'enemy') {
+          const d = this.disp.enemy[e.i];
+          d.lag = Math.max(d.lag ?? d.hp, d.hp);
+          d.hp = Math.max(0, d.hp - e.amount);
+          this.fx[e.i].flash = 300;
+          const box = this.enemyBoxes[e.i];
+          if (!this.recentFx && e.amount > 0) this.effects.spawn('slash', box.cx, box.y + box.h / 2, { big: crit });
+          this.effects.spawn('impact', box.cx + (Math.random() - 0.5) * 20, box.y + box.h / 2);
+        } else {
+          const d = this.disp.ally[e.i];
+          d.lag = Math.max(d.lag ?? d.hp, d.hp);
+          d.hp = Math.max(0, d.hp - e.amount);
+          this.allyFx[e.i].shake = 300;
+          this.allyFx[e.i].red = 300;
+          const c = this.frameCenter(e.i);
+          if (!this.recentFx && e.amount > 0) this.effects.spawn('claw', c.x, c.y + 26);
+        }
+        if (e.amount > 0) this.pop(e.side, e.i, String(e.amount), crit ? '#ffef5a' : e.side === 'ally' ? '#ff9a8a' : '#ffffff', crit);
+        else this.pop(e.side, e.i, '0', '#cccccc');
+        this.hitstop = crit ? 150 : e.amount > 0 ? 60 : 0;
+        if (crit) {
+          this.shakeT = 380;
+          this.shakePow = 6;
+        }
+        this.waitT = fast ? 140 : 260;
+        return;
+      } else if (e.t === 'heal') {
+        if (e.side === 'enemy') {
+          const d = this.disp.enemy[e.i];
+          d.hp = Math.min(d.max, d.hp + e.amount);
+          const box = this.enemyBoxes[e.i];
+          this.effects.spawn('heal', box.cx, box.y + box.h / 2);
+        } else {
+          const d = this.disp.ally[e.i];
+          d.hp += e.amount;
+          this.allyFx[e.i].green = 450;
+          const c = this.frameCenter(e.i);
+          this.effects.spawn('heal', c.x, c.y + 20);
+        }
+        this.pop(e.side, e.i, String(e.amount), '#8ef0a0');
+      } else if (e.t === 'revive') {
+        const d = this.disp.ally[e.i];
+        if (d) d.hp = e.hp ?? this.b.allies[e.i].m.hp;
+        this.allyFx[e.i].green = 600;
+        const c = this.frameCenter(e.i);
+        this.effects.spawn('magic', c.x, c.y + 20, { element: 'light' });
+      } else if (e.t === 'ailment') {
+        const p = e.side === 'enemy' ? { x: this.enemyBoxes[e.i].cx, y: this.enemyBoxes[e.i].y + 20 } : { x: this.frameCenter(e.i).x, y: this.frameRect(e.i).y + 20 };
+        this.effects.spawn('status', p.x, p.y);
+      } else if (e.t === 'miss') this.pop(e.side, e.i, 'ミス', '#dddddd');
       else if (e.t === 'down' && e.side === 'enemy') {
+        this.disp.enemy[e.i].hp = 0;
         this.fx[e.i].fade = 1;
-        this.waitT = fast ? 200 : 380;
+        this.waitT = fast ? 220 : 420;
         return;
+      } else if (e.t === 'down' && e.side === 'ally') {
+        this.disp.ally[e.i].hp = 0;
       } else if (e.t === 'fx') {
+        // 魔法：ねらった相手の場所に、属性のエフェクト
+        const targets = e.targets ?? [];
+        for (const ti of targets) {
+          const p = e.side === 'enemy' ? { x: this.enemyBoxes[ti].cx, y: this.enemyBoxes[ti].y + this.enemyBoxes[ti].h / 2 } : { x: this.frameCenter(ti).x, y: this.frameRect(ti).y + 30 };
+          if (e.kind === 'magic') this.effects.spawn('magic', p.x, p.y, { element: e.element });
+          else this.effects.spawn('slash', p.x, p.y, { element: e.element });
+        }
+        this.recentFx = true;
         this.flashColor = ELEMENT_COLOR[e.element] ?? '#ffffff';
-        this.flashT = 260;
+        this.flashT = 200;
+        this.waitT = e.kind === 'magic' ? (fast ? 260 : 460) : fast ? 120 : 200;
+        return;
       }
     }
     const then = this.after;
@@ -137,14 +263,15 @@ export class BattleScene extends Scene {
     then?.();
   }
 
-  pop(side, i, text, color) {
-    const p = side === 'enemy' ? { x: this.enemyBoxes[i].cx, y: this.enemyBoxes[i].y + this.enemyBoxes[i].h / 2 } : this.frameCenter(i);
-    this.pops.push({ x: p.x, y: p.y, text, color, t: 0 });
+  pop(side, i, text, color, big = false) {
+    const p = side === 'enemy' ? { x: this.enemyBoxes[i].cx + (Math.random() - 0.5) * 16, y: this.enemyBoxes[i].y + this.enemyBoxes[i].h / 2 } : this.frameCenter(i);
+    this.pops.push({ x: p.x, y: p.y, text, color, t: 0, big, label: big ? '会心！' : null });
   }
 
   // ---- ターン ----
   startTurn() {
     const b = this.b;
+    this.syncDisp(); // 見せ終わったら、画面の数字を本当の値にそろえる（毒・MPなど）
     if (b.result) return this.finish();
     planEnemies(b);
     if (b.intents.some((list) => list?.some((it) => it.special))) this.game.audio.playSe('warning');
@@ -203,7 +330,19 @@ export class BattleScene extends Scene {
       if (this.skipRewards) return this.close('win');
       g.audio.stopBgm(200);
       if (!b.enemies.some((e) => e.d.noJingle)) g.audio.playJingle('jingle_victory');
-      this.play(finishWin(b), () => this.close('win'));
+      // 勝った時の画面：経験値・お金・落とした物・レベルアップを、まとめて見せる
+      const st = g.state;
+      const before = { gold: st.gold ?? 0, bag: { ...(st.bag ?? {}) }, levels: b.allies.map((u) => u.m.level) };
+      const ev = finishWin(b);
+      const exp = b.enemies.reduce((n, e) => n + (e.noReward ? 0 : e.d.exp), 0);
+      const drops = Object.entries(st.bag ?? {}).filter(([id, n]) => n > (before.bag[id] ?? 0)).map(([id]) => g.items[id]?.name ?? id);
+      const levelUps = b.allies.map((u, i) => ({ name: u.name, level: u.m.level, up: u.m.level > before.levels[i] })).filter((x) => x.up);
+      const learned = ev.filter((x) => x.t === 'msg' && x.text.includes('覚えた')).map((x) => x.text);
+      if (levelUps.length) setTimeout(() => g.audio.playSe('levelup'), 1200);
+      this.syncDisp();
+      this.text = '';
+      this.victory = { t: 0, exp, gold: (st.gold ?? 0) - before.gold, drops, levelUps, learned, sparks: Array.from({ length: 24 }, (_, i) => ({ a: (i / 24) * Math.PI * 2, o: Math.random(), c: i % 2 ? '#ffe27a' : '#ffffff' })) };
+      this.phase = 'victory';
     } else if (b.result === 'lose') {
       g.audio.stopBgm(300);
       g.audio.playJingle('jingle_gameover');
@@ -231,6 +370,29 @@ export class BattleScene extends Scene {
     const g = this.game;
     this.t += dt;
     this.introT += dt;
+    this.effects.update(this.hitstop > 0 ? 0 : dt);
+    this.hitstop = Math.max(0, this.hitstop - dt);
+    this.shakeT = Math.max(0, this.shakeT - dt);
+    for (const f of this.fx) f.lunge = Math.max(0, (f.lunge ?? 0) - dt);
+    for (const f of this.allyFx) {
+      f.bounce = Math.max(0, f.bounce - dt);
+      f.red = Math.max(0, f.red - dt);
+      f.green = Math.max(0, f.green - dt);
+    }
+    // 減ったHPのあとを、少しおくれて追いかける
+    for (const d of [...this.disp.ally, ...this.disp.enemy]) if (d.lag > d.hp) d.lag = Math.max(d.hp, d.lag - dt * 0.12 * Math.max(1, (d.lag - d.hp) / 20));
+    const e0 = this.disp.enemy[0];
+    if (e0) {
+      const k = Math.max(0, e0.hp / e0.max);
+      this.bossLag = this.bossLag > k ? Math.max(k, this.bossLag - dt / 1400) : k;
+    }
+    if (this.introT < this.introDur) return; // 始まりの演出の間は待つ
+    if (this.phase === 'victory') {
+      this.victory.t += dt;
+      if (this.victory.t > 1400 && (g.input.pressed('ok') || g.input.tapped())) this.close('win');
+      for (const p of this.pops) p.t += dt;
+      return;
+    }
     for (const f of this.fx) {
       f.flash = Math.max(0, f.flash - dt);
       f.shake = Math.max(0, (f.shake ?? 0) - dt);
@@ -239,7 +401,7 @@ export class BattleScene extends Scene {
     for (const f of this.allyFx) f.shake = Math.max(0, f.shake - dt);
     this.flashT = Math.max(0, (this.flashT ?? 0) - dt);
     for (const p of this.pops) p.t += dt;
-    this.pops = this.pops.filter((p) => p.t < 900);
+    this.pops = this.pops.filter((p) => p.t < 1000);
 
     if (this.phase === 'play') return this.step(dt);
     if (this.phase === 'command') return this.updateCommand();
@@ -422,6 +584,7 @@ export class BattleScene extends Scene {
   }
 
   // ---- 描く ----
+  // 画面の並び：上＝ボスの名前とHP（ボス戦だけ）、まん中＝敵、その下＝戦いの文の窓、いちばん下＝仲間の枠
   frameRect(i) {
     const n = this.b.allies.length;
     const w = Math.floor((WIDTH - 16 - (n - 1) * 6) / n);
@@ -435,47 +598,101 @@ export class BattleScene extends Scene {
 
   draw(ctx) {
     const g = this.game;
-    const [top, bottom] = this.area.bg ?? ['#9ccbe8', '#e8f2d8'];
-    const grad = ctx.createLinearGradient(0, 0, 0, HEIGHT);
-    grad.addColorStop(0, top);
-    grad.addColorStop(0.62, bottom);
-    grad.addColorStop(1, shade(bottom, -0.18));
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
-    ctx.fillStyle = 'rgba(60, 80, 40, 0.18)';
-    ctx.beginPath();
-    ctx.ellipse(WIDTH / 2, GROUND_Y + 6, 300, 22, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.save();
+    // 画面の揺れ（会心・必殺技・ボスの登場）
+    if (this.shakeT > 0) {
+      const a = Math.min(1, this.shakeT / 300) * (this.shakePow ?? 4);
+      ctx.translate(Math.round(Math.sin(this.t / 23) * a), Math.round(Math.cos(this.t / 31) * a * 0.6));
+    }
+    // 背景（エリアごとのドット絵）
+    const bg = battleBackground(this.bgId, this.area.bg ?? ['#9ccbe8', '#e8f2d8']);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(bg, 0, 0, WIDTH, HEIGHT);
+    drawBackgroundLife(ctx, this.bgId, this.t);
+    // 敵の足もとの影
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    for (const box of this.enemyBoxes) {
+      ctx.beginPath();
+      ctx.ellipse(box.cx, GROUND_Y + 2, Math.max(30, box.w * 0.42), 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     this.drawEnemies(ctx);
+    this.effects.draw(ctx);
     if (this.flashT > 0) {
       ctx.globalAlpha = (this.flashT / 260) * 0.35;
       ctx.fillStyle = this.flashColor;
-      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.fillRect(-10, -10, WIDTH + 20, HEIGHT + 20);
       ctx.globalAlpha = 1;
     }
+    if (this.boss && this.phase !== 'victory' && this.disp.enemy[0]?.hp > 0) this.drawBossBar(ctx);
     this.drawFrames(ctx);
-    if (this.text && this.phase === 'play' && this.prevText) {
-      drawWindow(ctx, 8, 8, WIDTH - 16, 64);
-      g.font.draw(ctx, this.prevText, 24, 18, COLORS.textDim);
-      g.font.draw(ctx, this.text, 24, 42, COLORS.text);
-    } else if (this.text) {
-      drawWindow(ctx, 8, 8, WIDTH - 16, 40);
-      g.font.draw(ctx, this.text, 24, 20, COLORS.text);
-    }
+    ctx.restore();
+
+    // 戦いの文の窓
+    if (this.text && this.phase !== 'target') this.drawMessage(ctx);
     if (this.phase === 'command' || this.phase === 'list' || (this.phase === 'target' && this.menu)) this.menu?.draw(ctx, g.font);
     if (this.phase === 'list' || (this.phase === 'target' && this.target?.back === 'list')) this.list?.draw(ctx, g.font, { active: this.phase === 'list' });
     if (this.phase === 'target') this.drawTargetCursor(ctx);
-    for (const p of this.pops) {
-      const k = p.t / 900;
-      ctx.globalAlpha = k < 0.75 ? 1 : 1 - (k - 0.75) / 0.25;
-      const y = p.y - 18 - Math.min(1, p.t / 200) * 14;
-      const w = g.font.width(p.text);
-      ctx.fillStyle = 'rgba(0,0,0,0.45)';
-      ctx.fillRect(Math.round(p.x - w / 2 - 4), Math.round(y - 3), w + 8, 22);
-      g.font.draw(ctx, p.text, Math.round(p.x - w / 2), Math.round(y), p.color);
-      ctx.globalAlpha = 1;
-    }
+    this.drawPops(ctx);
+    if (this.phase === 'victory') this.drawVictory(ctx);
+    // 戦いが始まる時の演出
+    drawIntro(ctx, this.introT, this.boss, this.b.enemies[0]?.name ?? '', g.font, g.fontBig);
+  }
+
+  // 戦いの文：紺の窓に金のふち。1文字ずつ出し、数字は黄色に
+  drawMessage(ctx) {
+    const g = this.game;
+    const x = 8;
+    const y = MSG_Y;
+    const w = WIDTH - 16;
+    const two = !!this.prevText && this.phase === 'play';
+    const h = 46;
+    const bgc = ctx.createLinearGradient(0, y, 0, y + h);
+    bgc.addColorStop(0, 'rgba(26,22,58,0.92)');
+    bgc.addColorStop(1, 'rgba(12,10,30,0.92)');
+    ctx.fillStyle = '#c8a24a';
+    ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
+    ctx.fillStyle = '#5a4316';
+    ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+    ctx.fillStyle = bgc;
+    ctx.fillRect(x, y, w, h);
+    const shown = Math.floor(this.textShown ?? 999);
+    if (two) {
+      drawColored(g.font, ctx, this.prevText, x + 16, y + 4, '#a8a2c8', Infinity);
+      drawColored(g.font, ctx, this.text, x + 16, y + 24, '#ffffff', shown);
+    } else drawColored(g.font, ctx, this.text, x + 16, y + 14, '#ffffff', shown);
+  }
+
+  // ボス戦：画面の上のまん中に、名前とHPのバー
+  drawBossBar(ctx) {
+    const g = this.game;
+    const e = this.b.enemies[0];
+    if (!e) return;
+    const d = this.disp.enemy[0];
+    const w = 300;
+    const x = Math.round(WIDTH / 2 - w / 2);
+    const y = 26;
+    const k = Math.max(0, d.hp / d.max);
+    const lag = Math.max(k, this.bossLag ?? k);
+    g.font.drawCentered(ctx, e.name, WIDTH / 2 + 1, 7, '#000000');
+    g.font.drawCentered(ctx, e.name, WIDTH / 2, 6, '#ffe8e8');
+    ctx.fillStyle = '#1a0c10';
+    ctx.fillRect(x - 3, y - 3, w + 6, 14);
+    ctx.fillStyle = '#c8a24a';
+    ctx.fillRect(x - 2, y - 2, w + 4, 12);
+    ctx.fillStyle = '#2a1418';
+    ctx.fillRect(x, y, w, 8);
+    // 減った分は、しばらく白く残って追いかける
+    ctx.fillStyle = '#ffe0a0';
+    ctx.fillRect(x, y, Math.round(w * lag), 8);
+    const bar = ctx.createLinearGradient(0, y, 0, y + 8);
+    bar.addColorStop(0, k < 0.3 ? '#ff7a5a' : '#ff5a6a');
+    bar.addColorStop(1, k < 0.3 ? '#a8201a' : '#a01830');
+    ctx.fillStyle = bar;
+    ctx.fillRect(x, y, Math.round(w * k), 8);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.fillRect(x, y, Math.round(w * k), 2);
   }
 
   drawEnemies(ctx) {
@@ -484,33 +701,81 @@ export class BattleScene extends Scene {
     b.enemies.forEach((e, i) => {
       const box = this.enemyBoxes[i];
       const f = this.fx[i];
-      if (!alive(e) && f.fade >= 2) return;
-      const appear = Math.min(1, this.introT / 300);
+      const d = this.disp.enemy[i];
+      if (d.hp <= 0 && f.fade >= 2) return;
+      const appear = Math.min(1, this.introT / (this.boss ? INTRO_MS.boss : INTRO_MS.normal));
+      ctx.save();
       ctx.globalAlpha = appear * (f.fade > 0 ? Math.max(0, 1 - (f.fade - 1)) : 1);
       if (f.flash > 0 && Math.floor(f.flash / 60) % 2 === 0) ctx.globalAlpha *= 0.25;
-      const sx = f.shake > 0 ? Math.round(Math.sin(f.shake / 30) * 4) : 0;
-      if (box.pic) ctx.drawImage(box.pic, box.x + sx, box.y, box.w, box.h);
-      ctx.globalAlpha = 1;
-      if (!alive(e)) return;
-      // HPゲージ（数字は出さない）
-      const gw = Math.min(110, Math.max(60, box.w));
-      const gx = Math.round(box.cx - gw / 2);
-      ctx.fillStyle = 'rgba(40,30,20,0.6)';
-      ctx.fillRect(gx - 1, GROUND_Y + 8, gw + 2, 7);
-      ctx.fillStyle = '#e85a4f';
-      ctx.fillRect(gx, GROUND_Y + 9, Math.round((gw * e.hp) / e.maxHp), 5);
-      // 状態異常と補助のアイコン
-      let ax = gx;
+      const sx = f.shake > 0 ? Math.round(Math.sin(f.shake / 30) * 5) : 0;
+      // 攻撃する時は、少し前に出て大きくなる
+      const lunge = f.lunge > 0 ? Math.sin((1 - f.lunge / 260) * Math.PI) : 0;
+      const sc = 1 + lunge * 0.1;
+      // ゆっくり息をするように上下する（ボスは大きく）
+      const breathe = Math.round(Math.sin(this.t / 600 + i) * (e.d.boss ? 2 : 1));
+      if (box.pic) {
+        const w = box.w * sc;
+        const h = box.h * sc;
+        ctx.drawImage(box.pic, Math.round(box.cx - w / 2 + sx), Math.round(GROUND_Y - h + lunge * 8 + breathe), Math.round(w), Math.round(h));
+        // 倒れる時は、赤く光ってくずれる
+        if (f.fade > 0 && f.fade < 2) {
+          ctx.globalCompositeOperation = 'source-atop';
+          ctx.globalAlpha = 0.5;
+          ctx.fillStyle = '#ff3040';
+          ctx.fillRect(box.x, box.y, box.w, box.h);
+        }
+      }
+      ctx.restore();
+      if (d.hp <= 0) return;
+      if (!e.d.boss) {
+        // 雑魚：足もとにHPゲージと名前
+        const gw = Math.min(96, Math.max(56, box.w * 0.8));
+        const gx = Math.round(box.cx - gw / 2);
+        const gy = GROUND_Y + 6;
+        ctx.fillStyle = 'rgba(10,8,20,0.75)';
+        ctx.fillRect(gx - 2, gy - 2, gw + 4, 8);
+        ctx.fillStyle = '#ffe0a0';
+        ctx.fillRect(gx, gy, Math.round((gw * Math.max(d.hp, d.lag ?? d.hp)) / d.max), 4);
+        ctx.fillStyle = d.hp / d.max < 0.3 ? '#ff7a5a' : '#e85a4f';
+        ctx.fillRect(gx, gy, Math.round((gw * d.hp) / d.max), 4);
+        const nw = g.font.width(e.name);
+        ctx.fillStyle = 'rgba(10,8,20,0.55)';
+        ctx.fillRect(Math.round(box.cx - nw / 2 - 6), gy + 7, nw + 12, 19);
+        g.font.drawCentered(ctx, e.name, box.cx, gy + 9, '#ffffff');
+      }
+      // 状態異常と、弱った・強くなったのしるし
+      let ax = Math.round(box.cx + (e.d.boss ? box.w / 2 - 10 : 30));
+      let ay = e.d.boss ? GROUND_Y - 18 : GROUND_Y - 14;
       for (const a of e.ailments) {
-        drawSkull(ctx, ax, GROUND_Y + 18, AILMENT_COLOR[a], 0.7);
+        drawSkull(ctx, ax, ay, AILMENT_COLOR[a], 0.7);
         ax += 14;
       }
       for (const [k, n] of Object.entries(e.buffs)) {
-        g.font.draw(ctx, `${BUFF_LABEL[k]}↓${n}`, ax, GROUND_Y + 17, '#5a7fd0');
+        const up = k !== 'defDown';
+        g.font.draw(ctx, `${BUFF_LABEL[k]}${up ? '↑' : '↓'}${n}`, ax, ay - 2, up ? '#ff8a5a' : '#7aa8ff');
         ax += 40;
       }
       if (this.phase !== 'play' || this.text === '') this.drawIntent(ctx, i, box);
     });
+  }
+
+  // ダメージや回復の数字：はねて落ちる。会心は大きな黄色
+  drawPops(ctx) {
+    const g = this.game;
+    for (const p of this.pops) {
+      const k = p.t / 1000;
+      ctx.globalAlpha = k < 0.75 ? 1 : 1 - (k - 0.75) / 0.25;
+      const tt = Math.min(p.t, 420) / 420;
+      const hop = tt < 0.6 ? Math.sin((tt / 0.6) * Math.PI) * 22 : Math.sin(((tt - 0.6) / 0.4) * Math.PI) * 6;
+      const font = p.big && g.fontBig ? g.fontBig : g.font;
+      const w = font.width(p.text);
+      const x = Math.round(p.x - w / 2);
+      const y = Math.round(p.y - 22 - hop);
+      for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1]]) font.draw(ctx, p.text, x + dx, y + dy, '#120a10');
+      font.draw(ctx, p.text, x, y, p.color);
+      if (p.label) g.font.drawCentered(ctx, p.label, p.x, y - 16, '#ffef5a');
+      ctx.globalAlpha = 1;
+    }
   }
 
   // 頭の上の吹き出し：何をするか（アイコン）と、誰に（顔）。2回以上動くボスは、行動の数だけ縦に重ねる（上から順に実行）
@@ -587,43 +852,62 @@ export class BattleScene extends Scene {
     }
   }
 
+  // 仲間の枠：行動する人ははねて光り、ダメージを受けた人はゆれて赤く光る。回復は緑。HPが少ないと枠が赤く点滅
   drawFrames(ctx) {
     const g = this.game;
-    const st = g.state;
     this.b.allies.forEach((u, i) => {
       const m = u.m;
+      const d = this.disp.ally[i];
+      const fx = this.allyFx[i];
       const r = this.frameRect(i);
-      const sh = this.allyFx[i].shake > 0 ? Math.round(Math.sin(this.allyFx[i].shake / 25) * 3) : 0;
-      drawWindow(ctx, r.x + sh, r.y, r.w, r.h);
-      const active = (this.phase === 'command' || this.phase === 'list' || this.phase === 'target') && this.who === i;
-      if (active) {
-        ctx.strokeStyle = COLORS.accent;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(r.x + sh + 5, r.y + 5, r.w - 10, r.h - 10);
-      }
+      const sh = fx.shake > 0 ? Math.round(Math.sin(fx.shake / 25) * 4) : 0;
+      const hop = fx.bounce > 0 ? Math.round(Math.sin((1 - fx.bounce / 280) * Math.PI) * 10) : 0;
+      const x = r.x + sh;
+      const y = r.y - hop;
       const s = totalStats(m, g.items);
-      const down = isDown(m);
+      const down = d.hp <= 0;
+      const low = !down && d.hp / s.hp < 0.25;
+      drawWindow(ctx, x, y, r.w, r.h);
+      // 光（行動・ダメージ・回復）
+      const glow = fx.bounce > 0 ? ['rgba(255,230,140,', fx.bounce / 280] : fx.red > 0 ? ['rgba(255,40,40,', fx.red / 300] : fx.green > 0 ? ['rgba(90,255,140,', fx.green / 450] : null;
+      if (glow) {
+        ctx.fillStyle = `${glow[0]}${(0.35 * glow[1]).toFixed(3)})`;
+        ctx.fillRect(x + 4, y + 4, r.w - 8, r.h - 8);
+      }
+      const active = (this.phase === 'command' || this.phase === 'list' || this.phase === 'target') && this.who === i;
+      if (active || low) {
+        ctx.strokeStyle = active ? COLORS.accent : Math.floor(this.t / 300) % 2 ? '#ff3a3a' : '#a01818';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x + 5, y + 5, r.w - 10, r.h - 10);
+      }
       ctx.globalAlpha = down ? 0.35 : 1;
-      drawFace(ctx, g, m, r.x + sh + 12, r.y + 12, 2);
+      drawFace(ctx, g, m, x + 12, y + 12, 2);
       ctx.globalAlpha = 1;
-      const tx = r.x + sh + 62;
-      g.font.draw(ctx, u.name, tx, r.y + 10, down ? DOWN_RED : COLORS.title);
-      g.font.draw(ctx, `HP ${m.hp}/${s.hp}`, tx, r.y + 32, COLORS.text);
+      const tx = x + 62;
+      g.font.draw(ctx, u.name, tx, y + 8, down ? DOWN_RED : COLORS.title);
+      g.font.draw(ctx, `HP ${Math.max(0, Math.round(d.hp))}/${s.hp}`, tx, y + 28, low ? '#c0392b' : COLORS.text);
       const gw = r.w - 78;
       ctx.fillStyle = '#d8c8a8';
-      ctx.fillRect(tx, r.y + 52, gw, 4);
-      ctx.fillStyle = m.hp / s.hp < 0.25 ? '#e85a4f' : '#5fbf6a';
-      ctx.fillRect(tx, r.y + 52, Math.round((gw * m.hp) / s.hp), 4);
-      g.font.draw(ctx, `MP ${m.mp}`, tx, r.y + 62, COLORS.text);
-      let ax = r.x + sh + 14;
+      ctx.fillRect(tx, y + 48, gw, 5);
+      ctx.fillStyle = '#ffd38a';
+      ctx.fillRect(tx, y + 48, Math.round((gw * Math.max(0, Math.max(d.hp, d.lag ?? d.hp))) / s.hp), 5);
+      ctx.fillStyle = d.hp / s.hp < 0.25 ? '#e85a4f' : '#5fbf6a';
+      ctx.fillRect(tx, y + 48, Math.round((gw * Math.max(0, d.hp)) / s.hp), 5);
+      g.font.draw(ctx, `MP ${Math.max(0, Math.round(d.mp))}`, tx, y + 56, COLORS.text);
+      ctx.fillStyle = '#d8c8a8';
+      ctx.fillRect(tx + 64, y + 63, gw - 64, 3);
+      ctx.fillStyle = '#5a8ae8';
+      ctx.fillRect(tx + 64, y + 63, Math.round(((gw - 64) * Math.max(0, d.mp)) / Math.max(1, s.mp)), 3);
+      let ax = x + 14;
       for (const a of m.ailments) {
-        drawSkull(ctx, ax, r.y + 62, AILMENT_COLOR[a], 0.75);
+        drawSkull(ctx, ax, y + 62, AILMENT_COLOR[a], 0.75);
         ax += 15;
       }
-      let bx = tx + 64;
+      let bx = x + r.w - 46;
       for (const [k, n] of Object.entries(u.buffs)) {
-        g.font.draw(ctx, `${BUFF_LABEL[k]}↑${n}`, bx, r.y + 62, '#d06a3a');
-        bx += 42;
+        const up = k !== 'defDown';
+        g.font.draw(ctx, `${BUFF_LABEL[k]}${up ? '↑' : '↓'}${n}`, bx, y + 8, up ? '#d06a3a' : '#3a6ad0');
+        bx -= 42;
       }
     });
   }
@@ -633,6 +917,7 @@ export class BattleScene extends Scene {
     const tg = this.target;
     const i = tg.candidates[tg.pos];
     const bob = Math.round(Math.sin(this.t / 120) * 3);
+    let label;
     if (tg.kind === 'enemy') {
       const box = this.enemyBoxes[i];
       ctx.save();
@@ -640,14 +925,78 @@ export class BattleScene extends Scene {
       ctx.rotate(Math.PI / 2);
       drawCursor(ctx, 0, 0);
       ctx.restore();
-      this.text = this.b.enemies[i].name;
+      label = this.b.enemies[i].name;
     } else {
       const r = this.frameRect(i);
       drawCursor(ctx, r.x + r.w / 2 - 3, r.y - 14 + bob);
-      this.text = this.b.allies[i].name;
+      label = this.b.allies[i].name;
     }
-    drawWindow(ctx, 8, 8, WIDTH - 16, 40);
-    g.font.draw(ctx, this.text, 24, 20, COLORS.text);
+    this.text = label;
+    this.textShown = 999;
+    this.drawMessage(ctx);
+  }
+
+  // 勝った時：「勝利！」と、経験値・お金が数え上がり、レベルアップが光る
+  drawVictory(ctx) {
+    const g = this.game;
+    const v = this.victory;
+    const t = v.t;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, t / 250) * 0.55;
+    ctx.fillStyle = '#05030c';
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.globalAlpha = 1;
+    // 「勝利！」が上から落ちてきて、はねる
+    const dropK = Math.min(1, t / 420);
+    const dy = (1 - dropK) * -80 + (dropK >= 1 ? 0 : Math.sin(dropK * Math.PI) * 6);
+    const title = '勝利！';
+    const f = g.fontBig ?? g.font;
+    f.drawCentered(ctx, title, WIDTH / 2 + 3, 30 + dy + 3, '#3a1a00');
+    f.drawCentered(ctx, title, WIDTH / 2, 30 + dy, '#ffe27a');
+    for (const s of v.sparks) {
+      const life = ((t / 1400 + s.o) % 1);
+      ctx.globalAlpha = Math.sin(life * Math.PI);
+      ctx.fillStyle = s.c;
+      const x = WIDTH / 2 + Math.cos(s.a) * (60 + life * 120);
+      const y = 46 + Math.sin(s.a) * (20 + life * 40);
+      ctx.fillRect(Math.round(x), Math.round(y) - 2, 1, 5);
+      ctx.fillRect(Math.round(x) - 2, Math.round(y), 5, 1);
+    }
+    ctx.globalAlpha = 1;
+    // 結果の窓
+    const w = 420;
+    const rows = 2 + v.drops.length + v.levelUps.length + v.learned.length;
+    const h = 30 + rows * 24;
+    const x = Math.round(WIDTH / 2 - w / 2);
+    const y = 82;
+    drawWindow(ctx, x, y, w, h);
+    const count = (n) => Math.round(n * Math.min(1, Math.max(0, (t - 400) / 700)));
+    let ry = y + 14;
+    g.font.draw(ctx, 'けいけんち', x + 24, ry, COLORS.title);
+    g.font.draw(ctx, `+${count(v.exp)}`, x + 200, ry, COLORS.text);
+    ry += 24;
+    g.font.draw(ctx, 'ゴールド', x + 24, ry, COLORS.title);
+    g.font.draw(ctx, `+${count(v.gold)} G`, x + 200, ry, '#b8861e');
+    ry += 24;
+    for (const dItem of v.drops) {
+      if (t > 1100) g.font.draw(ctx, `${dItem} を 手に入れた！`, x + 24, ry, '#2a8a5a');
+      ry += 24;
+    }
+    for (const lu of v.levelUps) {
+      if (t > 1200) {
+        const glow = Math.floor(t / 200) % 2 === 0;
+        ctx.fillStyle = glow ? 'rgba(255,220,90,0.35)' : 'rgba(255,220,90,0.15)';
+        ctx.fillRect(x + 12, ry - 3, w - 24, 22);
+        g.font.draw(ctx, `${lu.name}は レベル${lu.level}に 上がった！`, x + 24, ry, '#c0392b');
+      }
+      ry += 24;
+    }
+    for (const ln of v.learned) {
+      if (t > 1300) g.font.draw(ctx, ln, x + 24, ry, '#3a6ad0');
+      ry += 24;
+    }
+    if (t > 1400 && Math.floor(t / 380) % 2 === 0) drawNextArrow(ctx, x + w - 26, y + h - 16);
+    ctx.restore();
   }
 }
 
@@ -797,4 +1146,37 @@ function drawArrow(ctx, x, y, up) {
     ctx.fillRect(x + 7 - i, up ? y + i : y + 15 - i, w, 1);
   }
   ctx.fillRect(x + 5, up ? y + 6 : y + 3, 4, 7);
+}
+
+// 戦いの文を描く。数字（ダメージ・回復の量など）は黄色にする。maxChars まで（1文字ずつ出すため）
+function drawColored(font, ctx, text, x, y, color, maxChars = Infinity) {
+  let cx = x;
+  let n = 0;
+  let run = '';
+  let runDigit = null;
+  const flush = () => {
+    if (!run) return;
+    // かげ
+    font.draw(ctx, run, cx + 1, y + 1, '#000000');
+    cx = font.draw(ctx, run, cx, y, runDigit ? '#ffe27a' : color);
+    run = '';
+  };
+  for (const ch of String(text)) {
+    if (n++ >= maxChars) break;
+    const digit = /[0-9０-９]/.test(ch);
+    if (runDigit !== null && digit !== runDigit) flush();
+    runDigit = digit;
+    run += ch;
+  }
+  flush();
+}
+
+// 「次へ」の小さな三角
+function drawNextArrow(ctx, x, y) {
+  ctx.fillStyle = '#c0392b';
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + 10, y);
+  ctx.lineTo(x + 5, y + 6);
+  ctx.fill();
 }
