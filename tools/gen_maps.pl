@@ -239,11 +239,11 @@ sub counter2 { my ($m, $x0, $x1, $y) = @_; put($m, 'd', $x0, $y, 758); put($m, '
   my $mount = sub { my ($x0, $y0, $x1, $y1, $snow) = @_; for my $y ($y0 .. $y1) { for my $x ($x0 .. $x1) {
     my $v = ($x * 7 + $y * 13) % 5; my $c = $snow && $v == 0 ? 2 : ($v % 2);
     put($m, 'd', $x, $y, E(10, $c)); put($m, 'c', $x, $y, 1); } } };
-  # forests (walkable): the fill is a 2x2 block; rounded treetops along the top edge and trunks along the bottom
-  my $forest = sub { my ($x0, $y0, $x1, $y1) = @_; for my $y ($y0 .. $y1) { for my $x ($x0 .. $x1) { put($m, 'd', $x, $y, 25 + (($x - $x0) % 2) + (($y - $y0) % 2) * 8); } }
-    for my $x ($x0 .. $x1) { my $k = ($x - $x0) % 2;
-      put($m, 'd', $x, $y0 - 1, 9 + $k) unless $m->{d}[$y0 - 1][$x] || $m->{c}[$y0 - 1][$x];
-      put($m, 'd', $x, $y1 + 1, 17 + $k) unless $m->{d}[$y1 + 1][$x] || $m->{c}[$y1 + 1][$x]; } };
+  # forests (walkable), laid the way the tileset is meant to be: trees overlap by half a tile.
+  # top row = treetops (9/10), middle rows = one tree's bottom with the next tree's top (33/34), bottom row = trunks (17/18)
+  my $forest = sub { my ($x0, $y0, $x1, $y1) = @_; for my $y ($y0 .. $y1) { for my $x ($x0 .. $x1) { my $k = ($x - $x0) % 2;
+    put($m, 'd', $x, $y, ($y == $y0 ? 9 : $y == $y1 ? 17 : 33) + $k); } } };
+
   $mount->(0, 0, 59, 2, 1); $mount->(0, 37, 59, 39, 0); $mount->(0, 0, 2, 39, 1);
   $mount->(57, 0, 59, 17, 1); $mount->(57, 22, 59, 39, 0); $mount->(54, 15, 56, 17, 0); $mount->(54, 22, 56, 24, 0);
   $mount->(@$_) for ([8, 5, 13, 8, 1], [3, 3, 6, 5, 1], [6, 29, 11, 33, 0], [44, 4, 50, 7, 1], [24, 33, 31, 36, 0], [48, 31, 53, 36, 0], [20, 3, 23, 4, 1]);
