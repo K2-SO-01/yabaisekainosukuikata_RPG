@@ -1,13 +1,14 @@
 {
   "type": "map", "version": "1.10", "tiledversion": "1.10.2", "orientation": "orthogonal", "renderorder": "right-down", "infinite": false,
-  "width": 16, "height": 13, "tilewidth": 32, "tileheight": 32, "nextlayerid": 5, "nextobjectid": 6,
+  "width": 16, "height": 13, "tilewidth": 32, "tileheight": 32, "nextlayerid": 6, "nextobjectid": 6,
   "properties": [
     { "name": "name", "type": "string", "value": "王様のお城" },
     { "name": "bgm", "type": "string", "value": "castle" }
   ],
   "tilesets": [
     { "firstgid": 1, "name": "BaseChip", "image": "../../assets/tiles/Pipoya RPG Tileset 32x32/[Base]BaseChip_pipo.png", "imagewidth": 256, "imageheight": 4256, "tilewidth": 32, "tileheight": 32, "columns": 8, "tilecount": 1064, "margin": 0, "spacing": 0 },
-    { "firstgid": 1065, "name": "CastleExtra", "image": "../../assets/tiles/extra/castle_extra.png", "imagewidth": 256, "imageheight": 320, "tilewidth": 32, "tileheight": 32, "columns": 8, "tilecount": 80, "margin": 0, "spacing": 0 }
+    { "firstgid": 1065, "name": "CastleExtra", "image": "../../assets/tiles/extra/castle_extra.png", "imagewidth": 256, "imageheight": 384, "tilewidth": 32, "tileheight": 32, "columns": 8, "tilecount": 96, "margin": 0, "spacing": 0 },
+    { "firstgid": 1161, "name": "Water", "image": "../../assets/tiles/Pipoya RPG Tileset 32x32/SampleMap/[A]Water_pipo.png", "imagewidth": 2048, "imageheight": 1536, "tilewidth": 32, "tileheight": 32, "columns": 64, "tilecount": 3072, "margin": 0, "spacing": 0, "properties": [{ "name": "frames", "type": "int", "value": 8 }] }
   ],
   "layers": [
     { "id": 1, "type": "tilelayer", "name": "ground", "x": 0, "y": 0, "width": 16, "height": 13, "opacity": 1, "visible": true,
@@ -57,6 +58,22 @@
         0,1,0,1,0,0,0,0,0,0,0,0,1,0,1,0,
         0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
         1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1
+      ] },
+    { "id": 5, "type": "tilelayer", "name": "roof", "x": 0, "y": 0, "width": 16, "height": 13, "opacity": 1, "visible": true,
+      "data": [
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
       ] },
     { "id": 4, "type": "objectgroup", "name": "events", "x": 0, "y": 0, "opacity": 1, "visible": true, "draworder": "topdown",
       "objects": [

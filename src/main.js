@@ -121,7 +121,7 @@ async function loadGameData(game) {
         map.tilesetImages = [];
         for (const ts of map.tilesets) {
           const imgPath = resolvePath(path, ts.image);
-          map.tilesetImages.push({ firstgid: ts.firstgid, columns: ts.columns, img: await assets.loadImage(`tiles:${imgPath}`, imgPath) });
+          map.tilesetImages.push({ firstgid: ts.firstgid, columns: ts.columns, frames: ts.properties?.find((p) => p.name === 'frames')?.value ?? 1, img: await assets.loadImage(`tiles:${imgPath}`, imgPath) });
         }
         game.maps.set(id, map);
       }),

@@ -27,11 +27,6 @@
     "castle_throne": "data/maps/castle_throne.json",
     "castle_hall": "data/maps/castle_hall.json",
     "town": "data/maps/town.json",
-    "home": "data/maps/home.json",
-    "house2": "data/maps/house2.json",
-    "house3": "data/maps/house3.json",
-    "shop_weapon": "data/maps/shop_weapon.json",
-    "shop_item": "data/maps/shop_item.json",
     "well": "data/maps/well.json",
     "field_town": "data/maps/field_town.json",
     "testroom": "data/maps/testroom.json"

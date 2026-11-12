@@ -164,6 +164,11 @@ export class FieldScene extends Scene {
     }
   }
 
+  // 今いる建物（屋根を消す範囲）。props.w・props.h が建物の大きさ（いちばん下の段は表の壁）
+  houseAt(p) {
+    return this.map.objects.find((o) => o.type === 'house' && p.x >= o.x && p.x < o.x + Number(o.props.w) && p.y >= o.y && p.y < o.y + Number(o.props.h) - 1) ?? null;
+  }
+
   // 1歩進んだあと：出口や、ふむと始まるイベントを調べる
   afterStep() {
     const e = entityAt(this.map, this.pos.x, this.pos.y, this.isOn);
@@ -422,7 +427,7 @@ export class FieldScene extends Scene {
     ctx.fillStyle = map.props.back ?? '#1b1722';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
     for (const name of map.layerOrder) {
-      if (name === 'collision') continue;
+      if (name === 'collision' || name === 'roof') continue;
       const layer = map.layers[name];
       if (layer.visible) drawTileLayer(ctx, map, layer, camX, camY);
     }
@@ -454,6 +459,9 @@ export class FieldScene extends Scene {
     const frame = this.moving ? STEP_FRAMES[Math.floor(this.stepCount * 2 + (this.moving.t / this.moving.dur) * 2) % 4] : 1;
     sprites.push({ y: p.y, draw: () => drawChar(ctx, this.playerSprite, snap(p.x) - camX, snap(p.y) - camY, this.dir, frame) });
     sprites.sort((a, b) => a.y - b.y).forEach((s) => s.draw());
+
+    // 屋根：建物の中にいる時は、その建物の屋根だけ消して中を見せる
+    if (map.layers.roof) drawTileLayer(ctx, map, map.layers.roof, camX, camY, this.houseAt(this.moving ? this.moving.to : this.pos));
 
     this.drawBanner(ctx);
   }
@@ -491,7 +499,9 @@ function clamp(v, min, max) {
   return Math.min(max, Math.max(min, v));
 }
 
-function drawTileLayer(ctx, map, layer, camX, camY) {
+// skip：この範囲の建物の屋根は描かない（中にいる時）
+function drawTileLayer(ctx, map, layer, camX, camY, skip = null) {
+  const frame = Math.floor(performance.now() / 220);
   const x0 = Math.max(0, Math.floor(camX / TILE));
   const y0 = Math.max(0, Math.floor(camY / TILE));
   const x1 = Math.min(map.width - 1, Math.floor((camX + WIDTH) / TILE));
@@ -500,6 +510,7 @@ function drawTileLayer(ctx, map, layer, camX, camY) {
     for (let x = x0; x <= x1; x++) {
       const gid = layer.data[y * map.width + x] & 0x1fffffff;
       if (!gid) continue;
+      if (skip && x >= skip.x && x < skip.x + Number(skip.props.w) && y >= skip.y && y < skip.y + Number(skip.props.h)) continue;
       const ts = tilesetFor(map, gid);
       const dx = x * TILE - camX;
       const dy = y * TILE - camY;
@@ -509,7 +520,9 @@ function drawTileLayer(ctx, map, layer, camX, camY) {
         continue;
       }
       const local = gid - ts.firstgid;
-      ctx.drawImage(ts.img, (local % ts.columns) * TILE, Math.floor(local / ts.columns) * TILE, TILE, TILE, dx, dy, TILE, TILE);
+      // 水などの動くタイル：同じ絵が右へ8列ずつ並んでいる（frames 枚）
+      const col = (local % ts.columns) + (ts.frames > 1 ? (frame % ts.frames) * 8 : 0);
+      ctx.drawImage(ts.img, col * TILE, Math.floor(local / ts.columns) * TILE, TILE, TILE, dx, dy, TILE, TILE);
     }
   }
 }

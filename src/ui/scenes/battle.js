@@ -185,7 +185,7 @@ export class BattleScene extends Scene {
   close(result) {
     const g = this.game;
     this.phase = 'done';
-    if (result === 'lose') applyDefeat(g.state, g.items, this.area.home ?? { map: 'town', x: 7, y: 24, dir: 'down' });
+    if (result === 'lose') applyDefeat(g.state, g.items, this.area.home ?? { map: 'town', x: 6, y: 33, dir: 'down' });
     g.scenes.fadeTo(() => {
       g.scenes.pop(this);
       this.onEnd?.(result);

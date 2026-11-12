@@ -1,6 +1,6 @@
 # Draws the extra castle tiles (32x32) that the base tileset does not have:
 # blue pointed roofs, round towers, castle walls, a grand gate, a clock, sky, and palace interior pieces.
-# Output: assets/tiles/extra/castle_extra.png  (8 columns x 10 rows)
+# Output: assets/tiles/extra/castle_extra.png  (8 columns x 12 rows)
 # Run:    powershell -ExecutionPolicy Bypass -File tools/draw_castle_tiles.ps1
 #
 # Layout (row, column) -> tile number in maps = 1065 + row*8 + column
@@ -15,7 +15,7 @@ Add-Type -AssemblyName System.Drawing
 $root = Split-Path -Parent $PSScriptRoot
 $outDir = Join-Path $root 'assets\tiles\extra'
 New-Item -ItemType Directory -Force $outDir | Out-Null
-$W = 256; $H = 320
+$W = 256; $H = 384
 $bmp = New-Object System.Drawing.Bitmap $W, $H, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
 
 function Hex($h) { [System.Drawing.ColorTranslator]::FromHtml($h) }
@@ -314,6 +314,104 @@ for ($ly = 0; $ly -lt 32; $ly++) {
     P (32 + $lx) (256 + $ly) $c
   }
 }
+
+
+# ---- overworld pieces (rows 10-11) ----
+#   r10: c0 mountain, c1 twin mountain, c2 snowy mountain, c3 hill, c4-5 town icon (top), c6 wall top (vertical run), c7 wall top (horizontal run)
+#   r11: c4-5 town icon (bottom)
+$mt = '#5b4a3a', '#7d6650', '#a08664', '#c2a87f', '#e2cfa6' | ForEach-Object { Hex $_ }
+$green = '#4f7d3a', '#6c9c48', '#8fbf5f' | ForEach-Object { Hex $_ }
+$snow = Hex '#f4f7fb'; $snowSh = Hex '#c9d6e6'
+function Peak($ox, $oy, [double]$cx, $top, $base, [double]$half, $snowy) {
+  for ($y = $top; $y -le $base; $y++) {
+    $t = ($y - $top) / [double]($base - $top)
+    $hw = [Math]::Max(0.6, $t * $half)
+    for ($x = [int][Math]::Ceiling($cx - $hw); $x -le [int][Math]::Floor($cx + $hw); $x++) {
+      $u = ($x - ($cx - $hw)) / (2 * $hw)
+      $s = 2
+      if ($u -lt 0.12) { $s = 1 } elseif ($u -lt 0.45) { $s = 3 } elseif ($u -lt 0.55) { $s = 4 } elseif ($u -gt 0.85) { $s = 0 } elseif ($u -gt 0.65) { $s = 1 }
+      $c = $mt[$s]
+      if ($snowy -and $t -lt 0.38) { $c = $(if ($u -lt 0.55) { $snow } else { $snowSh }) }
+      elseif ((($x * 7 + $y * 3) % 11) -eq 0 -and $t -gt 0.4) { $c = $mt[[Math]::Max(0, $s - 1)] }
+      if ($x -eq [int][Math]::Ceiling($cx - $hw) -or $x -eq [int][Math]::Floor($cx + $hw)) { $c = $mt[0] }
+      P ($ox + $x) ($oy + $y) $c
+    }
+  }
+}
+Peak 0 320 15.5 3 29 15 $false
+for ($x = 3; $x -le 28; $x++) { P $x (320 + 30) $green[0] }
+Peak 32 320 10.5 7 29 10 $false; Peak 32 320 21.5 2 29 11 $false
+Peak 64 320 15.5 2 29 15 $true
+# hill (walkable): a soft green mound
+for ($y = 0; $y -lt 32; $y++) {
+  for ($x = 0; $x -lt 32; $x++) {
+    $dx = ($x - 15.5) / 14.0; $dy = ($y - 22.0) / 10.0
+    $d = $dx * $dx + $dy * $dy
+    if ($d -gt 1 -or $y -gt 29) { continue }
+    $s = 1
+    if ($dx -lt -0.2 -and $dy -lt 0.2) { $s = 2 } elseif ($dx -gt 0.45 -or $dy -gt 0.6) { $s = 0 }
+    P (96 + $x) (320 + $y) $green[$s]
+  }
+}
+# town icon (2x2 tiles): white walls, a gate, and blue pointed towers
+$ix = 128; $iy = 320
+for ($y = 30; $y -lt 60; $y++) { for ($x = 6; $x -lt 58; $x++) {
+  $c = $stone[3]
+  if (($y - 30) % 6 -eq 5 -or (($x + [Math]::Floor(($y - 30) / 6) * 3) % 8) -eq 0) { $c = $stone[2] }
+  if ($y -lt 33) { $c = $(if ((($x - 6) % 6) -lt 3) { $stone[4] } else { [System.Drawing.Color]::Transparent }) }
+  if ($y -ge 58) { $c = $stone[1] }
+  if ($x -eq 6 -or $x -eq 57) { $c = $stone[1] }
+  P ($ix + $x) ($iy + $y) $c
+} }
+for ($y = 44; $y -lt 60; $y++) { for ($x = 27; $x -lt 37; $x++) {
+  $dx = $x - 31.5; $in = ($y -ge 49) -or (($dx * $dx + ($y - 49) * ($y - 49)) -le 25)
+  if ($in) { P ($ix + $x) ($iy + $y) $(if ($y -lt 50) { Hex '#2a2230' } else { Hex '#3b3029' }) }
+} }
+foreach ($tx in 4, 44) {
+  for ($y = 20; $y -lt 60; $y++) { for ($x = 0; $x -lt 16; $x++) {
+    $u = $x / 15.0; $s = $(if ($u -lt 0.15) { 2 } elseif ($u -lt 0.55) { 4 } elseif ($u -lt 0.85) { 3 } else { 1 })
+    if ($x -eq 0 -or $x -eq 15) { $s = 0 }
+    P ($ix + $tx + $x) ($iy + $y) $stone[$s]
+  } }
+  Window ($ix + $tx + 7.5) ($iy + 30) 6 10
+}
+function SmallCone($ox, $oy, [double]$cx, $top, $base, [double]$half) {
+  for ($y = $top; $y -le $base; $y++) {
+    $t = ($y - $top) / [double]($base - $top); $hw = [Math]::Max(0.6, $t * $half)
+    for ($x = [int][Math]::Ceiling($cx - $hw); $x -le [int][Math]::Floor($cx + $hw); $x++) {
+      $u = ($x - ($cx - $hw)) / (2 * $hw)
+      $s = $(if ($u -lt 0.15) { 2 } elseif ($u -lt 0.5) { 3 } elseif ($u -lt 0.8) { 2 } else { 1 })
+      if ($x -eq [int][Math]::Ceiling($cx - $hw) -or $x -eq [int][Math]::Floor($cx + $hw)) { $s = 0 }
+      P ($ox + $x) ($oy + $y) $blue[$s]
+    }
+  }
+  for ($x = [int]($cx - $half - 1); $x -le [int]($cx + $half + 1); $x++) { P ($ox + $x) ($oy + $base + 1) $gold[2] }
+  P ($ox + [int]$cx) ($oy + $top - 2) $gold[3]; P ($ox + [int]$cx) ($oy + $top - 1) $gold[2]
+}
+SmallCone $ix $iy 11.5 3 19 9
+SmallCone $ix $iy 51.5 3 19 9
+SmallCone $ix $iy 31.5 12 30 8
+for ($y = 31; $y -lt 44; $y++) { for ($x = 25; $x -lt 39; $x++) {
+  $u = ($x - 25) / 13.0; $s = $(if ($u -lt 0.15) { 2 } elseif ($u -lt 0.55) { 4 } elseif ($u -lt 0.85) { 3 } else { 1 })
+  if ($x -eq 25 -or $x -eq 38) { $s = 0 }
+  P ($ix + $x) ($iy + $y) $stone[$s]
+} }
+# wall top, vertical run: a stone walkway seen from above, battlements on both sides
+for ($y = 0; $y -lt 32; $y++) { for ($x = 0; $x -lt 32; $x++) {
+  $c = $stone[3]
+  if ($x -lt 4 -or $x -gt 27) { $c = $(if (($y % 8) -lt 5) { $stone[4] } else { $stone[1] }) }
+  elseif ($x -lt 6 -or $x -gt 25) { $c = $stone[1] }
+  elseif (($y % 8) -eq 7 -or ((($x + [Math]::Floor($y / 8) * 4) % 8) -eq 0)) { $c = $stone[2] }
+  P (192 + $x) (320 + $y) $c
+} }
+# wall top, horizontal run
+for ($y = 0; $y -lt 32; $y++) { for ($x = 0; $x -lt 32; $x++) {
+  $c = $stone[3]
+  if ($y -lt 4) { $c = $(if (($x % 8) -lt 5) { $stone[4] } else { $stone[1] }) }
+  elseif ($y -lt 6 -or $y -gt 25) { $c = $stone[1] }
+  elseif ((($x % 8) -eq 7) -or ((($y + [Math]::Floor($x / 8) * 4) % 8) -eq 0)) { $c = $stone[2] }
+  P (224 + $x) (320 + $y) $c
+} }
 
 $out = Join-Path $outDir 'castle_extra.png'
 $bmp.Save($out, [System.Drawing.Imaging.ImageFormat]::Png)
