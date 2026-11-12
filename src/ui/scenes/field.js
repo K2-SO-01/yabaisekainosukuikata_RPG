@@ -33,7 +33,7 @@ export class FieldScene extends Scene {
     const g = this.game;
     const loc = g.state.location;
     // 前の版の家やお店の中でセーブしたデータは、城下町の同じ建物の中へ
-    const MOVED = { home: [5, 23], house2: [4, 11], house3: [33, 23], shop_weapon: [12, 15], shop_item: [27, 15] };
+    const MOVED = { home: [4, 21], house2: [3, 12], house3: [4, 28], shop_weapon: [33, 12], shop_item: [27, 21] };
     if (!g.maps.has(loc.map) && MOVED[loc.map]) Object.assign(loc, { map: 'town', x: MOVED[loc.map][0], y: MOVED[loc.map][1], dir: 'down' });
     this.map = g.maps.get(loc.map);
     if (!this.map) throw new Error(`マップ「${loc.map}」が見つかりません`);

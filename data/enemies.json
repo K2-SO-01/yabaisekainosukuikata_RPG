@@ -1,7 +1,7 @@
 {
   "_note": "Provisional numbers until stage 8. actions: skill ids from 'skills' below, chosen with equal chance. gold: [min, max]. drop: item id (30%).",
   "areas": {
-    "field_town": { "enemies": ["blue_slime", "green_slime", "red_slime", "nitaridake"], "bg": ["#a9d8f2", "#e8f6d8"], "home": { "map": "town", "x": 5, "y": 26, "dir": "down" } }
+    "field_town": { "enemies": ["blue_slime", "green_slime", "red_slime", "nitaridake"], "bg": ["#a9d8f2", "#e8f6d8"], "home": { "map": "town", "x": 4, "y": 24, "dir": "down" } }
   },
   "enemies": {
     "blue_slime": { "name": "ブルースライム", "image": "assets/monsters/Pipoya RPG Monster Pack/shade/pipo-enemy009.png", "hp": 22, "atk": 9, "def": 14, "spd": 5, "mat": 3, "element": "none", "exp": 12, "gold": [25, 45], "drop": "slime_goo", "actions": ["attack", "purupuru_guard"] },
