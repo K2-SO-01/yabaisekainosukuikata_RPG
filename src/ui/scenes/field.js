@@ -33,10 +33,15 @@ export class FieldScene extends Scene {
     const g = this.game;
     const loc = g.state.location;
     // 前の版の家やお店の中でセーブしたデータは、城下町の同じ建物の中へ
-    const MOVED = { home: [6, 30], house2: [6, 15], house3: [32, 30], shop_weapon: [33, 13], shop_item: [33, 20] };
+    const MOVED = { home: [5, 23], house2: [4, 11], house3: [33, 23], shop_weapon: [12, 15], shop_item: [27, 15] };
     if (!g.maps.has(loc.map) && MOVED[loc.map]) Object.assign(loc, { map: 'town', x: MOVED[loc.map][0], y: MOVED[loc.map][1], dir: 'down' });
     this.map = g.maps.get(loc.map);
     if (!this.map) throw new Error(`マップ「${loc.map}」が見つかりません`);
+    // 地図を作り直す前のセーブで、今は壁や地図の外になる場所なら、そのマップの始まりの場所へ
+    if (loc.x != null && loc.y != null && !canWalk(this.map, loc.x, loc.y, () => false)) {
+      loc.x = null;
+      loc.y = null;
+    }
     if (loc.x == null || loc.y == null) {
       const s = findStart(this.map);
       loc.x = s.x;

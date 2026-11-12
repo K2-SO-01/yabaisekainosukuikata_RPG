@@ -54,7 +54,7 @@
       ] },
     { "id": 4, "type": "objectgroup", "name": "events", "x": 0, "y": 0, "opacity": 1, "visible": true, "draworder": "topdown",
       "objects": [
-        { "id": 1, "name": "はしご", "type": "exit", "x": 128, "y": 96, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "dir", "type": "string", "value": "down" }, { "name": "map", "type": "string", "value": "town" }, { "name": "x", "type": "int", "value": 12 }, { "name": "y", "type": "int", "value": 21 }] },
+        { "id": 1, "name": "はしご", "type": "exit", "x": 128, "y": 96, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "dir", "type": "string", "value": "down" }, { "name": "map", "type": "string", "value": "town" }, { "name": "x", "type": "int", "value": 16 }, { "name": "y", "type": "int", "value": 24 }] },
         { "id": 2, "name": "宝箱", "type": "search", "x": 192, "y": 96, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "item", "type": "string", "value": "potion_m" }, { "name": "kind", "type": "string", "value": "chest" }] },
         { "id": 3, "name": "start", "type": "start", "x": 128, "y": 128, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "dir", "type": "string", "value": "down" }] }
       ] }

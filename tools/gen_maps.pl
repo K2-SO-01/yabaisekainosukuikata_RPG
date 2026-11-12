@@ -125,9 +125,24 @@ sub pot2 { my ($m, $x, $y, %p) = @_; thing($m, $x, $y, 857); obj($m, 'つぼ', '
 sub drawer2 { my ($m, $x, $y, %p) = @_; thing($m, $x, $y, 713, 721); obj($m, 'タンス', 'search', $x, $y + 1, kind => 'drawer', %p); }
 sub counter2 { my ($m, $x0, $x1, $y) = @_; put($m, 'd', $x0, $y, 758); put($m, 'd', $_, $y, 759) for ($x0 + 1 .. $x1 - 1); put($m, 'd', $x1, $y, 760); fill($m, 'c', $x0, $y, $x1, $y, 1); }
 
-# ---- town: the castle town (40x36). Walled all round; the gate is in the south ----
-{ my $m = newmap(40, 36);
-  fill($m, 'g', 0, 0, 39, 35, 1);
+# ---- houses you can't enter: the roof and the front wall only; the door is locked ----
+sub locked_house { my ($m, $x0, $y0, $w, $h, $roof, $door) = @_; my ($x1, $y1) = ($x0 + $w - 1, $y0 + $h - 1);
+  fill($m, 'g', $x0, $y0, $x1, $y1 - 3, $ROOF{$roof}[0]); fill($m, 'g', $x0, $y1 - 2, $x1, $y1 - 2, $ROOF{$roof}[1]);
+  fill($m, 'g', $x0, $y1 - 1, $x1, $y1 - 1, 386); fill($m, 'g', $x0, $y1, $x1, $y1, 394); fill($m, 'c', $x0, $y0, $x1, $y1, 1);
+  col2($m, 'd', $door, $y1 - 1, 376, 384);
+  for my $wx ($x0 .. $x1) { next if abs($wx - $door) < 2; col2($m, 'd', $wx, $y1 - 1, 594, 602) if ($wx - $x0) % 2 == 1; }
+  obj($m, '扉', 'sign', $door, $y1, text => 'カギが かかっている。'); }
+# little things to fill the streets (each blocks its tile)
+my %PROP = (barrel => 876, barrel2 => 860, crate => 861, crate2 => 869, ironbox => 862, pot => 857, pot2 => 858, pot3 => 859,
+            sack => 873, sacks => 875, hay => 874, apples => 878, greens => 879, oranges => 880, basket => 877,
+            wood => 867, bucket => 865, tub => 866, stump => 868, flowerpot => 944, mail => 229, signpost => 230, rock => 65);
+sub props { my ($m, @list) = @_; for my $p (@list) { my ($name, $x, $y) = @$p; my $gid = $PROP{$name} // die "prop $name\n"; put($m, 'd', $x, $y, $gid); put($m, 'c', $x, $y, 1); } }
+sub plantpot { my ($m, $x, $y) = @_; thing($m, $x, $y, 912, 920); }
+sub flowerbed { my ($m, $x0, $y0, $x1, $y1) = @_; for my $y ($y0 .. $y1) { for my $x ($x0 .. $x1) { put($m, 'g', $x, $y, 1); put($m, 'd', $x, $y, (($x + $y) % 3 == 0) ? 56 : (($x + $y) % 3 == 1) ? 53 : 55); put($m, 'c', $x, $y, 1); } } }
+
+# ---- town: the castle town (40x30). A crowded, paved town inside the walls; the gate is in the south ----
+{ my $m = newmap(40, 30);
+  fill($m, 'g', 0, 0, 39, 29, 291);
   # sky behind the castle, the castle front, the grand gate and the clock tower
   fill($m, 'g', 0, 0, 39, 0, E(0, 7)); fill($m, 'g', 0, 1, 39, 2, E(1, 7)); fill($m, 'g', 0, 3, 39, 3, E(2, 7)); fill($m, 'g', 0, 4, 39, 4, E(6, 6));
   for my $c ([4, 2], [31, 1], [36, 2]) { put($m, 'g', $c->[0], $c->[1], E(5, 5)); put($m, 'g', $c->[0] + 1, $c->[1], E(5, 6)); }
@@ -145,77 +160,76 @@ sub counter2 { my ($m, $x0, $x1, $y) = @_; put($m, 'd', $x0, $y, 758); put($m, '
   small_tower($m, 10, 2, 9); small_tower($m, 27, 2, 9);
   small_tower($m, 2, 2, 7); small_tower($m, 36, 2, 7);
   obj($m, 'お城へ', 'exit', 19, 9, map => 'castle_hall', x => 7, y => 11, dir => 'up');
-  # town walls: the sides seen from above, the south wall from the front, towers at the corners and by the gate
-  fill($m, 'g', 0, 8, 0, 33, E(10, 6)); fill($m, 'g', 39, 8, 39, 33, E(10, 6)); fill($m, 'c', 0, 8, 0, 35, 1); fill($m, 'c', 39, 8, 39, 35, 1);
-  fill($m, 'd', 0, 34, 39, 34, E(3, 7)); fill($m, 'g', 0, 35, 39, 35, E(6, 7)); fill($m, 'c', 0, 34, 39, 35, 1);
-  small_tower($m, 0, 31, 35); small_tower($m, 38, 31, 35);
-  fill($m, 'c', $_->[0], 31, $_->[0] + 1, 35, 1) for ([0], [38]);
-  for my $y (34, 35) { put($m, 'g', 19, $y, 291); put($m, 'd', 19, $y, 0); put($m, 'c', 19, $y, 0); }
-  put($m, 'g', $_, 35, E(6, 7)) for (18, 20);
-  # front garden of the castle
-  fill($m, 'g', 16, 10, 22, 12, 291);
-  statue($m, 16, 10); statue($m, 22, 10);
-  put($m, 'd', $_, 10, ($_ % 2) ? 53 : 56) for (10 .. 14, 24 .. 28);
-  bush($m, $_, 11) for (10, 14, 24, 28);
-  # streets: the main street, the plaza with the fountain, and paths to each door
-  fill($m, 'g', 18, 13, 20, 33, 291); fill($m, 'g', 14, 15, 24, 22, 291);
-  fill($m, 'g', 6, 18, 17, 18, 291); fill($m, 'g', 21, 16, 33, 16, 291); fill($m, 'g', 21, 23, 33, 23, 291);
-  fill($m, 'g', 6, 33, 18, 33, 291); fill($m, 'g', 20, 33, 32, 33, 291); fill($m, 'g', 11, 22, 11, 23, 291); fill($m, 'g', 11, 27, 11, 32, 291);
-  fill($m, 'g', 26, 27, 26, 32, 291); fill($m, 'g', 11, 19, 13, 22, 291);
-  for my $dy (0 .. 2) { for my $dx (0 .. 2) { put($m, 'd', 18 + $dx, 18 + $dy, 929 + $dy * 8 + $dx); put($m, 'c', 18 + $dx, 18 + $dy, 1); } }
-  # the canal across the town, and three bridges
-  water($m, [1, 24, 38, 26]);
-  bridge($m, 18, 24, 'ns'); bridge($m, 10, 24, 'ns'); bridge($m, 25, 24, 'ns');
-  # buildings
-  house($m, 2, 12, 8, 6, 'blue', 6, name => '民家');
-  house($m, 29, 10, 9, 6, 'grey', 33, name => '武器と防具の店', signs => [[31, 657], [35, 658]]);
-  house($m, 29, 17, 9, 6, 'orange', 33, name => '道具屋', signs => [[31, 666], [35, 659]]);
-  house($m, 2, 27, 8, 6, 'red', 6, name => '主人公の家');
-  house($m, 29, 27, 8, 6, 'wood', 32, name => '空き家');
-  # inside the hero's home
-  thing($m, 3, 28, 777, 785); thing($m, 4, 28, 778, 786);
-  drawer2($m, 8, 28, item => 'cure_potion');
-  pot2($m, 3, 30, item => 'potion_s');
-  obj($m, 'おじさん', 'npc', 5, 28, character => 'oji', dialogue => 'oji_after', dir => 'down');
-  obj($m, 'おばさん', 'npc', 6, 28, character => 'oba', script => 'talk_oba', dir => 'down');
-  obj($m, '旅立ち', 'trigger', 6, 30, script => 'home_event', unless => 'home_event_done');
-  # inside the other house (the mother waiting for her son)
-  thing($m, 8, 13, 779, 787); drawer2($m, 3, 13, gold => 30);
-  pot2($m, 8, 15, item => 'potion_s'); pot2($m, 3, 15);
-  obj($m, '町の人H', 'npc', 5, 14, character => 'town_h', dialogue => 'town_h', dir => 'down');
-  # the empty house
-  thing($m, 35, 28, 778, 786); drawer2($m, 30, 28, item => 'potion_s', count => 2);
-  pot2($m, 33, 28, item => 'warp_potion'); pot2($m, 30, 30); pot2($m, 35, 30, gold => 20);
-  # the shops: the keeper stands behind the counter
-  counter2($m, 31, 35, 12);
-  thing($m, $_->[0], 11, $_->[1]) for ([30, 1041], [36, 1042]);
-  obj($m, '武器屋', 'npc', 33, 11, character => 'shop_weapon', script => 'talk_shop_weapon', dir => 'down', counter => 1);
-  counter2($m, 31, 35, 19);
-  thing($m, $_->[0], 18, $_->[1]) for ([30, 877], [36, 878]);
-  obj($m, '道具屋', 'npc', 33, 18, character => 'shop_item', script => 'talk_shop_item', dir => 'down', counter => 1);
+  # town walls (sides from above, the south wall from the front, towers at the corners); the gate is the gap at x 19
+  fill($m, 'g', 0, 8, 0, 27, E(10, 6)); fill($m, 'g', 39, 8, 39, 27, E(10, 6)); fill($m, 'c', 0, 8, 0, 29, 1); fill($m, 'c', 39, 8, 39, 29, 1);
+  fill($m, 'd', 0, 28, 39, 28, E(3, 7)); fill($m, 'g', 0, 29, 39, 29, E(6, 7)); fill($m, 'g', 0, 28, 39, 28, 1); fill($m, 'c', 0, 28, 39, 29, 1);
+  small_tower($m, 0, 25, 29); small_tower($m, 38, 25, 29); fill($m, 'c', $_->[0], 25, $_->[0] + 1, 29, 1) for ([0], [38]);
+  for my $y (28, 29) { put($m, 'g', 19, $y, 291); put($m, 'd', 19, $y, 0); put($m, 'c', 19, $y, 0); }
+  # the square in front of the castle and the plaza with the fountain (stone slabs)
+  fill($m, 'g', 10, 10, 28, 11, 292); fill($m, 'g', 16, 12, 22, 19, 292);
+  statue($m, 17, 10); statue($m, 21, 10);
+  plantpot($m, $_, 10) for (11, 27);
+  for my $dy (0 .. 2) { for my $dx (0 .. 2) { put($m, 'd', 18 + $dx, 14 + $dy, 929 + $dy * 8 + $dx); put($m, 'c', 18 + $dx, 14 + $dy, 1); } }
+  # buildings you can enter (the roof disappears inside)
+  house($m, 1, 8, 7, 6, 'blue', 4, name => '民家');
+  house($m, 8, 12, 8, 6, 'grey', 12, name => '武器と防具の店', signs => [[9, 657], [14, 658]]);
+  house($m, 23, 12, 8, 6, 'orange', 27, name => '道具屋', signs => [[24, 666], [29, 659]]);
+  house($m, 1, 20, 8, 6, 'red', 5, name => '主人公の家');
+  house($m, 30, 20, 8, 6, 'wood', 33, name => '空き家');
+  # houses you can't enter
+  locked_house($m, 31, 8, 8, 5, 'red', 34);
+  locked_house($m, 9, 21, 6, 5, 'wood', 11);
+  locked_house($m, 23, 21, 6, 5, 'blue', 25);
+  # inside: the hero's home
+  thing($m, 2, 21, 777, 785); thing($m, 3, 21, 778, 786);
+  drawer2($m, 7, 21, item => 'cure_potion');
+  pot2($m, 2, 23, item => 'potion_s');
+  obj($m, 'おじさん', 'npc', 4, 21, character => 'oji', dialogue => 'oji_after', dir => 'down');
+  obj($m, 'おばさん', 'npc', 5, 21, character => 'oba', script => 'talk_oba', dir => 'down');
+  obj($m, '旅立ち', 'trigger', 5, 23, script => 'home_event', unless => 'home_event_done');
+  # inside: the other house (the mother waiting for her son)
+  thing($m, 6, 9, 779, 787); drawer2($m, 2, 9, gold => 30);
+  pot2($m, 2, 11, item => 'potion_s'); pot2($m, 6, 11);
+  obj($m, '町の人H', 'npc', 4, 10, character => 'town_h', dialogue => 'town_h', dir => 'down');
+  # inside: the empty house
+  thing($m, 36, 21, 778, 786); drawer2($m, 31, 21, item => 'potion_s', count => 2);
+  pot2($m, 34, 21, item => 'warp_potion'); pot2($m, 31, 23); pot2($m, 36, 23, gold => 20);
+  # inside: the shops
+  counter2($m, 10, 13, 14); thing($m, $_->[0], 13, $_->[1]) for ([9, 1041], [14, 1042]);
+  obj($m, '武器屋', 'npc', 12, 13, character => 'shop_weapon', script => 'talk_shop_weapon', dir => 'down', counter => 1);
+  counter2($m, 25, 28, 14); thing($m, $_->[0], 13, $_->[1]) for ([24, 877], [29, 878]);
+  obj($m, '道具屋', 'npc', 27, 13, character => 'shop_item', script => 'talk_shop_item', dir => 'down', counter => 1);
   # the well
-  put($m, 'd', 12, 20, 227); put($m, 'c', 12, 20, 1);
-  obj($m, '井戸', 'sign', 12, 20, script => 'well_down');
-  # trees and flowers
-  tree($m, @$_) for ([12, 13], [25, 12], [12, 28], [27, 28], [14, 30], [23, 30], [3, 21], [9, 21], [27, 18], [27, 20], [37, 28]);
-  put($m, 'd', $_->[0], $_->[1], 53) for ([4, 19], [15, 13], [23, 13], [10, 30], [28, 31], [16, 28], [22, 28], [2, 23]);
-  put($m, 'd', $_->[0], $_->[1], 56) for ([8, 19], [24, 14], [13, 23], [27, 23], [11, 32], [26, 32]);
+  put($m, 'd', 16, 23, 227); put($m, 'c', 16, 23, 1);
+  obj($m, '井戸', 'sign', 16, 23, script => 'well_down');
+  # the clutter of a busy town
+  props($m, [crate => 1, 15], [crate2 => 2, 15], [barrel => 1, 16], [sacks => 2, 16], [barrel2 => 1, 17], [wood => 7, 15],
+            [mail => 7, 14], [bucket => 6, 17], [pot => 3, 19], [pot2 => 4, 19]);
+  thing($m, 5, 15, 231, 239); thing($m, 6, 15, 232, 240);                       # notice board
+  props($m, [apples => 31, 15], [oranges => 32, 15], [greens => 33, 15], [basket => 34, 15], [crate => 36, 14], [crate2 => 37, 14],
+            [ironbox => 37, 15], [sack => 38, 14], [hay => 38, 16], [barrel => 31, 17], [barrel2 => 32, 17], [tub => 37, 18]);
+  props($m, [barrel => 15, 20], [crate => 15, 21], [flowerpot => 17, 20], [flowerpot => 17, 22], [bucket => 17, 24], [stump => 15, 25]);
+  props($m, [barrel => 21, 20], [barrel2 => 22, 20], [crate => 22, 21], [flowerpot => 21, 23], [sacks => 22, 26], [pot3 => 29, 26]);
+  props($m, [crate => 2, 27], [barrel => 3, 27], [wood => 13, 27], [hay => 25, 27], [crate2 => 31, 27], [barrel => 36, 27], [pot2 => 37, 27]);
+  props($m, [signpost => 18, 25], [flowerpot => 8, 19], [flowerpot => 23, 19], [flowerpot => 30, 19]);
+  plantpot($m, $_->[0], $_->[1]) for ([8, 10], [30, 9]);
+  flowerbed($m, 2, 18, 3, 18); flowerbed($m, 35, 18, 36, 18); flowerbed($m, 11, 19, 12, 19); flowerbed($m, 26, 19, 27, 19);
   # people
-  obj($m, '町の人A', 'npc', 15, 32, character => 'town_a', dialogue => 'town_a', wander => 1);
-  obj($m, '町の人B', 'npc', 28, 16, character => 'town_b', dialogue => 'town_b', dir => 'down');
-  obj($m, '町の人C', 'npc', 11, 33, character => 'town_c', dialogue => 'town_c', wander => 1);
-  obj($m, '町の人D', 'npc', 15, 20, character => 'town_d', dialogue => 'town_d', wander => 1);
-  obj($m, '町の人E', 'npc', 12, 11, character => 'town_e', dialogue => 'town_e', wander => 1);
-  obj($m, '町の人F', 'npc', 23, 21, character => 'town_f', dialogue => 'town_f', dir => 'left');
-  obj($m, '町の人G', 'npc', 25, 22, character => 'town_g', dialogue => 'town_g', wander => 1);
-  obj($m, '町の人I', 'npc', 17, 19, character => 'town_i', dialogue => 'town_i', dir => 'right');
-  obj($m, '科学の村人', 'npc', 25, 31, character => 'science', dialogue => 'science', dir => 'down');
+  obj($m, '町の人A', 'npc', 17, 26, character => 'town_a', dialogue => 'town_a', wander => 1);
+  obj($m, '町の人B', 'npc', 14, 18, character => 'town_b', dialogue => 'town_b', dir => 'down');
+  obj($m, '町の人C', 'npc', 7, 26, character => 'town_c', dialogue => 'town_c', wander => 1);
+  obj($m, '町の人D', 'npc', 17, 13, character => 'town_d', dialogue => 'town_d', wander => 1);
+  obj($m, '町の人E', 'npc', 13, 11, character => 'town_e', dialogue => 'town_e', wander => 1);
+  obj($m, '町の人F', 'npc', 21, 19, character => 'town_f', dialogue => 'town_f', dir => 'left');
+  obj($m, '町の人G', 'npc', 34, 17, character => 'town_g', dialogue => 'town_g', wander => 1);
+  obj($m, '町の人I', 'npc', 17, 15, character => 'town_i', dialogue => 'town_i', dir => 'right');
+  obj($m, '科学の村人', 'npc', 21, 24, character => 'science', dialogue => 'science', dir => 'down');
   obj($m, 'start', 'start', 19, 10, dir => 'down');
-  obj($m, '光の結晶', 'savepoint', 23, 14);
-  obj($m, '門の兵士', 'npc', 19, 33, character => 'gate_soldier', dialogue => 'gate_before', dir => 'up', unless => 'home_event_done');
-  obj($m, '門の兵士', 'npc', 20, 32, character => 'gate_soldier', dialogue => 'gate_after', dir => 'left', if => 'home_event_done');
-  obj($m, 'ルーク', 'npc', 18, 32, character => 'luke', dialogue => 'luke_join', dir => 'right', if => 'home_event_done', unless => 'luke_joined');
-  obj($m, '町の門', 'trigger', 19, 34, script => 'town_gate');
+  obj($m, '光の結晶', 'savepoint', 16, 19);
+  obj($m, '門の兵士', 'npc', 19, 27, character => 'gate_soldier', dialogue => 'gate_before', dir => 'up', unless => 'home_event_done');
+  obj($m, '門の兵士', 'npc', 20, 26, character => 'gate_soldier', dialogue => 'gate_after', dir => 'left', if => 'home_event_done');
+  obj($m, 'ルーク', 'npc', 18, 26, character => 'luke', dialogue => 'luke_join', dir => 'right', if => 'home_event_done', unless => 'luke_joined');
+  obj($m, '町の門', 'trigger', 19, 28, script => 'town_gate');
   emit($m, "town", "城下町", "town", lift => "5,11,17", town => "town"); }
 
 # ---- the little room under the well ----
@@ -224,47 +238,38 @@ sub counter2 { my ($m, $x0, $x1, $y) = @_; put($m, 'd', $x0, $y, 758); put($m, '
   fill($m, 'c', 0, 0, 8, 1, 1); fill($m, 'c', 0, 0, 0, 6, 1); fill($m, 'c', 8, 0, 8, 6, 1); fill($m, 'c', 0, 6, 8, 6, 1);
   fill($m, 'g', 0, 2, 0, 6, 449); fill($m, 'g', 8, 2, 8, 6, 449); fill($m, 'g', 1, 6, 7, 6, 449);
   col2($m, 'd', 4, 2, 295, 303);
-  obj($m, 'はしご', 'exit', 4, 3, map => 'town', x => 12, y => 21, dir => 'down');
+  obj($m, 'はしご', 'exit', 4, 3, map => 'town', x => 16, y => 24, dir => 'down');
   obj($m, '宝箱', 'search', 6, 3, kind => 'chest', item => 'potion_m');
   put($m, 'd', $_->[0], $_->[1], 65) for ([2, 5], [7, 5]);
   put($m, 'c', $_->[0], $_->[1], 1) for ([2, 5], [7, 5]);
   obj($m, 'start', 'start', 4, 4, dir => 'down');
   emit($m, 'well', '井戸の底', 'town', back => '#0d0b10'); }
 
-# ---- field_town: the land around the castle town (60x40), drawn like an old-style world map ----
-# mountains (can't pass) close the north, west and south; forests and hills can be walked through;
-# a river runs north to south east of the town and the bridge leads on to the pass in the east (to the water area)
-{ my $m = newmap(60, 40);
-  fill($m, 'g', 0, 0, 59, 39, 1);
+# ---- field_town: the land around the castle town (40x28), like an old-style world map ----
+{ my $m = newmap(40, 28);
+  fill($m, 'g', 0, 0, 39, 27, 1);
   my $mount = sub { my ($x0, $y0, $x1, $y1, $snow) = @_; for my $y ($y0 .. $y1) { for my $x ($x0 .. $x1) {
     my $v = ($x * 7 + $y * 13) % 5; my $c = $snow && $v == 0 ? 2 : ($v % 2);
     put($m, 'd', $x, $y, E(10, $c)); put($m, 'c', $x, $y, 1); } } };
-  # forests (walkable): one-tile groves of small round trees drawn for this game (extra sheet row 11, c0/c1).
-  # every tree sits inside its own tile, so a forest never shows a cut tree; the two groves are mixed so it doesn't look stamped
+  # forests (walkable): one-tile groves of small round trees drawn for this game, two kinds mixed
   my $forest = sub { my ($x0, $y0, $x1, $y1) = @_; for my $y ($y0 .. $y1) { for my $x ($x0 .. $x1) {
     put($m, 'd', $x, $y, E(11, (($x * 7 + $y * 13) % 3) == 0 ? 1 : 0)); } } };
-
-
-  $mount->(0, 0, 59, 2, 1); $mount->(0, 37, 59, 39, 0); $mount->(0, 0, 2, 39, 1);
-  $mount->(57, 0, 59, 17, 1); $mount->(57, 22, 59, 39, 0); $mount->(54, 15, 56, 17, 0); $mount->(54, 22, 56, 24, 0);
-  $mount->(@$_) for ([8, 5, 13, 8, 1], [3, 3, 6, 5, 1], [6, 29, 11, 33, 0], [44, 4, 50, 7, 1], [24, 33, 31, 36, 0], [48, 31, 53, 36, 0], [20, 3, 23, 4, 1]);
-  $forest->(@$_) for ([14, 5, 19, 9], [5, 17, 10, 23], [43, 25, 48, 30], [47, 11, 52, 15], [25, 7, 30, 10], [13, 26, 18, 30], [34, 29, 35, 33]);
-  # river with a pond, and the bridge on the way east
-  water($m, [39, 3, 41, 36], [42, 9, 44, 12], [15, 13, 19, 15]);
-  bridge($m, 39, 19, 'ew');
-  # hills and flowers
-  put($m, 'd', $_->[0], $_->[1], E(11, 2)) for ([24, 17], [35, 11], [11, 15], [46, 34], [33, 22], [21, 29], [50, 20]);
-  put($m, 'd', $_->[0], $_->[1], E(10, 3)) for ([22, 22], [33, 13], [12, 11], [46, 20], [50, 27], [24, 27], [8, 26], [35, 24], [52, 9]);
-  put($m, 'd', $_->[0], $_->[1], 53) for ([27, 21], [32, 16], [44, 17], [21, 13], [10, 15], [37, 27]);
-  put($m, 'd', $_->[0], $_->[1], 56) for ([25, 15], [47, 23], [9, 24], [31, 25]);
+  $mount->(0, 0, 39, 1, 1); $mount->(0, 26, 39, 27, 0); $mount->(0, 0, 1, 27, 1);
+  $mount->(38, 0, 39, 11, 1); $mount->(38, 16, 39, 27, 0); $mount->(36, 10, 37, 11, 0); $mount->(36, 16, 37, 17, 0);
+  $mount->(@$_) for ([10, 2, 14, 4, 1], [2, 20, 5, 23, 0], [17, 22, 22, 25, 0], [31, 2, 34, 3, 1]);
+  $forest->(@$_) for ([3, 3, 8, 7], [20, 3, 24, 6], [30, 18, 35, 22], [9, 19, 14, 23], [31, 6, 35, 8]);
+  water($m, [26, 2, 28, 25], [9, 14, 12, 16]);
+  bridge($m, 26, 12, 'ew');
+  put($m, 'd', $_->[0], $_->[1], E(11, 2)) for ([15, 8], [23, 10], [7, 11], [33, 13], [24, 19]);
+  put($m, 'd', $_->[0], $_->[1], E(10, 3)) for ([14, 17], [21, 15], [6, 9], [32, 24], [16, 6]);
+  put($m, 'd', $_->[0], $_->[1], 53) for ([16, 14], [22, 8], [5, 13], [30, 15]);
+  put($m, 'd', $_->[0], $_->[1], 56) for ([13, 12], [24, 16], [34, 10]);
   # the castle town
-  for my $dy (0, 1) { for my $dx (0, 1) { put($m, 'd', 29 + $dx, 18 + $dy, E(10 + $dy, 4 + $dx)); } }
-  fill($m, 'c', 29, 18, 30, 18, 1);
-  obj($m, '城下町', 'exit', $_, 19, map => 'town', x => 19, y => 33, dir => 'up') for (29, 30);
-  # chests (small things)
-  obj($m, '宝箱', 'search', 16, 7, kind => 'chest', item => 'potion_s', count => 2);
-  obj($m, '宝箱', 'search', 51, 33 - 3, kind => 'chest', gold => 50);
-  # the pass in the east leads to the water area (stage 5)
-  obj($m, '東の出口', 'trigger', 59, $_, script => 'to_water_area') for (18 .. 21);
-  obj($m, 'start', 'start', 29, 20, dir => 'down');
+  for my $dy (0, 1) { for my $dx (0, 1) { put($m, 'd', 18 + $dx, 11 + $dy, E(10 + $dy, 4 + $dx)); } }
+  fill($m, 'c', 18, 11, 19, 11, 1);
+  obj($m, '城下町', 'exit', $_, 12, map => 'town', x => 19, y => 27, dir => 'up') for (18, 19);
+  obj($m, '宝箱', 'search', 5, 4, kind => 'chest', item => 'potion_s', count => 2);
+  obj($m, '宝箱', 'search', 33, 21, kind => 'chest', gold => 50);
+  obj($m, '東の出口', 'trigger', 39, $_, script => 'to_water_area') for (12 .. 15);
+  obj($m, 'start', 'start', 18, 13, dir => 'down');
   emit($m, 'field_town', '城下町周辺', 'field', area => 'field_town'); }

@@ -12,7 +12,7 @@
     { "flag": "luke_joined" }
   ],
   "leave_town": [
-    { "transfer": { "map": "field_town", "x": 29, "y": 20, "dir": "down" } }
+    { "transfer": { "map": "field_town", "x": 18, "y": 13, "dir": "down" } }
   ],
   "well_down": [
     { "se": "warp" },
