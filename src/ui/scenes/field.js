@@ -4,7 +4,7 @@ import { isActive, runScript } from '../../core/events.js';
 import { rollEncounter } from '../../core/battle.js';
 import { canWalk, DIRS, entityAt, findStart, stepTarget, tryMove } from '../../core/map.js';
 import { addItem, createMember, fullRecover, MEMBER_DEFS, partnerOf, totalStats } from '../../core/party.js';
-import { writeSlot } from '../../core/save.js';
+import { markCleared, writeSlot } from '../../core/save.js';
 import { addGold, addPlayTime } from '../../core/state.js';
 import { fillName } from '../../core/text.js';
 import { COLORS, drawWindow } from '../draw.js';
@@ -543,6 +543,7 @@ export class FieldScene extends Scene {
       theEnd: () =>
         new Promise(() => {
           g.state.flags.cleared = true;
+          markCleared(g.store, g.state);
           g.scenes.push(new TheEndScene(() => g.scenes.fadeTo(() => g.scenes.replaceAll(new TitleScene()), 800)));
         }),
       // マップの人を、名前で探して歩かせる（ms は1歩の時間。短いほど速い）
@@ -688,6 +689,8 @@ export class FieldScene extends Scene {
         items: [
           { label: 'セーブ', value: 'save' },
           { label: 'ロード', value: 'load' },
+          // クリアしたあとは、どの光の結晶からでも裏ボス「影の勇者」に挑める
+          ...(g.state.flags.cleared ? [{ label: '影に挑む', value: 'shadow' }] : []),
           { label: 'とじる', value: 'close' },
         ],
         x: 24,
@@ -696,9 +699,27 @@ export class FieldScene extends Scene {
         onSelect: (item) => {
           if (item.value === 'save') g.scenes.push(new SaveLoadScene({ mode: 'save' }));
           else if (item.value === 'load') g.scenes.push(new SaveLoadScene({ mode: 'load' }));
+          else if (item.value === 'shadow') this.fightShadow();
         },
       }),
     );
+  }
+
+  // 裏ボス「影の勇者」：主人公と同じ見た目の影。勝つと証（shadow_defeated）と称号
+  fightShadow() {
+    const p = this.game.state.player;
+    const id = `shadow_${p.gender === 'female' ? 'f' : 'm'}_${p.job === 'mage' ? 'mage' : 'sword'}`;
+    this.run([
+      { bgmStop: 600 },
+      { flash: '#200010' },
+      { say: 'shadow_appear' },
+      { battle: { enemies: [id], area: 'demon' } },
+      { flag: 'shadow_defeated' },
+      { say: 'shadow_down' },
+      { se: 'item_get' },
+      { say: 'shadow_title' },
+      { bgm: this.map.props.bgm ?? 'field' },
+    ]);
   }
 
   playerPixel() {

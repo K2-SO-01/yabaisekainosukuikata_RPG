@@ -167,6 +167,10 @@ async function loadGameData(game) {
     }
     if ((speaker === 'レオ' || speaker === 'リナ') && game.state) return { faceKey: game.partner().key, showName: true };
     if (BOSS_FACE[speaker]) return { faceKey: `enemy:${BOSS_FACE[speaker]}`, showName: true };
+    if (speaker === '影の勇者' && game.state) {
+      const p = game.state.player;
+      return { faceKey: `enemy:shadow_${p.gender === 'female' ? 'f' : 'm'}_${p.job === 'mage' ? 'mage' : 'sword'}`, showName: true };
+    }
     for (const [id, c] of Object.entries(characters)) {
       if (c.name === speaker) return { faceKey: id, showName: c.main === true };
     }

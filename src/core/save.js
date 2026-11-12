@@ -36,7 +36,23 @@ export function summarize(state) {
     place: state.location?.placeName ?? '',
     playTimeMs: state.playTimeMs ?? 0,
     level: state.party?.[0]?.level ?? 1,
+    cleared: !!state.flags?.cleared, // クリアの証
+    shadow: !!state.flags?.shadow_defeated, // 影の勇者を倒した証
   };
+}
+
+// クリアした時：同じ冒険のセーブすべてに「クリアした」を書く（最後にセーブした所から再開でき、そこで裏ボスに挑める）
+export function markCleared(store, state) {
+  for (const slot of SLOT_IDS) {
+    const d = readSlot(store, slot);
+    if (!d) continue;
+    if (!(state.runId && d.state.runId === state.runId)) continue;
+    d.state.flags ??= {};
+    d.state.flags.cleared = true;
+    d.state.stats ??= {};
+    d.state.stats.habits = state.stats?.habits ?? d.state.stats.habits; // 最後の戦いまでの癖を、影の勇者に引きつぐ
+    writeSlot(store, slot, d.state, d.savedAt);
+  }
 }
 
 export function readSlot(store, slot) {

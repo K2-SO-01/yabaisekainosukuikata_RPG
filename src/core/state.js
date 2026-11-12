@@ -18,6 +18,8 @@ export function createNewGame({ name = '', gender = 'male', job = 'swordsman', m
     // x・y が null の時は、マップの「start」の位置から始める
     location: { map, x: null, y: null, dir: 'down', placeName: '' },
     playTimeMs: 0,
+    // この冒険の番号（クリアした時、同じ冒険のセーブすべてに「クリアした」を書くため）
+    runId: `${Date.now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`,
   };
 }
 

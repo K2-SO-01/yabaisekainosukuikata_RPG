@@ -71,6 +71,7 @@
     "town": "data/dialogues/town.json",
     "story2": "data/dialogues/story2.json",
     "system": "data/dialogues/system.json",
+    "shadow": "data/dialogues/shadow.json",
     "story": "data/dialogues/story.json",
     "test": "data/dialogues/test.json"
   }
