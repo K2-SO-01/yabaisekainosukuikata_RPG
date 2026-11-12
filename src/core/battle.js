@@ -700,8 +700,33 @@ export function applyDefeat(state, items, home) {
   Object.assign(state.location, { map: home.map, x: home.x, y: home.y, dir: home.dir ?? 'down' });
 }
 
-// 1回の戦闘の敵の組み合わせ（1〜3体、そのエリアの雑魚から完全ランダム）
+// 1回の戦闘の敵の組み合わせ（1〜3体。数の出やすさはエリアの groups、なければ 1体35%・2体40%・3体25%）
 export function rollEncounter(area, rng = Math.random) {
-  const n = 1 + Math.floor(rng() * 3);
+  const w = area.groups ?? [0.35, 0.4, 0.25];
+  let r = rng() * w.reduce((a, b) => a + b, 0);
+  let n = 1;
+  for (let i = 0; i < w.length; i++) {
+    if (r < w[i]) {
+      n = i + 1;
+      break;
+    }
+    r -= w[i];
+  }
   return Array.from({ length: n }, () => area.enemies[Math.floor(rng() * area.enemies.length)]);
+}
+
+// ---- エンカウント（確率方式） ----
+// 前の戦闘のあと（マップに入ったあと）しばらくは出ない（grace 歩）。そのあとは1歩ごとに p の確率で出る。
+// 平均の歩数は、エリアの steps（[最小, 最大]、なければ [30, 40]）のまん中に合わせる
+export function encounterParams(area) {
+  const [lo, hi] = area?.steps ?? [30, 40];
+  const avg = (lo + hi) / 2;
+  const grace = Math.round(avg * 0.3);
+  return { grace, p: 1 / (avg - grace) };
+}
+
+// 1歩歩いた時に、戦闘になるか（stepsSince：前の戦闘から何歩目か）
+export function encounterRoll(area, stepsSince, rng = Math.random) {
+  const { grace, p } = encounterParams(area);
+  return stepsSince > grace && rng() < p;
 }

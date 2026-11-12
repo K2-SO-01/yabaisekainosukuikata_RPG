@@ -17,7 +17,8 @@ export async function openShop(g, shopId) {
   const face = shop.keeper ?? null;
   const line = (key, vars = {}) => (g.dialogues[`${t}_${key}`] ?? ['']).map((s) => s.replace('{price}', vars.price ?? ''));
   for (;;) {
-    const choice = await ask(g, line('hello'), ['かう', 'うる', 'やめる'], { face, width: 120 });
+    // スマホでは「やめる」を出さない（右上の「もどる」でやめられる）
+    const choice = await ask(g, line('hello'), g.screen.touchEnabled ? ['かう', 'うる'] : ['かう', 'うる', 'やめる'], { face, width: 120, cancelIndex: 2 });
     if (choice === 0) await buy(g, shop, line, face);
     else if (choice === 1) await sell(g, line, face);
     else {

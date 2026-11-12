@@ -48,7 +48,7 @@ export class SceneStack {
   fadeTo(change, ms = 300) {
     if (this.fade) return;
     this.fade = { t: 0, ms, phase: 'out', change };
-    this.game.input.clear();
+    this.game.input.clearPresses();
   }
 
   update(dt) {

@@ -1,6 +1,6 @@
 // バランス確認ボット（企画書14章）。ゲームの戦闘・成長・お金のルール（src/core）をそのまま使い、
 // 最初から魔王までを、画面なしで何度も自動で遊ばせて、結果を表とCSVで出す
-import { applyDefeat, createBattle, elementRate, finishWin, mustSkipInput, planEnemies, resolveTurn, rollEncounter, alive } from '../src/core/battle.js';
+import { applyDefeat, createBattle, elementRate, encounterRoll, finishWin, mustSkipInput, planEnemies, resolveTurn, rollEncounter, alive } from '../src/core/battle.js';
 import { addItem, applyRecovery, canEquip, createMember, fullRecover, healAmount, isDown, itemCount, learnedSkills, removeItem, sellPrice, slotOf, totalStats, partnerOf } from '../src/core/party.js';
 import { createNewGame } from '../src/core/state.js';
 import { createRng } from '../src/core/rng.js';
@@ -134,13 +134,14 @@ export class Sim {
     for (let i = 0; i < loops; i++) more.push(...p.steps);
     more.push(...p.steps.slice(0, extra - loops * p.steps.length));
     const steps = [...p.steps, ...more];
-    const [lo, hi] = enemyData.areas[p.area]?.steps ?? [30, 40];
-    let enc = this.rng.int(lo, hi);
+    // エンカウントは、ゲームと同じ確率方式（encounterRoll）
+    let since = 0;
     for (const ok of steps) {
       this.log.steps++;
       if (!p.area || !ok) continue;
-      if (--enc > 0) continue;
-      enc = this.rng.int(lo, hi);
+      since++;
+      if (!encounterRoll(enemyData.areas[p.area], since, this.r)) continue;
+      since = 0;
       this.log.areaBattles[p.area] = (this.log.areaBattles[p.area] ?? 0) + 1;
       const r = this.battle(rollEncounter(enemyData.areas[p.area], this.r), p.area, false);
       if (r === 'lose') return 'lose';

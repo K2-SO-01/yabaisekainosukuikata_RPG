@@ -280,6 +280,15 @@ export class Input {
     return this.isDown('dash') || this.dashToggle;
   }
 
+  // 押した瞬間・タップだけを消す（押し続けているキーや十字キーは残す）。場面の切りかえで使う
+  // （全部消すと、エリアをまたいだ時に、押し続けていても止まってしまうため）
+  clearPresses() {
+    this.pressedQueue.clear();
+    this.pressedNow.clear();
+    this.tapQueue = null;
+    this.tapNow = null;
+  }
+
   clear() {
     this.keys.clear();
     this.touchHeld.clear();

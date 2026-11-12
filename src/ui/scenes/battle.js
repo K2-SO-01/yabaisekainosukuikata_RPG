@@ -884,7 +884,8 @@ export class BattleScene extends Scene {
       drawFace(ctx, g, m, x + 12, y + 12, 2);
       ctx.globalAlpha = 1;
       const tx = x + 62;
-      g.font.draw(ctx, u.name, tx, y + 8, down ? DOWN_RED : COLORS.title);
+      const nx = g.font.draw(ctx, u.name, tx, y + 8, down ? DOWN_RED : COLORS.title);
+      g.font.draw(ctx, `Lv${m.level}`, nx + 8, y + 8, COLORS.textDim);
       g.font.draw(ctx, `HP ${Math.max(0, Math.round(d.hp))}/${s.hp}`, tx, y + 28, low ? '#c0392b' : COLORS.text);
       const gw = r.w - 78;
       ctx.fillStyle = '#d8c8a8';
@@ -903,10 +904,11 @@ export class BattleScene extends Scene {
         drawSkull(ctx, ax, y + 62, AILMENT_COLOR[a], 0.75);
         ax += 15;
       }
+      // 強くなった・弱ったのしるしは、HPの右に
       let bx = x + r.w - 46;
       for (const [k, n] of Object.entries(u.buffs)) {
         const up = k !== 'defDown';
-        g.font.draw(ctx, `${BUFF_LABEL[k]}${up ? '↑' : '↓'}${n}`, bx, y + 8, up ? '#d06a3a' : '#3a6ad0');
+        g.font.draw(ctx, `${BUFF_LABEL[k]}${up ? '↑' : '↓'}${n}`, bx, y + 28, up ? '#d06a3a' : '#3a6ad0');
         bx -= 42;
       }
     });

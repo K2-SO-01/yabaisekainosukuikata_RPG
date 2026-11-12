@@ -1,6 +1,6 @@
 // フィールドのメニュー（キャンセルで開く）：どうぐ、そうび、まほう／わざ、つよさ、せってい
 import { WIDTH } from '../../config.js';
-import { isDown, memberName, totalStats } from '../../core/party.js';
+import { characterIdOf, expToNext, isDown, JOB_NAMES, memberName, MAX_LEVEL, totalStats } from '../../core/party.js';
 import { formatPlayTime } from '../../core/state.js';
 import { COLORS, drawWindow } from '../draw.js';
 import { Menu } from '../menu.js';
@@ -53,22 +53,48 @@ export class FieldMenuScene extends Scene {
     }
   }
 
+  // メニューを開くだけで、仲間みんなの様子が見える（顔・職業・レベル・HP・MP・次のレベルまで・状態異常）
   draw(ctx) {
     const g = this.game;
     const st = g.state;
     if (this.busy) return; // どうぐ・そうびなどの画面を開いている間は、メニューを隠す
     this.menu.draw(ctx, g.font);
-    const n = st.party.length;
-    const h = 54 + n * 26;
-    const y = 360 - 16 - h;
-    drawWindow(ctx, WIDTH - 236, y, 220, h);
+    const cardW = WIDTH - 236;
+    const cardH = 96;
     st.party.forEach((m, i) => {
       const s = totalStats(m, g.items);
-      const ty = y + 12 + i * 26;
-      g.font.draw(ctx, memberName(st, m), WIDTH - 220, ty, isDown(m) ? '#c0392b' : COLORS.text);
-      g.font.draw(ctx, `HP${m.hp}/${s.hp}`, WIDTH - 130, ty, COLORS.text);
+      const x = 12;
+      const y = 12 + i * (cardH + 6);
+      const down = isDown(m);
+      drawWindow(ctx, x, y, cardW, cardH);
+      const face = g.faces?.get(characterIdOf(st, m));
+      ctx.globalAlpha = down ? 0.4 : 1;
+      if (face) ctx.drawImage(face, x + 10, y + 10, 63, 63);
+      ctx.globalAlpha = 1;
+      const tx = x + 84;
+      const nx = g.font.draw(ctx, memberName(st, m), tx, y + 9, down ? '#c0392b' : COLORS.title);
+      g.font.draw(ctx, `${JOB_NAMES[m.job] ?? ''}  Lv${m.level}`, nx + 12, y + 9, COLORS.textDim);
+      const bar = (label, v, max, by, color) => {
+        g.font.draw(ctx, `${label} ${Math.max(0, v)}/${max}`, tx, by, COLORS.text);
+        const bx = tx + 150;
+        const bw = cardW - 84 - 150 - 14;
+        ctx.fillStyle = '#d8c8a8';
+        ctx.fillRect(bx, by + 6, bw, 6);
+        ctx.fillStyle = color;
+        ctx.fillRect(bx, by + 6, Math.round((bw * Math.max(0, v)) / Math.max(1, max)), 6);
+      };
+      bar('HP', m.hp, s.hp, y + 31, m.hp / s.hp < 0.25 ? '#e85a4f' : '#5fbf6a');
+      bar('MP', m.mp, s.mp, y + 51, '#5a8ae8');
+      // 次のレベルまで・状態異常（右下）
+      const info = m.level >= MAX_LEVEL ? 'レベル最大' : `次まで ${expToNext(m.level) - m.exp}`;
+      const ail = (m.ailments ?? []).map((a) => ({ poison: '毒', burn: 'やけど' })[a]).filter(Boolean).join('・');
+      const right = ail ? `${ail}  ${info}` : info;
+      g.font.draw(ctx, right, x + cardW - 14 - g.font.width(right), y + 9 + 62, ail ? '#8a3ab0' : COLORS.textDim);
     });
-    g.font.draw(ctx, `${st.gold ?? 0} ゴールド`, WIDTH - 220, y + 12 + n * 26, COLORS.text);
-    g.font.draw(ctx, `プレイ時間 ${formatPlayTime(st.playTimeMs)}`, WIDTH - 220, y + 32 + n * 26, COLORS.textDim);
+    // お金とプレイ時間（メニューの下）
+    const py = 16 + 5 * 24 + 40;
+    drawWindow(ctx, WIDTH - 196, py, 180, 58);
+    g.font.draw(ctx, `${st.gold ?? 0} G`, WIDTH - 180, py + 10, COLORS.text);
+    g.font.draw(ctx, `時間 ${formatPlayTime(st.playTimeMs)}`, WIDTH - 180, py + 32, COLORS.textDim);
   }
 }

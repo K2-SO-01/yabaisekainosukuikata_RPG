@@ -1,7 +1,7 @@
 // マップを歩く場面。人と話す、調べる、出口で別のマップへ移る、イベントの台本を動かす
 import { HEIGHT, TILE, WIDTH } from '../../config.js';
 import { isActive, runScript } from '../../core/events.js';
-import { rollEncounter } from '../../core/battle.js';
+import { encounterRoll, rollEncounter } from '../../core/battle.js';
 import { canWalk, DIRS, entityAt, findStart, stepTarget, tryMove } from '../../core/map.js';
 import { addItem, createMember, fullRecover, MEMBER_DEFS, partnerOf, totalStats } from '../../core/party.js';
 import { markCleared, writeSlot } from '../../core/save.js';
@@ -281,9 +281,9 @@ export class FieldScene extends Scene {
   }
 
   // ---- エンカウント（フィールドとダンジョンだけ。30〜40歩に1回くらい。長い城はエリアの steps で少なめ） ----
+  // エンカウントは確率方式（src/core/battle.js の encounterRoll）。ここでは「前の戦闘から何歩目か」を数える
   resetEncounter() {
-    const [lo, hi] = this.game.enemies?.areas?.[this.map?.props.area]?.steps ?? [30, 40];
-    this.encSteps = lo + Math.floor(Math.random() * (hi - lo + 1));
+    this.encSteps = 0;
   }
 
   checkEncounter() {
@@ -293,7 +293,8 @@ export class FieldScene extends Scene {
     const area = g.enemies?.areas?.[areaId];
     if (!area) return false;
     if (this.map.objects.some((o) => o.type === 'savepoint' && Math.abs(o.x - this.pos.x) <= 3 && Math.abs(o.y - this.pos.y) <= 3)) return false;
-    if (--this.encSteps > 0) return false;
+    this.encSteps++;
+    if (!encounterRoll(area, this.encSteps)) return false;
     this.resetEncounter();
     this.startBattle({ enemyIds: rollEncounter(area), area: areaId });
     return true;
@@ -394,7 +395,7 @@ export class FieldScene extends Scene {
     const g = this.game;
     this.busy = true;
     this.moving = null;
-    g.input.clear();
+    g.input.clearPresses();
     g.audio.playSe('ok');
     g.scenes.fadeTo(() => {
       g.scenes.push(
@@ -406,7 +407,7 @@ export class FieldScene extends Scene {
               return;
             }
             if (!fromScript) this.busy = false;
-            g.input.clear();
+            g.input.clearPresses();
             g.audio.playBgm(this.map.props.bgm ?? 'town');
             onEnd?.(result);
           },
@@ -428,7 +429,7 @@ export class FieldScene extends Scene {
     this.walkPlan = null;
     const g = this.game;
     this.busy = true;
-    g.input.clear();
+    g.input.clearPresses();
     try {
       await runScript(commands, { state: g.state, scripts: g.scripts, ui: this.ui(npc) });
     } catch (err) {
@@ -655,7 +656,7 @@ export class FieldScene extends Scene {
     const itemName = g.items[p.item]?.name ?? p.item;
     const full = p.item && (st.bag?.[p.item] ?? 0) >= 99;
     this.busy = true;
-    g.input.clear();
+    g.input.clearPresses();
     try {
       if (p.kind === 'chest') {
         if (st.flags[key]) return await say(g, '宝箱は からっぽだ。');
@@ -689,7 +690,7 @@ export class FieldScene extends Scene {
       await say(g, `${name}は ${where}の中から ${itemName}を 見つけた！`);
     } finally {
       this.busy = false;
-      g.input.clear();
+      g.input.clearPresses();
     }
   }
 
@@ -702,7 +703,8 @@ export class FieldScene extends Scene {
           { label: 'ロード', value: 'load' },
           // クリアしたあとは、どの光の結晶からでも裏ボス「影の勇者」に挑める
           ...(g.state.flags.cleared ? [{ label: '影に挑む', value: 'shadow' }] : []),
-          { label: 'とじる', value: 'close' },
+          // スマホでは「とじる」を出さない（右上の「もどる」で閉じられる）
+          ...(g.screen.touchEnabled ? [] : [{ label: 'とじる', value: 'close' }]),
         ],
         x: 24,
         y: 24,

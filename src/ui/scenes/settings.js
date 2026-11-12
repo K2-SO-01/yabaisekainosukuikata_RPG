@@ -30,7 +30,7 @@ export class SettingsScene extends Scene {
       { key: 'export', label: 'セーブの書き出し', type: 'action' },
       { key: 'import', label: 'セーブの読み込み', type: 'action' },
       this.inGame ? { key: 'title', label: 'タイトルにもどる', type: 'action' } : null,
-      { key: 'back', label: 'もどる', type: 'action' },
+      this.game?.screen?.touchEnabled ? null : { key: 'back', label: 'もどる', type: 'action' }, // スマホは右上の「もどる」
     ].filter(Boolean);
   }
 

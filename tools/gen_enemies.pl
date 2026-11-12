@@ -10,7 +10,7 @@ my $OST = 'assets/monsters/irasutoya/ostrich.png';
 my $HOME_TOWN = { map => 'town', x => 4, y => 24, dir => 'down', town => 'town' };
 my %INN = map { $_ => { map => "village_$_", x => 5, y => 8, dir => 'down', town => "village_$_" } } qw(water wind fire thunder);
 my @areas = (
-  field_town => { enemies => [qw(blue_slime green_slime red_slime nitaridake)], bg => ['#a9d8f2', '#e8f6d8'], home => [$HOME_TOWN] },
+  field_town => { groups => [0.6, 0.3, 0.1], enemies => [qw(blue_slime green_slime red_slime nitaridake)], bg => ['#a9d8f2', '#e8f6d8'], home => [$HOME_TOWN] },
   lake => { enemies => [qw(merfish aqua_spirit doronuman)], bg => ['#6fa9d6', '#cfe8f3'], home => [$INN{water}, $HOME_TOWN] },
   tower => { enemies => [qw(wind_spirit mini_tornado dash_ostrich)], bg => ['#a7d8c9', '#eef7e6'], home => [$INN{wind}, $INN{water}, $HOME_TOWN] },
   volcano => { enemies => [qw(flame_spirit chibi_salamander homuran)], bg => ['#e08a5a', '#f6d9b8'], home => [$INN{fire}, $INN{wind}, $INN{water}, $HOME_TOWN] },
