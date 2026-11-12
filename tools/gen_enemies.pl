@@ -35,9 +35,9 @@ my @enemies = (
   [thunder_spirit => 'サンダースピリット', "$M/pipo-enemy029b.png", 95, 13, 32, 36, 42, 'thunder', 60, [120, 150], 'bolt_crystal', [qw(bolt_paralyze raimei_small)]],
   [lost_soldier => 'ロストソルジャー', "$M/pipo-enemy039.png", 118, 44, 40, 30, 7, 'thunder', 60, [120, 150], 'rusty_helm', [qw(sword_attack cover_others)]],
   [utsuro => 'ウツロ', "$M/pipo-enemy010.png", 41, 35, 30, 34, 32, 'thunder', 60, [120, 150], 'nameless_letter', [qw(attack search_name)], { physImmune => \1, immune => ['poison', 'burn'] }],
-  [dark_knight => 'ダークナイト', "$M/pipo-enemy018b.png", 176, 70, 50, 40, 9, 'dark', 140, [150, 200], 'iron_shard', [qw(attack dark_sword)]],
-  [arch_demon => 'アークデーモン', "$M/pipo-enemy024.png", 169, 60, 42, 42, 69, 'dark', 140, [150, 200], 'demon_horn', [qw(attack dark_flame)]],
-  [gargoyle => 'ガーゴイル', "$M/pipo-enemy040b.png", 162, 67, 46, 46, 9, 'dark', 140, [150, 200], 'stone_wing', [qw(attack dive)]],
+  [dark_knight => 'ダークナイト', "$M/pipo-enemy018b.png", 176, 63, 50, 40, 9, 'dark', 140, [150, 200], 'iron_shard', [qw(attack dark_sword)]],
+  [arch_demon => 'アークデーモン', "$M/pipo-enemy024.png", 169, 54, 42, 42, 62, 'dark', 140, [150, 200], 'demon_horn', [qw(attack dark_flame)]],
+  [gargoyle => 'ガーゴイル', "$M/pipo-enemy040b.png", 162, 60, 46, 46, 9, 'dark', 140, [150, 200], 'stone_wing', [qw(attack dive)]],
   # bosses
   [boss_water => '水の四天王', "$X/boss_water.png", 300, 15, 18, 12, 22, 'water', 100, [400, 400], undef, [qw(aqua_splash madoromi poison_scale)],
     { boss => \1, acts => 1, special => 'royal_tidal', chargeText => '水の四天王「おーっほっほっほ!」', immune => ['poison'], bgm => 'boss' }],
@@ -47,9 +47,9 @@ my @enemies = (
     { boss => \1, acts => 2, special => 'inferno_blow', chargeText => '炎の四天王は 筋肉を 見せつけている！', immune => ['burn'], bgm => 'boss' }],
   [boss_thunder => '雷の四天王', "$M/pipo-enemy026.png", 1500, 31, 54, 30, 31, 'thunder', 350, [2500, 2500], undef, [qw(boss_lightning_slash boss_lightning_bolt)],
     { boss => \1, acts => 2, special => 'raimeizan', chargeText => '雷の四天王は 無言で 剣を構えた…', bgm => 'boss_storm', noJingle => \1 }],
-  [demon1 => '魔王', "$M/pipo-enemy043.png", 2300, 22, 69, 35, 33, 'dark', 0, [0, 0], undef, [qw(dark_bolt nightmare)],
+  [demon1 => '魔王', "$M/pipo-enemy043.png", 2050, 22, 69, 35, 33, 'dark', 0, [0, 0], undef, [qw(dark_bolt nightmare)],
     { boss => \1, acts => 2, special => 'end_of_light', chargeText => '魔王「…絶望するがよい」', next => 'demon2', transformTalk => 'demon_transform', bgm => 'demon1', big => 1.25 }],
-  [demon2 => '魔王', "$M/pipo-enemy044b.png", 2100, 32, 75, 30, 30, 'dark', 0, [0, 0], undef, [qw(dragon_claw tail_sweep dark_breath)],
+  [demon2 => '魔王', "$M/pipo-enemy044b.png", 1900, 32, 75, 30, 30, 'dark', 0, [0, 0], undef, [qw(dragon_claw tail_sweep dark_breath)],
     { boss => \1, acts => 3, special => 'abyss_flare', specialPlus => \1, chargeText => '魔王は 翼を 大きく広げた！', bgm => 'demon2', noJingle => \1, big => 1.25 }],
 );
 # id => name, kind, element, power, target, text, extra

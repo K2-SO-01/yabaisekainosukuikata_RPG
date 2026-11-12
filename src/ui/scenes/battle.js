@@ -174,6 +174,9 @@ export class BattleScene extends Scene {
 
   openCommandMenu(index = this.memory?.[this.who]?.cmd ?? 0) {
     const u = this.b.allies[this.who];
+    // 開発用：通常プレイボット（tools/playbot.js）が、コマンドを選ぶ
+    const auto = this.game.autoBattle?.(this.b, this.who);
+    if (auto) return this.setCommand(auto);
     this.phase = 'command';
     this.menu = new Menu({
       items: [

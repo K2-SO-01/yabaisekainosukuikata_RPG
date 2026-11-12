@@ -608,9 +608,11 @@ function render(rows) {
   $('#out').innerHTML = h + '</table>';
 }
 
-$('#go').addEventListener('click', () => runAll(Number($('#runs').value) || 10));
+// ゲームの画面（通常プレイボット）から読み込んだ時は、この表のページの部分は動かさない
+const ON_PAGE = !!document.querySelector('#go');
+if (ON_PAGE) $('#go').addEventListener('click', () => runAll(Number($('#runs').value) || 10));
 Object.assign(window, { runAll, summarize, Sim, STRATEGIES, HEROES, enemyData, items, skills });
-$('#status').textContent = '準備できました';
+if (ON_PAGE) $('#status').textContent = '準備できました';
 
 // ---- 調整用の道具（開発者ツールのコンソールから使う） ----
 // tune({ areas: { lake: { exp: 15 } }, enemies: { boss_water: { hp: 300 } } })：数値をその場で変えて試す
