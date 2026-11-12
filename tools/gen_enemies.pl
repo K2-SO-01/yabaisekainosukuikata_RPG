@@ -57,7 +57,7 @@ my @enemies = (
 my @SHADOW_ACTS = qw(attack kage_slash kage_wide kage_bolt kage_flare kage_sleep kage_confuse kage_heal kage_power kage_break);
 for my $look (qw(m_sword m_mage f_sword f_mage)) {
   push @enemies, ["shadow_$look" => '影の勇者', "$X/shadow_$look.png", 3200, 54, 70, 48, 54, 'dark', 0, [0, 0], undef, [@SHADOW_ACTS],
-    { boss => \1, acts => 2, ai => 'shadow', immune => ['poison', 'burn'], bgm => 'demon2', noJingle => \1, big => 1.35 }];
+    { boss => \1, acts => 2, ai => 'shadow', immune => ['poison', 'burn'], bgm => 'shadow', noJingle => \1, big => 1.35 }];
 }
 # id => name, kind, element, power, target, text, extra
 my @skills = (
