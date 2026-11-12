@@ -1,6 +1,7 @@
 // ゲームの始まり：画面・操作・音を準備して、データを読み込み、タイトルの前の画面から始める
 import { FONT_FAMILY, FONT_PATH, HEIGHT, WIDTH } from './config.js';
 import { parseTiledMap } from './core/map.js';
+import { partnerOf } from './core/party.js';
 import { loadSettings, saveSettings } from './core/settings.js';
 import { Assets, resolvePath } from './engine/assets.js';
 import { AudioSys } from './engine/audio.js';
@@ -134,16 +135,58 @@ async function loadGameData(game) {
   for (const id of Object.keys(characters)) game.faces.set(id, makeFace(assets.image(`char:${id}`)));
   // 町の人は、男女2種類の顔を使い回す（face に書いた人の顔）
   for (const [id, c] of Object.entries(characters)) if (c.face && game.faces.has(c.face)) game.faces.set(id, game.faces.get(c.face));
+  // ボスの顔：戦闘の画像を縮小して使う（企画書10章）
+  for (const [id, e] of Object.entries(game.enemies?.enemies ?? {})) if (e.boss) game.faces.set(`enemy:${id}`, makeBossFace(assets.image(`enemy:${id}`)));
+  const BOSS_FACE = { 水の四天王: 'boss_water', 風の四天王: 'boss_wind', 炎の四天王: 'boss_fire', 雷の四天王: 'boss_thunder', 魔王: 'demon1' };
+
+  // レオ／リナのセリフの出し分け：主人公の性別と職業で、4パターン（leo_sword など）か2パターン（leo / lina）から選ぶ
+  game.partner = () => partnerOf(game.state);
+  game.pick = (v) => {
+    if (v == null) return null;
+    if (typeof v === 'string') return [v];
+    if (Array.isArray(v)) return v.flatMap((e) => game.pick(e) ?? []);
+    const p = game.partner();
+    return game.pick(v[p.key] ?? v[p.name] ?? null);
+  };
+
   game.speakerInfo = (speaker) => {
     if (speaker === '主人公' && game.state) {
       const p = game.state.player;
       return { faceKey: `hero_${p.gender === 'female' ? 'f' : 'm'}_${p.job === 'mage' ? 'mage' : 'sword'}`, showName: true, displayName: p.name };
     }
+    if ((speaker === 'レオ' || speaker === 'リナ') && game.state) return { faceKey: game.partner().key, showName: true };
+    if (BOSS_FACE[speaker]) return { faceKey: `enemy:${BOSS_FACE[speaker]}`, showName: true };
     for (const [id, c] of Object.entries(characters)) {
       if (c.name === speaker) return { faceKey: id, showName: c.main === true };
     }
     return { faceKey: null, showName: true };
   };
+}
+
+// ボスの顔：画像の透明でない部分を、63×63に収まるように縮める
+function makeBossFace(img) {
+  const c = document.createElement('canvas');
+  c.width = 63;
+  c.height = 63;
+  const x = c.getContext('2d');
+  x.fillStyle = '#f3e3c5';
+  x.fillRect(0, 0, 63, 63);
+  if (!img) return c;
+  const t = document.createElement('canvas');
+  t.width = img.width;
+  t.height = img.height;
+  const tx = t.getContext('2d');
+  tx.drawImage(img, 0, 0);
+  const d = tx.getImageData(0, 0, t.width, t.height).data;
+  let x0 = t.width, y0 = t.height, x1 = 0, y1 = 0;
+  for (let yy = 0; yy < t.height; yy += 2) for (let xx = 0; xx < t.width; xx += 2) if (d[(yy * t.width + xx) * 4 + 3] > 20) { x0 = Math.min(x0, xx); x1 = Math.max(x1, xx); y0 = Math.min(y0, yy); y1 = Math.max(y1, yy); }
+  // 上の方（顔のあたり）を中心に、正方形で切り取る
+  const side = Math.min(x1 - x0, y1 - y0) * 0.8;
+  const sx = (x0 + x1) / 2 - side / 2;
+  x.imageSmoothingEnabled = true;
+  x.imageSmoothingQuality = 'high';
+  x.drawImage(img, sx, y0, side, side, 2, 2, 59, 59);
+  return c;
 }
 
 function makeFace(img) {

@@ -24,12 +24,36 @@
   ],
   "characters": "data/characters.json",
   "maps": {
-    "castle_throne": "data/maps/castle_throne.json",
     "castle_hall": "data/maps/castle_hall.json",
-    "town": "data/maps/town.json",
-    "well": "data/maps/well.json",
+    "castle_throne": "data/maps/castle_throne.json",
+    "demon_castle_1": "data/maps/demon_castle_1.json",
+    "demon_castle_2": "data/maps/demon_castle_2.json",
+    "demon_castle_3": "data/maps/demon_castle_3.json",
+    "demon_castle_boss": "data/maps/demon_castle_boss.json",
+    "field_demon": "data/maps/field_demon.json",
+    "field_fire": "data/maps/field_fire.json",
+    "field_thunder": "data/maps/field_thunder.json",
     "field_town": "data/maps/field_town.json",
-    "testroom": "data/maps/testroom.json"
+    "field_water": "data/maps/field_water.json",
+    "field_wind": "data/maps/field_wind.json",
+    "lake_cave_1": "data/maps/lake_cave_1.json",
+    "lake_cave_boss": "data/maps/lake_cave_boss.json",
+    "storm_castle_1": "data/maps/storm_castle_1.json",
+    "storm_castle_2": "data/maps/storm_castle_2.json",
+    "storm_castle_3": "data/maps/storm_castle_3.json",
+    "storm_castle_boss": "data/maps/storm_castle_boss.json",
+    "town": "data/maps/town.json",
+    "village_fire": "data/maps/village_fire.json",
+    "village_thunder": "data/maps/village_thunder.json",
+    "village_water": "data/maps/village_water.json",
+    "village_wind": "data/maps/village_wind.json",
+    "volcano_1": "data/maps/volcano_1.json",
+    "volcano_2": "data/maps/volcano_2.json",
+    "volcano_boss": "data/maps/volcano_boss.json",
+    "well": "data/maps/well.json",
+    "wind_tower_1": "data/maps/wind_tower_1.json",
+    "wind_tower_2": "data/maps/wind_tower_2.json",
+    "wind_tower_boss": "data/maps/wind_tower_boss.json"
   },
   "items": "data/items.json",
   "skills": "data/skills.json",
@@ -39,11 +63,14 @@
   "events": {
     "story": "data/events/story.json",
     "town": "data/events/town.json",
-    "field": "data/events/field.json"
+    "field": "data/events/field.json",
+    "world": "data/events/world.json"
   },
   "dialogues": {
     "shop": "data/dialogues/shop.json",
     "town": "data/dialogues/town.json",
+    "story2": "data/dialogues/story2.json",
+    "system": "data/dialogues/system.json",
     "story": "data/dialogues/story.json",
     "test": "data/dialogues/test.json"
   }

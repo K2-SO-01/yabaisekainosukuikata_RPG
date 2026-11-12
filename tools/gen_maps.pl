@@ -19,8 +19,8 @@ sub layer { my ($m, $id, $name, $l, $vis) = @_; my $data = join(",\n        ", m
 sub emit { my ($m, $file, $name, $bgm, %extra) = @_;
   my $more = join("", map { qq(,
     { "name": "$_", "type": "string", "value": "$extra{$_}" }) } sort keys %extra); open my $o, '>:raw', "data/maps/$file.json" or die "$file: $!";
-  print $o qq({\n  "type": "map", "version": "1.10", "tiledversion": "1.10.2", "orientation": "orthogonal", "renderorder": "right-down", "infinite": false,\n  "width": $m->{w}, "height": $m->{h}, "tilewidth": 32, "tileheight": 32, "nextlayerid": 6, "nextobjectid": @{[$m->{n} + 1]},\n  "properties": [\n    { "name": "name", "type": "string", "value": "$name" },\n    { "name": "bgm", "type": "string", "value": "$bgm" }$more\n  ],\n  "tilesets": [\n    { "firstgid": 1, "name": "BaseChip", "image": "../../assets/tiles/Pipoya RPG Tileset 32x32/[Base]BaseChip_pipo.png", "imagewidth": 256, "imageheight": 4256, "tilewidth": 32, "tileheight": 32, "columns": 8, "tilecount": 1064, "margin": 0, "spacing": 0 },\n    { "firstgid": 1065, "name": "CastleExtra", "image": "../../assets/tiles/extra/castle_extra.png", "imagewidth": 256, "imageheight": 384, "tilewidth": 32, "tileheight": 32, "columns": 8, "tilecount": 96, "margin": 0, "spacing": 0 },
-    { "firstgid": 1161, "name": "Water", "image": "../../assets/tiles/Pipoya RPG Tileset 32x32/SampleMap/[A]Water_pipo.png", "imagewidth": 2048, "imageheight": 1536, "tilewidth": 32, "tileheight": 32, "columns": 64, "tilecount": 3072, "margin": 0, "spacing": 0, "properties": [{ "name": "frames", "type": "int", "value": 8 }] }\n  ],\n  "layers": [\n);
+  print $o qq({\n  "type": "map", "version": "1.10", "tiledversion": "1.10.2", "orientation": "orthogonal", "renderorder": "right-down", "infinite": false,\n  "width": $m->{w}, "height": $m->{h}, "tilewidth": 32, "tileheight": 32, "nextlayerid": 6, "nextobjectid": @{[$m->{n} + 1]},\n  "properties": [\n    { "name": "name", "type": "string", "value": "$name" },\n    { "name": "bgm", "type": "string", "value": "$bgm" }$more\n  ],\n  "tilesets": [\n    { "firstgid": 1, "name": "BaseChip", "image": "../../assets/tiles/Pipoya RPG Tileset 32x32/[Base]BaseChip_pipo.png", "imagewidth": 256, "imageheight": 4256, "tilewidth": 32, "tileheight": 32, "columns": 8, "tilecount": 1064, "margin": 0, "spacing": 0 },\n    { "firstgid": 1065, "name": "CastleExtra", "image": "../../assets/tiles/extra/castle_extra.png", "imagewidth": 256, "imageheight": 512, "tilewidth": 32, "tileheight": 32, "columns": 8, "tilecount": 128, "margin": 0, "spacing": 0 },
+    { "firstgid": 1200, "name": "Water", "image": "../../assets/tiles/Pipoya RPG Tileset 32x32/SampleMap/[A]Water_pipo.png", "imagewidth": 2048, "imageheight": 1536, "tilewidth": 32, "tileheight": 32, "columns": 64, "tilecount": 3072, "margin": 0, "spacing": 0, "properties": [{ "name": "frames", "type": "int", "value": 8 }] }\n  ],\n  "layers": [\n);
   print $o join(",\n", layer($m, 1, 'ground', 'g', 'true'), layer($m, 2, 'deco', 'd', 'true'), layer($m, 3, 'collision', 'c', 'false'), layer($m, 5, 'roof', 'r', 'true'));
   print $o qq(,\n    { "id": 4, "type": "objectgroup", "name": "events", "x": 0, "y": 0, "opacity": 1, "visible": true, "draworder": "topdown",\n      "objects": [\n) . join(",\n", @{ $m->{objs} }) . qq(\n      ] }\n  ]\n}\n);
   close $o; print "wrote data/maps/$file.json ($m->{w}x$m->{h}, $m->{n} objects)\n"; }
@@ -68,6 +68,9 @@ sub small_tower { my ($m, $x, $top, $bottom) = @_;
   obj($m, '大臣', 'npc', 12, 3, character => 'minister', dialogue => 'minister', dir => 'down');
   obj($m, '巫女', 'npc', 8, 3, character => 'priestess', dialogue => 'priestess', dir => 'down');
   obj($m, '謁見', 'auto', 0, 0, script => 'throne_intro', unless => 'audience_done');
+  obj($m, 'おじさん', 'npc', 8, 5, character => 'oji', dialogue => 'oji_after', dir => 'up', if => 'ending');
+  obj($m, 'おばさん', 'npc', 12, 5, character => 'oba', dialogue => 'oba_morning', dir => 'up', if => 'ending');
+  obj($m, 'エンディング', 'auto', 0, 0, script => 'ending_scene', if => 'ending', unless => 'cleared');
   obj($m, '出口', 'exit', $_, 14, map => 'castle_hall', x => 7, y => 2, dir => 'down') for 9 .. 11;
   emit($m, 'castle_throne', '王様のお城', 'castle'); }
 
@@ -87,7 +90,7 @@ sub small_tower { my ($m, $x, $top, $bottom) = @_;
   emit($m, 'castle_hall', '王様のお城', 'castle'); }
 
 # ---- water (animated sheet, Tiled corner terrain). Water areas must be at least 2 tiles wide ----
-my $WATER = 1161;
+my $WATER = 1200;
 my %WPAT = (',,,1' => 389, ',,1,1' => 390, ',,1,' => 391, ',1,,1' => 453, '1,1,1,1' => 454, '1,,1,' => 455,
             ',1,,' => 517, '1,1,,' => 518, '1,,,' => 519, '1,1,1,' => 580, '1,1,,1' => 581, '1,,1,1' => 644, ',1,1,1' => 645);
 sub water { my ($m, @rects) = @_; my %set;
@@ -291,9 +294,12 @@ sub ttree { my ($m, @at) = @_; for my $p (@at) { put($m, 'd', $p->[0], $p->[1], 
   obj($m, '城下町', 'exit', $_, 12, map => 'town', x => 19, y => 31, dir => 'up') for (18, 19);
   obj($m, '宝箱', 'search', 5, 4, kind => 'chest', item => 'potion_s', count => 2);
   obj($m, '宝箱', 'search', 33, 21, kind => 'chest', gold => 50);
-  obj($m, '東の出口', 'trigger', 39, $_, script => 'to_water_area') for (12 .. 15);
+  obj($m, '東の出口', 'exit', 39, $_, map => 'field_water', x => 1, y => $_, dir => 'right') for (12 .. 15);
   # Luke runs out of the town after the hero the first time they leave it (he is shown only during that event)
   obj($m, 'ルーク', 'npc', 19, 12, character => 'luke', dialogue => 'luke_join', dir => 'down', if => 'luke_appear', unless => 'luke_joined');
   obj($m, 'ルーク加入', 'auto', 0, 0, script => 'luke_join_field', if => 'home_event_done', unless => 'luke_joined');
   obj($m, 'start', 'start', 18, 13, dir => 'down');
   emit($m, 'field_town', '城下町周辺', 'field', area => 'field_town'); }
+
+# stage 5-7 maps
+do './tools/gen_world.pl' or die $@ || $!;

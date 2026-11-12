@@ -63,7 +63,7 @@ export function pickMember(g, { filter = () => true, x = 24, y = 24, index = 0 }
 
 function resolveLines(g, lines) {
   const arr = Array.isArray(lines) ? lines : [lines];
-  return arr.flatMap((l) => g.dialogues?.[l] ?? [l]);
+  return arr.flatMap((l) => g.pick?.(g.dialogues?.[l]) ?? [l]);
 }
 
 export const SYS_COLOR = COLORS.text;

@@ -1,6 +1,6 @@
 # Draws the extra castle tiles (32x32) that the base tileset does not have:
 # blue pointed roofs, round towers, castle walls, a grand gate, a clock, sky, and palace interior pieces.
-# Output: assets/tiles/extra/castle_extra.png  (8 columns x 12 rows)
+# Output: assets/tiles/extra/castle_extra.png  (8 columns x 16 rows)
 # Run:    powershell -ExecutionPolicy Bypass -File tools/draw_castle_tiles.ps1
 #
 # Layout (row, column) -> tile number in maps = 1065 + row*8 + column
@@ -15,7 +15,7 @@ Add-Type -AssemblyName System.Drawing
 $root = Split-Path -Parent $PSScriptRoot
 $outDir = Join-Path $root 'assets\tiles\extra'
 New-Item -ItemType Directory -Force $outDir | Out-Null
-$W = 256; $H = 384
+$W = 256; $H = 512
 $bmp = New-Object System.Drawing.Bitmap $W, $H, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
 
 function Hex($h) { [System.Drawing.ColorTranslator]::FromHtml($h) }
@@ -443,6 +443,44 @@ function SmallTree($ox, $oy, [double]$cx, [double]$cy, [double]$r) {
 SmallTree 0 352 9.0 9.0 7.5;  SmallTree 0 352 23.0 8.0 7.5;  SmallTree 0 352 8.0 22.5 7.5;  SmallTree 0 352 23.5 23.0 7.5
 SmallTree 32 352 8.5 8.0 7.0; SmallTree 32 352 23.5 10.0 7.5; SmallTree 32 352 15.5 22.5 8.5
 SmallTree 64 352 15.5 13.0 10.5
+
+
+# ---- world-map icons and stairs (rows 12-15) ----
+#   r12-13 c0-1 village, r12 c2 cave mouth, r12-13 c3 tower, r12-13 c4-5 volcano, r12-13 c6-7 storm castle
+#   r14-15 c0-1 demon castle, r14 c2 stairs down, r14 c3 stairs up
+function Fill($x0, $y0, $w, $h, $c) { for ($y = $y0; $y -lt $y0 + $h; $y++) { for ($x = $x0; $x -lt $x0 + $w; $x++) { P $x $y $c } } }
+function Roof($x0, $y0, $w, $h, $c1, $c2) { for ($y = 0; $y -lt $h; $y++) { $hw = [Math]::Floor(($y + 1) * $w / (2 * $h)); for ($x = -$hw; $x -le $hw; $x++) { P ($x0 + [Math]::Floor($w / 2) + $x) ($y0 + $y) $(if ($x -lt 0) { $c1 } else { $c2 }) } } }
+# village: three small houses
+$wall = Hex '#f4ecd8'; $wallS = Hex '#cdbf9e'; $door = Hex '#6b4a2b'
+foreach ($hh in @(@(2, 30, '#d9534f', '#a83a37'), @(22, 22, '#4f8ad9', '#3a66a8'), @(40, 32, '#e09a3c', '#b0741f'))) {
+  $hx = $hh[0]; $hy = 384 + $hh[1]
+  Roof $hx ($hy - 12) 22 12 (Hex $hh[2]) (Hex $hh[3])
+  Fill ($hx + 2) $hy 18 14 $wall; Fill ($hx + 2) ($hy + 12) 18 2 $wallS; Fill ($hx + 9) ($hy + 6) 4 8 $door
+}
+# cave mouth
+for ($y = 0; $y -lt 32; $y++) { for ($x = 0; $x -lt 32; $x++) { $dx = ($x - 15.5) / 15; $dy = ($y - 30) / 26; if ($dx * $dx + $dy * $dy -le 1) { $c = Hex '#8d7b68'; if ($dx -lt -0.3) { $c = Hex '#a99683' } elseif ($dx -gt 0.4) { $c = Hex '#6e5e4e' }; P (64 + $x) (384 + $y) $c } } }
+for ($y = 12; $y -lt 32; $y++) { for ($x = 8; $x -lt 24; $x++) { $dx = ($x - 15.5) / 7.5; $dy = ($y - 20) / 8; if (($y -ge 20 -and [Math]::Abs($dx) -le 1) -or ($dx * $dx + $dy * $dy -le 1)) { P (64 + $x) (384 + $y) (Hex '#1c1820') } } }
+# tower (1x2)
+for ($y = 8; $y -lt 64; $y++) { for ($x = 8; $x -lt 24; $x++) { $u = ($x - 8) / 15.0; $c = $stone[$(if ($u -lt 0.2) { 2 } elseif ($u -lt 0.6) { 3 } else { 1 })]; if (($y % 8) -eq 7) { $c = $stone[1] }; P (96 + $x) (384 + $y) $c } }
+Roof 96 384 32 10 (Hex '#4a9a6a') (Hex '#2f6e48'); Fill 109 (384 + 56) 6 8 (Hex '#1c1820'); Window 111.5 (384 + 22) 6 10
+# volcano (2x2)
+for ($y = 0; $y -lt 64; $y++) { $t = $y / 63.0; $hw = 8 + $t * 22; for ($x = [int](31.5 - $hw); $x -le [int](31.5 + $hw); $x++) { $u = ($x - (31.5 - $hw)) / (2 * $hw); $c = Hex $(if ($u -lt 0.35) { '#9a6a4a' } elseif ($u -lt 0.7) { '#7d5238' } else { '#5e3c28' }); if ($y -lt 6) { $c = Hex $(if ((($x + $y) % 3) -eq 0) { '#ffcf3a' } else { '#e8502a' }) }; P (128 + $x) (384 + $y) $c } }
+for ($i = 0; $i -lt 3; $i++) { Fill (128 + 26 + $i * 4) (384 + 6 + $i * 6) 3 6 (Hex '#e8502a') }
+# storm castle (2x2)
+$dk = '#3e4250', '#5a6072', '#7a8296' | ForEach-Object { Hex $_ }
+Fill 192 (384 + 26) 48 38 $dk[1]; for ($x = 192; $x -lt 240; $x += 6) { Fill $x (384 + 22) 4 4 $dk[1] }
+Fill 196 (384 + 10) 10 54 $dk[2]; Fill 226 (384 + 10) 10 54 $dk[0]; Roof 194 (384) 14 10 $dk[0] $dk[0]; Roof 224 (384) 14 10 $dk[0] $dk[0]
+Fill 210 (384 + 44) 12 20 (Hex '#141218')
+$bolt = Hex '#ffe75a'; foreach ($p in @(@(214, 2), @(212, 6), @(216, 8), @(213, 13), @(217, 15))) { Fill $p[0] (384 + $p[1]) 3 5 $bolt }
+# demon castle (2x2)
+$pu = '#2a1838', '#43285a', '#6a3f8a' | ForEach-Object { Hex $_ }
+Fill 0 (448 + 24) 64 40 $pu[1]; for ($x = 0; $x -lt 64; $x += 6) { Fill $x (448 + 20) 4 4 $pu[1] }
+Fill 4 (448 + 8) 12 56 $pu[2]; Fill 48 (448 + 8) 12 56 $pu[0]; Roof 2 448 16 10 $pu[0] $pu[0]; Roof 46 448 16 10 $pu[0] $pu[0]; Roof 22 (448 + 6) 20 14 $pu[0] $pu[0]
+Fill 26 (448 + 42) 12 22 (Hex '#0e0812'); Fill 29 (448 + 30) 2 4 (Hex '#ff4a4a'); Fill 34 (448 + 30) 2 4 (Hex '#ff4a4a')
+# stairs down / up
+for ($i = 0; $i -lt 6; $i++) { $c = [System.Drawing.Color]::FromArgb(255, 150 - $i * 20, 140 - $i * 20, 130 - $i * 20); Fill (64 + 2 + $i * 2) (448 + 4 + $i * 4) (28 - $i * 4) 4 $c }
+Fill (64 + 14) (448 + 26) 4 4 (Hex '#000000')
+for ($i = 0; $i -lt 6; $i++) { $c = [System.Drawing.Color]::FromArgb(255, 120 + $i * 20, 110 + $i * 20, 100 + $i * 20); Fill (96 + 2 + $i * 2) (448 + 4 + (5 - $i) * 4) (28 - $i * 4) 4 $c }
 
 $out = Join-Path $outDir 'castle_extra.png'
 $bmp.Save($out, [System.Drawing.Imaging.ImageFormat]::Png)

@@ -3,10 +3,11 @@ import { HEIGHT, WIDTH } from '../../config.js';
 import {
   alive, applyDefeat, createBattle, finishWin, has, mustSkipInput, planEnemies, resolveTurn,
 } from '../../core/battle.js';
-import { isDown, itemCount, learnedSkills, totalStats } from '../../core/party.js';
+import { characterIdOf, isDown, itemCount, learnedSkills, totalStats } from '../../core/party.js';
 import { COLORS, drawCursor, drawWindow } from '../draw.js';
 import { ListMenu } from '../list.js';
 import { Menu } from '../menu.js';
+import { MessageScene } from '../message.js';
 import { Scene } from '../scene.js';
 
 const ELEMENT_COLOR = { none: '#8a8a8a', water: '#3b7dd8', wind: '#3aa45a', fire: '#e0503a', thunder: '#e6b800', dark: '#8a4fc8', light: '#e8c84a' };
@@ -19,12 +20,14 @@ const DOWN_RED = '#c0392b';
 
 export class BattleScene extends Scene {
   // enemyIds：出てくる敵、area：data/enemies.json の areas の名前、onEnd(result)：戦闘が終わった時
-  constructor({ enemyIds, area, boss = false, onEnd }) {
+  // skipRewards：勝っても経験値などを出さずに終える（魔王）
+  constructor({ enemyIds, area, boss = false, onEnd, skipRewards = false }) {
     super();
     this.enemyIds = enemyIds;
     this.areaId = area;
     this.boss = boss;
     this.onEnd = onEnd;
+    this.skipRewards = skipRewards;
   }
 
   enter() {
@@ -41,7 +44,8 @@ export class BattleScene extends Scene {
     this.introT = 0;
     this.phase = 'intro';
     this.layoutEnemies();
-    g.audio.playBgm(this.boss ? 'boss' : 'battle');
+    this.boss = this.b.boss;
+    g.audio.playBgm(this.b.enemies.find((e) => e.d.bgm)?.d.bgm ?? (this.boss ? 'boss' : 'battle'));
     const names = this.b.enemies.map((e) => e.name);
     this.play([{ t: 'msg', text: names.length === 1 ? `${names[0]}が あらわれた！` : '魔物の群れが あらわれた！' }], () => this.startTurn());
   }
@@ -53,7 +57,7 @@ export class BattleScene extends Scene {
     this.enemyBoxes = this.b.enemies.map((e, i) => {
       const img = g.assets.image(`enemy:${e.id}`);
       const box = img ? alphaBox(img) : { x: 0, y: 0, w: 100, h: 100 };
-      const s = Math.min(0.75, 130 / box.h, 150 / box.w) * (this.boss ? 1.5 : 1);
+      const s = e.d.boss ? Math.min(1.1, 200 / box.h, 260 / box.w) * (e.d.big ?? 1) : Math.min(0.75, 130 / box.h, 150 / box.w);
       const w = Math.round(box.w * s);
       const h = Math.round(box.h * s);
       const cx = Math.round(WIDTH / 2 + 45 + (i - (n - 1) / 2) * 150); // 左のコマンドの窓に重ならないよう、少し右に寄せる
@@ -76,6 +80,7 @@ export class BattleScene extends Scene {
 
   step(dt) {
     const g = this.game;
+    if (this.talking) return;
     if (this.waitT > 0) {
       this.waitT -= dt;
       if (g.input.pressed('ok') || g.input.tapped()) this.waitT = Math.min(this.waitT, 60);
@@ -89,6 +94,25 @@ export class BattleScene extends Scene {
         this.text = e.text;
         this.waitT = this.msgDelay();
         return;
+      }
+      if (e.t === 'talk') {
+        const lines = g.pick(g.dialogues[e.key]) ?? [];
+        this.talking = true;
+        g.scenes.push(new MessageScene(lines, { onDone: () => (this.talking = false) }));
+        return;
+      }
+      if (e.t === 'transform') {
+        this.fx[e.i] = { flash: 0, fade: 0, shake: 0 };
+        this.layoutEnemies();
+        g.audio.playSe('transform');
+        setTimeout(() => g.audio.playSe('dragon_roar'), 700);
+        if (e.bgm) g.audio.playBgm(e.bgm);
+        this.waitT = 900;
+        return;
+      }
+      if (e.t === 'shake') {
+        this.fx[e.i].shake = 600;
+        continue;
       }
       if (e.t === 'se') g.audio.playSe(e.name);
       else if (e.t === 'hit') {
@@ -123,6 +147,7 @@ export class BattleScene extends Scene {
     const b = this.b;
     if (b.result) return this.finish();
     planEnemies(b);
+    if (b.intents.some((list) => list?.some((it) => it.special))) this.game.audio.playSe('warning');
     this.text = '';
     this.prevText = '';
     this.commands = [];
@@ -172,8 +197,9 @@ export class BattleScene extends Scene {
     const g = this.game;
     const b = this.b;
     if (b.result === 'win') {
+      if (this.skipRewards) return this.close('win');
       g.audio.stopBgm(200);
-      g.audio.playJingle('jingle_victory');
+      if (!b.enemies.some((e) => e.d.noJingle)) g.audio.playJingle('jingle_victory');
       this.play(finishWin(b), () => this.close('win'));
     } else if (b.result === 'lose') {
       g.audio.stopBgm(300);
@@ -185,7 +211,12 @@ export class BattleScene extends Scene {
   close(result) {
     const g = this.game;
     this.phase = 'done';
-    if (result === 'lose') applyDefeat(g.state, g.items, this.area.home ?? { map: 'town', x: 4, y: 24, dir: 'down' });
+    if (result === 'lose') {
+      const homes = [].concat(this.area.home ?? []);
+      const visited = g.state.visited ?? [];
+      const home = homes.find((h) => !h.town || visited.includes(h.town)) ?? homes[homes.length - 1] ?? { map: 'town', x: 4, y: 24, dir: 'down' };
+      applyDefeat(g.state, g.items, home);
+    }
     g.scenes.fadeTo(() => {
       g.scenes.pop(this);
       this.onEnd?.(result);
@@ -199,6 +230,7 @@ export class BattleScene extends Scene {
     this.introT += dt;
     for (const f of this.fx) {
       f.flash = Math.max(0, f.flash - dt);
+      f.shake = Math.max(0, (f.shake ?? 0) - dt);
       if (f.fade > 0 && f.fade < 2) f.fade = Math.min(2, f.fade + dt / 400);
     }
     for (const f of this.allyFx) f.shake = Math.max(0, f.shake - dt);
@@ -453,7 +485,8 @@ export class BattleScene extends Scene {
       const appear = Math.min(1, this.introT / 300);
       ctx.globalAlpha = appear * (f.fade > 0 ? Math.max(0, 1 - (f.fade - 1)) : 1);
       if (f.flash > 0 && Math.floor(f.flash / 60) % 2 === 0) ctx.globalAlpha *= 0.25;
-      if (box.pic) ctx.drawImage(box.pic, box.x, box.y, box.w, box.h);
+      const sx = f.shake > 0 ? Math.round(Math.sin(f.shake / 30) * 4) : 0;
+      if (box.pic) ctx.drawImage(box.pic, box.x + sx, box.y, box.w, box.h);
       ctx.globalAlpha = 1;
       if (!alive(e)) return;
       // HPゲージ（数字は出さない）
@@ -477,42 +510,59 @@ export class BattleScene extends Scene {
     });
   }
 
-  // 頭の上の吹き出し：何をするか（アイコン）と、誰に（顔）
+  // 頭の上の吹き出し：何をするか（アイコン）と、誰に（顔）。2回以上動くボスは、行動の数だけ縦に重ねる（上から順に実行）
+  // ためのターンは黄色い吹き出しに稲妻、必殺技は枠が赤く点滅する
   drawIntent(ctx, i, box) {
-    const g = this.game;
-    const it = this.b.intents[i];
-    if (!it) return;
+    const list = this.b.intents[i];
+    if (!list?.length) return;
     const e = this.b.enemies[i];
     const asleep = has(e, 'sleep');
-    const faces = asleep || it.targets === 'self' ? [] : it.targets === 'all' ? this.b.allies.map((u) => u.index) : it.targets;
+    const h = 32;
+    let y = Math.round(box.y - h - 12);
+    const shown = asleep ? [list[0]] : list;
+    for (let k = shown.length - 1; k >= 0; k--) {
+      this.drawBubble(ctx, shown[k], box, y, asleep, k === shown.length - 1);
+      y -= h + 4;
+    }
+  }
+
+  drawBubble(ctx, it, box, y, asleep, withTail) {
+    const g = this.game;
+    const h = 32;
+    const faces = asleep || it.charge || it.targets === 'self' ? [] : it.targets === 'all' ? this.b.allies.map((u) => u.index) : it.targets;
     const iconW = asleep ? 36 : it.ailment && it.icon !== 'skull' ? 44 : 22;
     const faceW = 21;
     const w = 12 + iconW + faces.length * (faceW + 2);
-    const h = 32;
     const x = Math.round(box.cx - w / 2);
-    const y = Math.round(box.y - h - 12);
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = it.charge ? '#fff3a0' : '#ffffff';
     roundRect(ctx, x, y, w, h, 7);
     ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(box.cx - 6, y + h - 1);
-    ctx.lineTo(box.cx + 2, y + h + 8);
-    ctx.lineTo(box.cx + 6, y + h - 1);
-    ctx.fill();
-    ctx.strokeStyle = '#8c6a4f';
-    ctx.lineWidth = 2;
+    if (withTail) {
+      ctx.beginPath();
+      ctx.moveTo(box.cx - 6, y + h - 1);
+      ctx.lineTo(box.cx + 2, y + h + 8);
+      ctx.lineTo(box.cx + 6, y + h - 1);
+      ctx.fill();
+    }
+    const blink = it.special && Math.floor(this.t / 250) % 2 === 0;
+    ctx.strokeStyle = it.special ? (blink ? '#e02828' : '#ff9a9a') : it.charge ? '#c9a020' : '#8c6a4f';
+    ctx.lineWidth = it.special ? 3 : 2;
     roundRect(ctx, x, y, w, h, 7);
     ctx.stroke();
     if (asleep) {
       g.font.draw(ctx, 'Zzz', x + 9, y + 8, '#5dade2');
       return;
     }
-    const color = ELEMENT_COLOR[it.element] ?? ELEMENT_COLOR.none;
     let ix = x + 6;
+    if (it.charge) {
+      drawBolt(ctx, ix, y + 4);
+      return;
+    }
+    const color = ELEMENT_COLOR[it.element] ?? ELEMENT_COLOR.none;
     if (it.icon === 'sword') drawSword(ctx, ix, y + 5, color);
     else if (it.icon === 'staff') drawStaff(ctx, ix, y + 5, color, this.t);
     else if (it.icon === 'skull') drawSkull(ctx, ix + 2, y + 7, AILMENT_COLOR[it.ailment] ?? '#9b59b6', 1);
-    else if (it.icon === 'shield') drawShield(ctx, ix, y + 5);
+    else drawShield(ctx, ix, y + 5);
     ix += 22;
     if (it.ailment && it.icon !== 'skull') {
       drawSkull(ctx, ix + 2, y + 7, AILMENT_COLOR[it.ailment], 1);
@@ -629,9 +679,7 @@ function shrink(img, box, w, h, renderScale) {
   return out;
 }
 function faceKey(g, m) {
-  if (m.id !== 'hero') return m.id;
-  const p = g.state.player;
-  return `hero_${p.gender === 'female' ? 'f' : 'm'}_${p.job === 'mage' ? 'mage' : 'sword'}`;
+  return characterIdOf(g.state, m);
 }
 
 // 画像の、透明でない部分の範囲（モンスター画像は 480×480 の中に小さく描かれているため）
@@ -702,6 +750,15 @@ function drawSkull(ctx, x, y, color, s = 1) {
   p(3, 4, 4, 4); p(9, 4, 4, 4);
   ctx.fillStyle = '#3a2a2a';
   p(4, 5, 2, 2); p(10, 5, 2, 2); p(5, 12, 1, 2); p(8, 12, 1, 2); p(11, 12, 1, 2);
+}
+
+function drawBolt(ctx, x, y) {
+  ctx.fillStyle = '#e6b800';
+  const pts = [[10, 0], [4, 12], [9, 12], [6, 24], [16, 9], [11, 9], [14, 0]];
+  ctx.beginPath();
+  pts.forEach(([px, py], k) => (k ? ctx.lineTo(x + px, y + py) : ctx.moveTo(x + px, y + py)));
+  ctx.closePath();
+  ctx.fill();
 }
 
 function drawShield(ctx, x, y) {

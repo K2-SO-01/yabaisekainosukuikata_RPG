@@ -3,16 +3,18 @@ import { HEIGHT, TILE, WIDTH } from '../../config.js';
 import { isActive, runScript } from '../../core/events.js';
 import { rollEncounter } from '../../core/battle.js';
 import { canWalk, entityAt, findStart, stepTarget, tryMove } from '../../core/map.js';
-import { addItem, createMember, fullRecover, MEMBER_DEFS } from '../../core/party.js';
+import { addItem, createMember, fullRecover, MEMBER_DEFS, partnerOf } from '../../core/party.js';
 import { writeSlot } from '../../core/save.js';
 import { addGold, addPlayTime } from '../../core/state.js';
 import { fillName } from '../../core/text.js';
 import { COLORS, drawWindow } from '../draw.js';
-import { say } from '../flow.js';
+import { ask, say } from '../flow.js';
 import { ChoiceScene } from '../menu.js';
 import { MessageScene } from '../message.js';
 import { Scene } from '../scene.js';
 import { BattleScene } from './battle.js';
+import { BlackTextScene, EndRollScene, TheEndScene } from './ending.js';
+import { TitleScene } from './title.js';
 import { FieldMenuScene } from './fieldmenu.js';
 import { RestScene } from './rest.js';
 import { SaveLoadScene } from './saveload.js';
@@ -94,6 +96,7 @@ export class FieldScene extends Scene {
     const loc = g.state.location;
     addPlayTime(g.state, dt);
     this.time += dt;
+    this.flashT = Math.max(0, (this.flashT ?? 0) - dt);
 
     if (this.waitT > 0) {
       this.waitT -= dt;
@@ -146,6 +149,15 @@ export class FieldScene extends Scene {
     this.dir = dir;
     loc.dir = dir;
     const to = tryMove(this.map, this.pos, dir, this.isOn);
+    if (!to) {
+      const f = stepTarget(this.pos, dir);
+      const b = entityAt(this.map, f.x, f.y, this.isOn);
+      if (b?.type === 'block' && (input.pressedDir() || this.time - (this.bumpAt ?? -9999) > 900)) {
+        this.bumpAt = this.time;
+        this.run([{ say: b.props.msg }]);
+      }
+      return;
+    }
     if (to) {
       const dashing = g.state.flags.dash !== false && (g.settings.alwaysDash ? !input.dash() : input.dash());
       const dur = (dashing ? DASH_MS : WALK_MS) * (g.settings.moveSpeed === 1 ? 0.8 : 1);
@@ -185,6 +197,46 @@ export class FieldScene extends Scene {
     }
   }
 
+  // 道をふさぐもの：water（沈んだ道）、gust（突風）、sign（看板）、statue（炎の銅像）、barrier（雷の結界）
+  drawBlock(ctx, map, o, x, y) {
+    const t = this.time;
+    const k = o.props.kind;
+    if (k === 'water') drawGid(ctx, map, 1200 + 454, x, y);
+    else if (k === 'sign') drawGid(ctx, map, 230, x, y);
+    else if (k === 'gust') {
+      ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 3; i++) {
+        const off = ((t / 6 + i * 11) % 32) - 4;
+        ctx.beginPath();
+        ctx.moveTo(x + off, y + 6 + i * 9);
+        ctx.quadraticCurveTo(x + off + 8, y + 2 + i * 9, x + off + 16, y + 6 + i * 9);
+        ctx.stroke();
+      }
+    } else if (k === 'statue') {
+      // 炎の銅像（段階9までの仮の絵）：像の上に炎がゆらめく
+      drawGid(ctx, map, 917, x, y);
+      drawGid(ctx, map, 909, x, y - TILE);
+      for (let i = 0; i < 5; i++) {
+        const h = 6 + ((Math.sin(t / 120 + i * 1.7) + 1) * 4);
+        ctx.fillStyle = i % 2 ? 'rgba(255,200,60,0.9)' : 'rgba(240,90,30,0.85)';
+        ctx.fillRect(x + 6 + i * 4, y - TILE - h + 6, 4, h);
+      }
+    } else if (k === 'barrier') {
+      ctx.fillStyle = `rgba(255,240,120,${0.25 + 0.15 * Math.sin(t / 90)})`;
+      ctx.fillRect(x, y, TILE, TILE);
+      ctx.strokeStyle = 'rgba(255,255,200,0.9)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      const p = Math.floor(t / 80) % 4;
+      ctx.moveTo(x + 8 + p * 4, y);
+      ctx.lineTo(x + 20 - p * 2, y + 12);
+      ctx.lineTo(x + 10 + p * 3, y + 20);
+      ctx.lineTo(x + 22, y + 32);
+      ctx.stroke();
+    }
+  }
+
   // 今いる建物（屋根を消す範囲）。props.w・props.h が建物の大きさ（いちばん下の段は表の壁）
   houseAt(p) {
     return this.map.objects.find((o) => o.type === 'house' && p.x >= o.x && p.x < o.x + Number(o.props.w) && p.y >= o.y && p.y < o.y + Number(o.props.h) - 1) ?? null;
@@ -217,13 +269,14 @@ export class FieldScene extends Scene {
     if (!areaId || g.dev?.noEncounter) return false;
     const area = g.enemies?.areas?.[areaId];
     if (!area) return false;
+    if (this.map.objects.some((o) => o.type === 'savepoint' && Math.abs(o.x - this.pos.x) <= 3 && Math.abs(o.y - this.pos.y) <= 3)) return false;
     if (--this.encSteps > 0) return false;
     this.resetEncounter();
     this.startBattle({ enemyIds: rollEncounter(area), area: areaId });
     return true;
   }
 
-  startBattle({ enemyIds, area, boss = false, onEnd }) {
+  startBattle({ enemyIds, area, boss = false, onEnd, fromScript = false, skipRewards = false }) {
     const g = this.game;
     this.busy = true;
     this.moving = null;
@@ -232,13 +285,13 @@ export class FieldScene extends Scene {
     g.scenes.fadeTo(() => {
       g.scenes.push(
         new BattleScene({
-          enemyIds, area, boss,
+          enemyIds, area, boss, skipRewards,
           onEnd: (result) => {
             if (result === 'lose') {
               g.scenes.replaceAll(new FieldScene());
               return;
             }
-            this.busy = false;
+            if (!fromScript) this.busy = false;
             g.input.clear();
             g.audio.playBgm(this.map.props.bgm ?? 'town');
             onEnd?.(result);
@@ -278,12 +331,12 @@ export class FieldScene extends Scene {
     const show = (lines) =>
       new Promise((done) => g.scenes.push(new MessageScene(lines, { defaultFaceKey: npc?.props.character ?? null, onDone: done })));
     return {
-      say: (what) => show(Array.isArray(what) ? what : g.dialogues[what] ?? [`（セリフ「${what}」が見つかりません）`]),
+      say: (what) => show(Array.isArray(what) ? what : g.pick(g.dialogues[what]) ?? [`（セリフ「${what}」が見つかりません）`]),
       notice: (text) => show([typeof text === 'string' ? text : g.screen.touchEnabled ? text.touch : text.pc]),
       // たずねる：セリフの窓を残したまま選択肢を出し、選んだ番号を返す（キャンセルは最後の選択肢）
       choice: (what, items) =>
         new Promise((done) => {
-          const lines = Array.isArray(what) ? what : g.dialogues[what] ?? [''];
+          const lines = Array.isArray(what) ? what : g.pick(g.dialogues[what]) ?? [''];
           const msg = new MessageScene(lines, {
             defaultFaceKey: npc?.props.character ?? null,
             keepOpen: true,
@@ -306,7 +359,7 @@ export class FieldScene extends Scene {
           });
           g.scenes.push(msg);
         }),
-      rest: (what) => new Promise((done) => g.scenes.push(new RestScene({ lines: g.dialogues[what] ?? [''], onDone: done }))),
+      rest: (what) => new Promise((done) => g.scenes.push(new RestScene({ lines: g.pick(g.dialogues[what]) ?? [''], onDone: done }))),
       autosave: () => writeSlot(g.store, 'auto', g.state),
       recover: () => fullRecover(g.state, g.items),
       shop: (id) => openShop(g, id),
@@ -324,6 +377,60 @@ export class FieldScene extends Scene {
           this.waitDone = done;
         }),
       transfer: (to) => new Promise(() => this.transfer(to)), // 別のマップへ移るので、この先は実行しない
+      // 宿屋：pay が false なら、お金を取らず質問もしない（炎の村に着いた時）。初めての時だけ宿屋イベント
+      inn: async (opts = {}, pay = true) => {
+        const st = g.state;
+        const face = npc?.props.character ?? null;
+        if (pay) {
+          const i = await ask(g, 'inn_hello', ['はい', 'いいえ'], { face });
+          if (i !== 0) return say(g, 'inn_no', { face });
+          if ((st.gold ?? 0) < 50) return say(g, 'inn_no_money', { face });
+          st.gold -= 50;
+        }
+        const ev = !!opts.event && !(opts.flag && st.flags[opts.flag]) && !(opts.unless && st.flags[opts.unless]);
+        const lines = ev ? g.pick(g.dialogues[opts.event]) ?? [] : [];
+        if (ev && opts.flag) st.flags[opts.flag] = true;
+        await new Promise((done) => g.scenes.push(new RestScene({ lines, night: ev, onDone: done })));
+        fullRecover(st, g.items);
+        writeSlot(g.store, 'auto', st);
+        g.audio.playBgm(this.map.props.bgm ?? 'town');
+        await say(g, 'inn_morning', { face: pay ? face : 'innkeeper' });
+      },
+      battle: (opts) =>
+        new Promise((done) => {
+          this.startBattle({ enemyIds: opts.enemies, area: opts.area ?? this.map.props.area ?? 'field_town', boss: true, fromScript: true, skipRewards: !!opts.skipRewards, onEnd: done });
+        }),
+      // レオ／リナ：Lv7、その職業のLv7までの技、専用技、風の村でいちばん安い武器・防具一式
+      joinPartner: () => {
+        const st = g.state;
+        if (st.party.some((m) => m.id === 'partner')) return;
+        const p = partnerOf(st);
+        const equip = p.job === 'mage' ? { weapon: 'sage_staff', armor: 'magic_robe', helm: 'iron_helm' } : { weapon: 'knight_sword', armor: 'iron_armor', shield: 'iron_shield', helm: 'iron_helm' };
+        const m = createMember({ id: 'partner', job: p.job, level: 7, equip }, g.items);
+        m.extraSkills = [p.job === 'mage' ? 'lightning_bolt' : 'lightning_slash'];
+        st.party.push(m);
+      },
+      learnLight: () => {
+        const hero = g.state.party.find((m) => m.id === 'hero');
+        hero.extraSkills ??= [];
+        const id = hero.job === 'mage' ? 'holy' : 'holy_slash';
+        if (!hero.extraSkills.includes(id)) hero.extraSkills.push(id);
+        g.audio.playSe('awaken');
+      },
+      flash: (color) =>
+        new Promise((done) => {
+          this.flashColor = color || '#ffffff';
+          this.flashT = 900;
+          this.waitT = 900;
+          this.waitDone = done;
+        }),
+      endroll: () => new Promise((done) => g.scenes.push(new EndRollScene(done))),
+      epilogue: (key) => new Promise((done) => g.scenes.push(new BlackTextScene(g.pick(g.dialogues[key]) ?? [], done))),
+      theEnd: () =>
+        new Promise(() => {
+          g.state.flags.cleared = true;
+          g.scenes.push(new TheEndScene(() => g.scenes.fadeTo(() => g.scenes.replaceAll(new TitleScene()), 800)));
+        }),
       // マップの人を、名前で探して歩かせる（ms は1歩の時間。短いほど速い）
       moveNpc: async (name, steps, ms) => {
         const o = this.map.objects.find((x) => x.type === 'npc' && x.name === name && this.isOn(x));
@@ -366,6 +473,11 @@ export class FieldScene extends Scene {
       loc.map = to.map;
       loc.x = to.x != null ? Number(to.x) : null;
       loc.y = to.y != null ? Number(to.y) : null;
+      // 階段：x・y が 'start' なら、その階の始まり。'end' なら、その階の終わり（下の階への階段のそば）
+      if (to.x === 'end') {
+        const mark = g.maps.get(to.map)?.objects.find((o) => o.type === 'mark');
+        if (mark) Object.assign(loc, { x: mark.x, y: mark.y });
+      }
       loc.dir = to.dir ?? loc.dir;
       g.scenes.replaceAll(new FieldScene());
     }, 300);
@@ -391,6 +503,8 @@ export class FieldScene extends Scene {
       this.run(e.props.script ? g.scripts[e.props.script] : [{ say: e.props.dialogue }], e);
     } else if (e.type === 'savepoint') {
       g.scenes.push(new MessageScene(['光の結晶が、やさしく光っている…'], { onDone: () => this.savePointMenu() }));
+    } else if (e.type === 'block') {
+      this.run([{ say: e.props.msg }]);
     } else if (e.type === 'sign') {
       this.run(e.props.script ? g.scripts[e.props.script] : [{ notice: e.props.text ?? '' }]);
     }
@@ -417,8 +531,10 @@ export class FieldScene extends Scene {
           addGold(st, Number(p.gold));
           return await say(g, [`${name}は 宝箱を開けた！`, `${p.gold}ゴールドを 手に入れた！`]);
         }
-        addItem(st, p.item, Number(p.count ?? 1));
-        return await say(g, [`${name}は 宝箱を開けた！`, `${itemName}を 手に入れた！`]);
+        const got = p.itemMage && st.player.job === 'mage' ? p.itemMage : p.item;
+        addItem(st, got, Number(p.count ?? 1));
+        if (g.items[got]?.rare) g.audio.playJingle('jingle_rare');
+        return await say(g, [`${name}は 宝箱を開けた！`, `${g.items[got]?.name ?? got}を 手に入れた！`]);
       }
       const where = SEARCH_WORDS[p.kind] ?? 'つぼ';
       if (st.flags[key] || (!p.item && !p.gold)) return await say(g, `${where}の中は からっぽだ。`);
@@ -490,6 +606,11 @@ export class FieldScene extends Scene {
     for (const o of map.objects) {
       if (!this.isOn(o)) continue;
       if (o.type === 'npc') {
+        if (o.props.enemy) {
+          const pic = bossPicture(this.game, o.props.enemy);
+          if (pic) sprites.push({ y: o.y * TILE, draw: () => ctx.drawImage(pic, Math.round(o.x * TILE - camX + TILE / 2 - pic.width / 2), Math.round(o.y * TILE - camY + TILE - pic.height)) });
+          continue;
+        }
         const img = this.game.assets.image(`char:${o.props.character}`);
         let px = o.x * TILE;
         let py = o.y * TILE;
@@ -502,6 +623,8 @@ export class FieldScene extends Scene {
         }
         const dir = this.npcDirs.get(o.id) ?? o.facing ?? o.props.dir ?? 'down';
         sprites.push({ y: py, draw: () => drawChar(ctx, img, snap(px) - camX, snap(py) - camY, dir, frame) });
+      } else if (o.type === 'block') {
+        sprites.push({ y: o.y * TILE - 2, draw: () => this.drawBlock(ctx, map, o, o.x * TILE - camX, o.y * TILE - camY) });
       } else if (o.type === 'search' && o.props.kind === 'chest') {
         const opened = this.game.state.flags[`got_${this.game.state.location.map}_${o.id}`];
         sprites.push({ y: o.y * TILE - 1, draw: () => drawGid(ctx, map, opened ? CHEST_OPEN : CHEST_CLOSED, o.x * TILE - camX, o.y * TILE - camY) });
@@ -516,6 +639,24 @@ export class FieldScene extends Scene {
     // 屋根：建物の中にいる時は、その建物の屋根だけ消して中を見せる
     if (map.layers.roof) drawTileLayer(ctx, map, map.layers.roof, camX, camY, this.houseAt(this.moving ? this.moving.to : this.pos));
 
+    if (map.props.tint) {
+      ctx.fillStyle = map.props.tint;
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    }
+    if (map.props.storm) {
+      // ときどき稲光
+      const k = (this.time % 7000) / 7000;
+      if (k > 0.93 && k < 0.95) {
+        ctx.fillStyle = 'rgba(255,255,240,0.45)';
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      }
+    }
+    if (this.flashT > 0) {
+      ctx.globalAlpha = Math.min(1, this.flashT / 500);
+      ctx.fillStyle = this.flashColor ?? '#ffffff';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.globalAlpha = 1;
+    }
     this.drawBanner(ctx);
   }
 
@@ -578,6 +719,33 @@ function drawTileLayer(ctx, map, layer, camX, camY, skip = null) {
       ctx.drawImage(ts.img, col * TILE, Math.floor(local / ts.columns) * TILE, TILE, TILE, dx, dy, TILE, TILE);
     }
   }
+}
+
+// ボス部屋に置くボスの姿（戦闘の画像を縮小したもの）。一度だけ作って取っておく
+const BOSS_PICS = new Map();
+function bossPicture(g, id) {
+  if (BOSS_PICS.has(id)) return BOSS_PICS.get(id);
+  const img = g.assets.image(`enemy:${id}`);
+  if (!img) return null;
+  const t = document.createElement('canvas');
+  t.width = img.width;
+  t.height = img.height;
+  const tx = t.getContext('2d');
+  tx.drawImage(img, 0, 0);
+  const d = tx.getImageData(0, 0, t.width, t.height).data;
+  let x0 = t.width, y0 = t.height, x1 = 0, y1 = 0;
+  for (let yy = 0; yy < t.height; yy += 2) for (let xx = 0; xx < t.width; xx += 2) if (d[(yy * t.width + xx) * 4 + 3] > 20) { x0 = Math.min(x0, xx); x1 = Math.max(x1, xx); y0 = Math.min(y0, yy); y1 = Math.max(y1, yy); }
+  const bw = x1 - x0 + 2, bh = y1 - y0 + 2;
+  const sc = Math.min(80 / bh, 96 / bw);
+  const out = document.createElement('canvas');
+  out.width = Math.max(1, Math.round(bw * sc));
+  out.height = Math.max(1, Math.round(bh * sc));
+  const ox = out.getContext('2d');
+  ox.imageSmoothingEnabled = true;
+  ox.imageSmoothingQuality = 'high';
+  ox.drawImage(img, x0, y0, bw, bh, 0, 0, out.width, out.height);
+  BOSS_PICS.set(id, out);
+  return out;
 }
 
 function drawGid(ctx, map, gid, dx, dy) {

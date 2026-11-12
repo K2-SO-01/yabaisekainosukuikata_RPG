@@ -20,6 +20,13 @@
 //   { "move": { "npc": "名前", "steps": ["down", ...], "ms": 1歩の時間 } }   マップの人を歩かせる（走らせる）
 //   { "face": { "npc": "名前", "dir": "left" } } / { "playerFace": "right" }  向きを変える
 //   { "playerMove": ["up"] }            主人公を歩かせる（通せんぼで一歩戻す時など）
+//   { "inn": { "event": "セリフ", "flag": "見たら立てる", "unless": "このフラグがあれば出さない" } }  宿屋（50ゴールド）
+//   { "stay": { ...inn と同じ } }        お金を取らずに泊まる（炎の村に着いた時）
+//   { "battle": { "enemies": [...], "area": "lake", "skipRewards": false } }  戦う。勝った時だけ先へ進む
+//   { "joinPartner": true }              レオ／リナが仲間になる
+//   { "learnLight": true }               主人公が光の技を覚える
+//   { "flash": "#ffffff" }               画面を光らせる
+//   { "endroll": true } / { "epilogue": "セリフ" } / { "theEnd": true }  エンディング
 import { addGold, addKeyItem } from './state.js';
 
 export function checkCond(state, cond) {
@@ -69,5 +76,16 @@ export async function runScript(commands, ctx) {
     else if ('face' in cmd) ui.faceNpc(cmd.face.npc, cmd.face.dir);
     else if ('playerFace' in cmd) ui.facePlayer(cmd.playerFace);
     else if ('playerMove' in cmd) await ui.movePlayer(cmd.playerMove);
+    else if ('inn' in cmd) await ui.inn(cmd.inn, true);
+    else if ('stay' in cmd) await ui.inn(cmd.stay, false);
+    else if ('battle' in cmd) {
+      const r = await ui.battle(cmd.battle);
+      if (r !== 'win') return; // 負けた時は、全滅の処理（宿屋や家へ）に任せる
+    } else if ('joinPartner' in cmd) ui.joinPartner();
+    else if ('learnLight' in cmd) ui.learnLight();
+    else if ('flash' in cmd) await ui.flash(cmd.flash);
+    else if ('endroll' in cmd) await ui.endroll();
+    else if ('epilogue' in cmd) await ui.epilogue(cmd.epilogue);
+    else if ('theEnd' in cmd) await ui.theEnd();
   }
 }

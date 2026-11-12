@@ -48,7 +48,25 @@ export function createMember({ id, job, level = 1, equip = {} }, items) {
 }
 
 export function memberName(state, m) {
-  return m.id === 'hero' ? state.player.name : MEMBER_NAMES[m.id] ?? m.id;
+  if (m.id === 'hero') return state.player.name;
+  if (m.id === 'partner') return partnerOf(state).label;
+  return MEMBER_NAMES[m.id] ?? m.id;
+}
+
+// 2人目の仲間：主人公と逆の性別・逆の職業（主人公が男ならリナ、女ならレオ）
+export function partnerOf(state) {
+  const p = state.player;
+  const name = p.gender === 'female' ? 'leo' : 'lina';
+  const job = p.job === 'mage' ? 'swordsman' : 'mage';
+  const short = job === 'mage' ? 'mage' : 'sword';
+  return { name, job, key: `${name}_${short}`, label: name === 'leo' ? 'レオ' : 'リナ' };
+}
+
+// 歩く絵・顔の名前（characters.json の名前）
+export function characterIdOf(state, m) {
+  if (m.id === 'hero') return `hero_${state.player.gender === 'female' ? 'f' : 'm'}_${state.player.job === 'mage' ? 'mage' : 'sword'}`;
+  if (m.id === 'partner') return partnerOf(state).key;
+  return m.id;
 }
 
 export function heroStartEquip(job) {
@@ -60,10 +78,13 @@ export function expToNext(level) {
   return Math.round(8 * level ** 1.6);
 }
 
+// レベルで覚えた技に、ストーリーで覚えた技（光の技、レオ／リナの専用技）を足す
 export function learnedSkills(m, skills) {
-  return Object.entries(skills)
-    .filter(([id, s]) => !id.startsWith('_') && s.job === m.job && s.learn <= m.level)
+  const ids = Object.entries(skills)
+    .filter(([id, s]) => !id.startsWith('_') && s.job === m.job && s.learn != null && s.learn <= m.level)
     .map(([id]) => id);
+  for (const id of m.extraSkills ?? []) if (skills[id] && !ids.includes(id)) ids.push(id);
+  return ids;
 }
 
 // 経験値を足す。上がったレベルと、新しく覚えた技を返す。HP・MPは上がった分だけ増える（全回復しない）

@@ -52,4 +52,6 @@ public static class Hue {
 "@ -ReferencedAssemblies System.Drawing
 [Hue]::Shift($src, (Join-Path $outDir 'slime_green.png'), -95)
 [Hue]::Shift($src, (Join-Path $outDir 'slime_red.png'), 150)
+# temporary picture of the water king until stage 9 (the fish monster 042, turned pink and gold)
+[Hue]::Shift((Join-Path $root "assets/monsters/Pipoya RPG Monster Pack/shade/pipo-enemy042.png"), (Join-Path $outDir "boss_water_temp.png"), 150)
 "saved slime_green.png and slime_red.png"

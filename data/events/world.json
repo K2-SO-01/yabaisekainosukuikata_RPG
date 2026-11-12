@@ -1,0 +1,108 @@
+{
+  "inn_water": [{ "inn": { "event": "inn_water", "flag": "inn_water_seen", "unless": "boss_water" } }],
+  "inn_wind": [{ "inn": { "event": "inn_wind", "flag": "inn_wind_seen", "unless": "boss_wind" } }],
+  "inn_fire": [{ "inn": { "event": "inn_fire", "flag": "inn_fire_seen", "unless": "boss_fire" } }],
+  "inn_thunder": [{ "inn": { "event": "inn_thunder", "flag": "inn_thunder_seen", "unless": "boss_thunder" } }],
+  "shop_water_weapon": [{ "shop": "water_weapon" }],
+  "shop_water_item": [{ "shop": "water_item" }],
+  "shop_wind_weapon": [{ "shop": "wind_weapon" }],
+  "shop_wind_item": [{ "shop": "wind_item" }],
+  "shop_fire_weapon": [{ "shop": "fire_weapon" }],
+  "shop_fire_item": [{ "shop": "fire_item" }],
+  "shop_thunder_weapon": [{ "shop": "thunder_weapon" }],
+  "shop_thunder_item": [{ "shop": "thunder_item" }],
+
+  "wind_join": [
+    { "wait": 400 },
+    { "say": "partner_join" },
+    { "joinPartner": true },
+    { "se": "item_get" },
+    { "say": "partner_joined_notice" },
+    { "flag": "partner_joined" }
+  ],
+  "fire_arrive": [
+    { "wait": 400 },
+    { "say": "fire_arrive" },
+    { "flag": "fire_arrived" },
+    { "stay": { "event": "inn_fire", "flag": "inn_fire_seen", "unless": "boss_fire" } }
+  ],
+
+  "boss_water": [
+    { "bgmStop": 600 },
+    { "wait": 300 },
+    { "say": "boss_pre_water" },
+    { "battle": { "enemies": ["boss_water"], "area": "lake" } },
+    { "say": "boss_down_water" },
+    { "flag": "boss_water" },
+    { "say": "after_water" },
+    { "se": "open_path" },
+    { "say": "open_water" },
+    { "transfer": { "map": "field_water", "x": 14, "y": 3, "dir": "down" } }
+  ],
+  "boss_wind": [
+    { "bgmStop": 600 },
+    { "wait": 300 },
+    { "say": "boss_pre_wind" },
+    { "battle": { "enemies": ["boss_wind"], "area": "tower" } },
+    { "say": "boss_down_wind" },
+    { "flag": "boss_wind" },
+    { "say": "after_wind" },
+    { "se": "open_path" },
+    { "say": "open_wind" },
+    { "transfer": { "map": "field_wind", "x": 8, "y": 9, "dir": "down" } }
+  ],
+  "boss_fire": [
+    { "bgmStop": 600 },
+    { "wait": 300 },
+    { "say": "boss_pre_fire" },
+    { "battle": { "enemies": ["boss_fire"], "area": "volcano" } },
+    { "say": "boss_down_fire" },
+    { "flag": "boss_fire" },
+    { "say": "after_fire" },
+    { "se": "open_path" },
+    { "say": "open_fire" },
+    { "transfer": { "map": "field_fire", "x": 18, "y": 23, "dir": "down" } }
+  ],
+  "boss_thunder": [
+    { "bgmStop": 600 },
+    { "wait": 300 },
+    { "say": "boss_pre_thunder" },
+    { "say": "boss_pre_thunder_partner" },
+    { "battle": { "enemies": ["boss_thunder"], "area": "storm" } },
+    { "flag": "boss_thunder" },
+    { "bgm": "farewell" },
+    { "say": "farewell" },
+    { "learnLight": true },
+    { "say": "light_awaken" },
+    { "se": "open_path" },
+    { "say": "open_thunder" },
+    { "transfer": { "map": "field_thunder", "x": 30, "y": 14, "dir": "down" } }
+  ],
+  "demon_enter": [
+    { "wait": 400 },
+    { "say": "before_demon" },
+    { "flag": "before_demon_done" }
+  ],
+  "boss_demon": [
+    { "bgmStop": 600 },
+    { "wait": 300 },
+    { "say": "boss_pre_demon" },
+    { "battle": { "enemies": ["demon1"], "area": "demon", "skipRewards": true } },
+    { "bgmStop": 300 },
+    { "say": "boss_down_demon" },
+    { "se": "explosion" },
+    { "flash": "#ffffff" },
+    { "flag": "demon_defeated" },
+    { "endroll": true },
+    { "flag": "ending" },
+    { "transfer": { "map": "castle_throne", "x": 10, "y": 5, "dir": "up" } }
+  ],
+  "ending_scene": [
+    { "bgm": "ending" },
+    { "wait": 600 },
+    { "say": "ending_king" },
+    { "say": "ending_family" },
+    { "epilogue": "epilogue" },
+    { "theEnd": true }
+  ]
+}

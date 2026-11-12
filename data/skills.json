@@ -26,5 +26,11 @@
   "cure": { "name": "キュア", "job": "priest", "learn": 4, "mp": 3, "kind": "heal", "target": "ally", "cure": true, "field": true },
   "high_heal": { "name": "ハイヒール", "job": "priest", "learn": 9, "mp": 8, "kind": "heal", "target": "ally", "heal": [3, 40], "field": true },
   "heal_all": { "name": "ヒールオール", "job": "priest", "learn": 11, "mp": 12, "kind": "heal", "target": "allies", "heal": [1.5, 20], "field": true },
-  "resurrection": { "name": "リザレクション", "job": "priest", "learn": 20, "mp": 60, "kind": "heal", "target": "ally_down", "revive": 0.5, "field": true }
+  "resurrection": { "name": "リザレクション", "job": "priest", "learn": 20, "mp": 60, "kind": "heal", "target": "ally_down", "revive": 0.5, "field": true },
+
+  "_story": "Skills given by the story (not by level): Leo/Lina have one from the start, the hero learns the light skill after the thunder king.",
+  "lightning_slash": { "name": "ライトニングスラッシュ", "job": "story", "mp": 5, "kind": "physical", "element": "thunder", "power": 2, "target": "enemy" },
+  "lightning_bolt": { "name": "ライトニングボルト", "job": "story", "mp": 12, "kind": "magic", "element": "thunder", "power": 2, "target": "enemy", "inflict": "paralysis" },
+  "holy_slash": { "name": "ホーリースラッシュ", "job": "story", "mp": 6, "kind": "physical", "element": "light", "power": 2, "target": "enemy" },
+  "holy": { "name": "ホーリー", "job": "story", "mp": 8, "kind": "magic", "element": "light", "power": 2, "target": "enemy" }
 }

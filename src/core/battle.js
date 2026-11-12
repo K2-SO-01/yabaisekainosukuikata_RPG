@@ -1,4 +1,4 @@
-// 戦闘のルール（画面には依存しない）。企画書6章の通り
+// 戦闘のルール（画面には依存しない）。企画書6章・4章の通り
 // 使い方：createBattle → planEnemies（敵の予告）→ コマンドを集めて resolveTurn → b.events を画面が順に見せる
 // → b.result が 'win' なら finishWin、'lose' なら全滅、'escape' なら逃げた
 import { addItem, applyRecovery, gainExp, healAmount, isDown, itemCount, memberName, removeItem, totalStats } from './party.js';
@@ -27,23 +27,27 @@ export function elementRate(atk, def) {
   return 1;
 }
 
+function makeEnemy(enemyData, id, index, name) {
+  const d = enemyData.enemies[id];
+  return { side: 'enemy', index, id, name: name ?? d.name, d, hp: d.hp, maxHp: d.hp, ailments: [], buffs: {}, guard: false, cover: false, coverOthers: false, sleepCount: 0, confuseCount: 0, history: [], cycle0: 0 };
+}
+
 export function createBattle({ state, items, skills, enemyData, area, enemyIds, rng = Math.random, boss = false }) {
   const count = {};
   for (const id of enemyIds) count[id] = (count[id] ?? 0) + 1;
   const seen = {};
   const enemies = enemyIds.map((id, i) => {
-    const d = enemyData.enemies[id];
-    let name = d.name;
+    let name = enemyData.enemies[id].name;
     if (count[id] > 1) {
       seen[id] = (seen[id] ?? 0) + 1;
       name += 'ABCDE'[seen[id] - 1];
     }
-    return { side: 'enemy', index: i, id, name, d, hp: d.hp, maxHp: d.hp, ailments: [], buffs: {}, guard: false, cover: false, sleepCount: 0, confuseCount: 0 };
+    return makeEnemy(enemyData, id, i, name);
   });
   const allies = state.party.map((m, i) => ({
     side: 'ally', index: i, m, name: memberName(state, m), buffs: {}, guard: false, cover: false, sleepCount: 0, confuseCount: 0,
   }));
-  return { state, items, skills, enemyData, area, rng, boss, enemies, allies, turn: 0, intents: [], events: [], result: null };
+  return { state, items, skills, enemyData, area, rng, boss: boss || enemies.some((e) => e.d.boss), enemies, allies, turn: 0, intents: [], events: [], result: null };
 }
 
 // ---- 小さな道具 ----
@@ -84,7 +88,7 @@ function msg(b, text, vars = {}) {
   emit(b, { t: 'msg', text: text.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '') });
 }
 
-// ---- 敵の予告 ----
+// ---- 敵の予告（どの敵も「行動の一覧」。ボスは2回・3回動くことがある） ----
 function iconFor(sk) {
   if (sk.kind === 'physical') return 'sword';
   if (sk.kind === 'magic') return 'staff';
@@ -92,14 +96,40 @@ function iconFor(sk) {
   return 'shield';
 }
 
+function makeIntent(b, e, sid, allies, extra = {}) {
+  const sk = b.enemyData.skills[sid];
+  const targets = sk.target === 'one' ? [pickOne(b, allies).index] : sk.target === 'all' ? 'all' : 'self';
+  return { actor: e.index, sid, sk, targets, icon: iconFor(sk), element: sk.element ?? 'none', ailment: sk.inflict ?? null, ...extra };
+}
+
+// 通常技を選ぶ（同じ技を3回続けては選ばない）
+function pickNormal(b, e) {
+  const h = e.history;
+  let opts = e.d.actions;
+  if (h.length >= 2 && h[h.length - 1] === h[h.length - 2] && opts.length > 1) opts = opts.filter((s) => s !== h[h.length - 1]);
+  const sid = pickOne(b, opts);
+  h.push(sid);
+  return sid;
+}
+
+// ボスは4ターン周期：通常 → 通常 → ため → 必殺
+function planBoss(b, e, allies) {
+  const n = ((b.turn - e.cycle0) % 4) + 1;
+  if (n === 3) return [{ actor: e.index, charge: true, sk: { kind: 'charge' }, icon: 'charge', targets: 'self', element: 'none' }];
+  if (n === 4) {
+    const list = [makeIntent(b, e, e.d.special, allies, { special: true })];
+    if (e.d.specialPlus) list.push(makeIntent(b, e, pickNormal(b, e), allies));
+    return list;
+  }
+  return Array.from({ length: e.d.acts ?? 1 }, () => makeIntent(b, e, pickNormal(b, e), allies));
+}
+
 export function planEnemies(b) {
   const allies = living(b.allies);
   b.intents = b.enemies.map((e) => {
     if (!alive(e)) return null;
-    const sid = pickOne(b, e.d.actions);
-    const sk = b.enemyData.skills[sid];
-    const targets = sk.target === 'one' ? [pickOne(b, allies).index] : sk.target === 'all' ? 'all' : 'self';
-    return { actor: e.index, sid, sk, targets, icon: iconFor(sk), element: sk.element ?? 'none', ailment: sk.inflict ?? null, asleep: has(e, 'sleep') };
+    if (e.d.boss) return planBoss(b, e, allies);
+    return [makeIntent(b, e, pickOne(b, e.d.actions), allies)];
   });
   return b.intents;
 }
@@ -109,15 +139,19 @@ export function mustSkipInput(u) {
   return has(u, 'sleep') && u.sleepCount === 0;
 }
 
+const isGuardKind = (it) => it?.sk?.kind === 'guard' || it?.sk?.kind === 'guard_others';
+
 // ---- 1ターン ----
 // commands[味方の番号] = { type: 'attack'|'skill'|'item'|'guard'|'escape'|'none', skill, item, target }
 export function resolveTurn(b, commands) {
   b.turn++;
   b.events = [];
+  b.transformed = false;
   const all = [...b.allies, ...b.enemies];
   for (const u of all) {
     u.guard = false;
     u.cover = false;
+    u.coverOthers = false;
     u.blocked = null;
     u.woke = false;
   }
@@ -140,10 +174,14 @@ export function resolveTurn(b, commands) {
     }
   });
   b.enemies.forEach((e) => {
-    const it = b.intents[e.index];
-    if (!alive(e) || e.blocked || it?.sk.kind !== 'guard') return;
-    e.guard = true;
-    msg(b, it.sk.text, { actor: e.name });
+    const list = b.intents[e.index] ?? [];
+    if (!alive(e) || e.blocked) return;
+    for (const it of list) {
+      if (it.sk.kind === 'guard') e.guard = true;
+      else if (it.sk.kind === 'guard_others') e.coverOthers = true;
+      else continue;
+      msg(b, it.sk.text, { actor: e.name });
+    }
   });
 
   // にげる（だれか1人が選べば全員で。成功率50%）
@@ -160,16 +198,20 @@ export function resolveTurn(b, commands) {
     escaping = true;
   }
 
-  // 素早さの高い順（同じなら味方が先、味方同士は並び順）
+  // 素早さの高い順（同じなら味方が先、味方同士は並び順）。「常に先制」のボスはいつも最初
   const actors = [];
-  if (!escaping) b.allies.forEach((u, i) => {
-    const c = commands[i];
+  b.allies.forEach((u, i) => {
+    const c = escaping ? null : commands[i];
     if (!alive(u)) return;
     // 眠り・麻痺で動けない人も順番は来る（「眠っている…」などを出すため）
     if (u.blocked || (c && !['guard', 'escape', 'none'].includes(c.type) && !(c.type === 'skill' && b.skills[c.skill]?.effect === 'cover'))) actors.push({ u, c });
   });
-  for (const e of b.enemies) if (alive(e) && b.intents[e.index] && (e.blocked || b.intents[e.index].sk.kind !== 'guard')) actors.push({ u: e, c: null });
-  actors.sort((x, y) => stat(b, y.u, 'spd') - stat(b, x.u, 'spd') || (x.u.side === y.u.side ? x.u.index - y.u.index : x.u.side === 'ally' ? -1 : 1));
+  for (const e of b.enemies) {
+    const list = b.intents[e.index] ?? [];
+    if (alive(e) && list.length && (e.blocked || list.some((it) => !isGuardKind(it)))) actors.push({ u: e, c: null });
+  }
+  const speed = (u) => (u.side === 'enemy' && u.d.first ? Infinity : stat(b, u, 'spd'));
+  actors.sort((x, y) => speed(y.u) - speed(x.u) || (x.u.side === y.u.side ? x.u.index - y.u.index : x.u.side === 'ally' ? -1 : 1));
 
   for (const { u, c } of actors) {
     if (!alive(u)) continue;
@@ -197,11 +239,25 @@ export function resolveTurn(b, commands) {
       }
     }
     if (u.side === 'ally') allyAction(b, u, c);
-    else enemyAction(b, u, b.intents[u.index]);
-    if (checkEnd(b)) break;
+    else {
+      // ボスは自分の番が来たら、予告した行動を続けて行う
+      for (const it of b.intents[u.index] ?? []) {
+        if (!alive(u) || b.result || b.transformed) break;
+        if (it.charge) {
+          emit(b, { t: 'shake', side: 'enemy', i: u.index });
+          emit(b, { t: 'se', name: 'charge' });
+          msg(b, u.d.chargeText ?? '{a}は 力を ためている…', { a: u.name });
+          continue;
+        }
+        if (isGuardKind(it)) continue;
+        enemyAction(b, u, it);
+        if (checkEnd(b)) break;
+      }
+    }
+    if (checkEnd(b) || b.transformed) break;
   }
 
-  if (!b.result) endOfTurn(b);
+  if (!b.result && !b.transformed) endOfTurn(b);
   return b.events;
 }
 
@@ -228,10 +284,16 @@ function removeAilment(u, a) {
 // 状態異常をかける。かかったら true
 function inflict(b, u, type, chance) {
   if (!alive(u)) return false;
-  if (u.side === 'enemy' && (u.d.immune ?? []).includes(type)) return false;
-  if (u.side === 'enemy' && u.d.boss) {
-    if (MAJOR_AILMENTS.includes(type)) return false;
-    chance /= 2;
+  if (u.side === 'enemy') {
+    if ((u.d.immune ?? []).includes(type)) return false;
+    if (u.d.boss) {
+      if (MAJOR_AILMENTS.includes(type)) return false; // 眠り・混乱・麻痺はボスに効かない
+      chance /= 2;
+    }
+  } else {
+    // 状態異常よけのアクセサリーは、かかる確率を半分にする
+    const acc = b.items[u.m.equip?.accessory];
+    if ((acc?.resist ?? []).includes(type)) chance /= 2;
   }
   if (b.rng() >= chance) return false;
   const list = ailmentsOf(u);
@@ -322,12 +384,32 @@ function knockOut(b, u) {
     emit(b, { t: 'se', name: 'dead' });
     emit(b, { t: 'down', side: 'ally', i: u.index });
     msg(b, '{t}は 倒れてしまった！', { t: u.name });
-  } else {
-    u.ailments.length = 0;
-    emit(b, { t: 'se', name: 'enemy_down' });
-    emit(b, { t: 'down', side: 'enemy', i: u.index });
-    msg(b, '{t}を やっつけた！', { t: u.name });
+    return;
   }
+  // 魔王の第一形態：同じ戦闘の続きで、第二形態に変身する（このターンの残りの行動は打ち切り）
+  if (u.d.next) {
+    const nd = b.enemyData.enemies[u.d.next];
+    b.transformed = true;
+    emit(b, { t: 'talk', key: u.d.transformTalk });
+    Object.assign(u, { id: u.d.next, d: nd, name: nd.name, hp: nd.hp, maxHp: nd.hp, ailments: [], buffs: {}, history: [], cycle0: b.turn });
+    emit(b, { t: 'transform', i: u.index, id: u.id, bgm: nd.bgm });
+    return;
+  }
+  u.ailments.length = 0;
+  countKill(b, u);
+  emit(b, { t: 'se', name: 'enemy_down' });
+  emit(b, { t: 'down', side: 'enemy', i: u.index });
+  msg(b, '{t}を やっつけた！', { t: u.name });
+}
+
+// 冒険の記録：倒した敵の数（同じ数なら、先にその数に達した敵が「一番多く倒した敵」）
+function countKill(b, u) {
+  if (u.noReward) return;
+  const st = (b.state.stats ??= {});
+  st.kills ??= {};
+  st.kills[u.id] = (st.kills[u.id] ?? 0) + 1;
+  st.totalKills = (st.totalKills ?? 0) + 1;
+  if (!st.topKill || st.kills[u.id] > st.topKill.n) st.topKill = { id: u.id, name: u.d.name, n: st.kills[u.id] };
 }
 
 function retargetEnemy(b, i) {
@@ -343,13 +425,22 @@ function retargetAlly(b, i, { down = false } = {}) {
   return pickOne(b, living(b.allies));
 }
 
+// 敵の「なかまをかばう」：ほかの敵をねらった単体攻撃を、自分が受ける
+function enemyCover(b, t) {
+  const c = b.enemies.find((e) => e.coverOthers && alive(e) && e !== t);
+  if (!c) return t;
+  msg(b, '{c}が {t}を かばった！', { c: c.name, t: t.name });
+  return c;
+}
+
 // ---- 味方の行動 ----
 function allyAction(b, u, c) {
   const m = u.m;
   if (c.type === 'attack') {
-    const t = retargetEnemy(b, c.target);
+    let t = retargetEnemy(b, c.target);
     if (!t) return;
     msg(b, '{a}の 攻撃！', { a: u.name });
+    t = enemyCover(b, t);
     hitWith(b, u, [t], { kind: 'physical', power: 1, element: b.items[m.equip.weapon]?.element ?? 'none' });
     return;
   }
@@ -365,12 +456,15 @@ function allyAction(b, u, c) {
   const verb = sk.kind === 'physical' ? '{a}の {s}！' : m.job === 'swordsman' ? '{a}は {s}を 使った！' : '{a}は {s}を となえた！';
   msg(b, verb, { a: u.name, s: sk.name });
   if (sk.kind === 'physical' || sk.kind === 'magic') {
-    const targets = sk.target === 'enemies' ? living(b.enemies) : [retargetEnemy(b, c.target)].filter(Boolean);
+    let targets = sk.target === 'enemies' ? living(b.enemies) : [retargetEnemy(b, c.target)].filter(Boolean);
+    if (sk.target !== 'enemies' && targets[0]) targets = [enemyCover(b, targets[0])];
+    if (sk.kind === 'physical' && sk.element && sk.element !== 'none') emit(b, { t: 'se', name: 'slash' });
     const hit = hitWith(b, u, targets, { kind: sk.kind, power: sk.power, element: sk.element ?? 'none' });
     if (sk.inflict) for (const t of hit) if (alive(t) && inflict(b, t, sk.inflict, 0.5)) sayAilment(b, t, sk.inflict, true);
   } else if (sk.kind === 'status') {
-    const t = retargetEnemy(b, c.target);
+    let t = retargetEnemy(b, c.target);
     if (!t) return;
+    t = enemyCover(b, t);
     emit(b, { t: 'se', name: 'poison' });
     sayAilment(b, t, sk.inflict, inflict(b, t, sk.inflict, 0.5));
   } else if (sk.kind === 'support') {
@@ -435,32 +529,41 @@ function useItem(b, u, c) {
 
 // ---- 敵の行動 ----
 function enemyAction(b, e, it) {
-  if (!it) return;
   const sk = it.sk;
   const coverer = b.allies.find((a) => a.cover && alive(a));
   let targets;
   if (it.targets === 'all') targets = living(b.allies);
   else {
     let t = retargetAlly(b, it.targets[0]);
-    if (coverer && t && t !== coverer) {
-      t = coverer;
+    if (coverer && t && t !== coverer && sk.target === 'one') {
       msg(b, sk.text, { actor: e.name });
-      msg(b, '{c}が {a}を かばった！', { c: coverer.name, a: b.allies[it.targets[0]].name });
-      return enemyHit(b, e, sk, [t]);
+      msg(b, '{c}が {a}を かばった！', { c: coverer.name, a: t.name });
+      return enemyHit(b, e, sk, [coverer], it);
     }
     targets = t ? [t] : [];
   }
   msg(b, sk.text, { actor: e.name });
-  enemyHit(b, e, sk, targets);
+  enemyHit(b, e, sk, targets, it);
 }
 
-function enemyHit(b, e, sk, targets) {
+function enemyHit(b, e, sk, targets, it) {
+  // 状態異常のかかる確率：雑魚の技は30%、ボスの状態異常だけの技は50%、ボスの攻撃つきは30%、「必ず」は100%
+  const chance = sk.chance ?? (e.d.boss && sk.kind === 'status' ? 0.5 : 0.3);
   if (sk.kind === 'status') {
-    for (const t of targets) sayAilment(b, t, sk.inflict, inflict(b, t, sk.inflict, sk.chance ?? 0.3));
+    for (const t of targets) sayAilment(b, t, sk.inflict, inflict(b, t, sk.inflict, chance));
     return;
   }
+  if (it?.special) emit(b, { t: 'se', name: 'explosion' });
   const hit = hitWith(b, e, targets, { kind: sk.kind, power: sk.power ?? 1, element: sk.element ?? 'none' });
-  if (sk.inflict) for (const t of hit) if (alive(t) && inflict(b, t, sk.inflict, sk.chance ?? 0.3)) sayAilment(b, t, sk.inflict, true);
+  if (sk.inflict) for (const t of hit) if (alive(t) && inflict(b, t, sk.inflict, chance)) sayAilment(b, t, sk.inflict, true);
+  // ばくはつ：使った敵は倒れる（経験値とゴールドはもらえない）
+  if (sk.selfDestruct && alive(e)) {
+    e.hp = 0;
+    e.noReward = true;
+    emit(b, { t: 'se', name: 'enemy_down' });
+    emit(b, { t: 'down', side: 'enemy', i: e.index });
+    msg(b, '{a}は くだけちった！', { a: e.name });
+  }
 }
 
 // ---- ターンの終わり ----
@@ -469,7 +572,7 @@ function endOfTurn(b) {
     if (!alive(u)) continue;
     for (const [a, word] of [['poison', '毒'], ['burn', 'やけど']]) {
       if (!has(u, a) || !alive(u)) continue;
-      const n = Math.max(1, Math.floor(maxHp(b, u) / 16));
+      const n = Math.max(1, Math.floor(maxHp(b, u) / (u.side === 'enemy' && u.d.boss ? 32 : 16)));
       setHp(b, u, hpOf(u) - n);
       emit(b, { t: 'hit', side: u.side, i: u.index, amount: n });
       msg(b, '{t}は {w}の ダメージを {n} 受けた！', { t: u.name, w: word, n });
@@ -500,7 +603,7 @@ export function finishWin(b) {
   b.events = [];
   const exp = b.enemies.reduce((n, e) => n + (e.noReward ? 0 : e.d.exp), 0);
   const gold = b.enemies.reduce((n, e) => n + (e.noReward ? 0 : Math.floor(e.d.gold[0] + b.rng() * (e.d.gold[1] - e.d.gold[0] + 1))), 0);
-  msg(b, '魔物たちを やっつけた！');
+  msg(b, b.boss ? '{e}を たおした！' : '魔物たちを やっつけた！', { e: b.enemies[0].name });
   if (exp > 0) msg(b, '{n}ポイントの 経験値を かくとく！', { n: exp });
   if (gold > 0) {
     addGold(b.state, gold);
@@ -526,6 +629,8 @@ export function finishWin(b) {
 // 全滅：いちばん近い戻り先へ。所持金は半分（切り捨て）、全員HP・MP満タン、状態異常なし
 export function applyDefeat(state, items, home) {
   state.gold = Math.floor((state.gold ?? 0) / 2);
+  state.stats ??= {};
+  state.stats.defeats = (state.stats.defeats ?? 0) + 1;
   for (const m of state.party) {
     const s = totalStats(m, items);
     m.hp = s.hp;

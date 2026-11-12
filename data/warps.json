@@ -1,3 +1,7 @@
 {
-  "town": { "name": "城下町", "map": "town", "x": 19, "y": 30, "dir": "up" }
+  "town": { "name": "城下町", "map": "town", "x": 19, "y": 30, "dir": "up" },
+  "village_water": { "name": "水の村", "map": "village_water", "x": 12, "y": 17, "dir": "up" },
+  "village_wind": { "name": "風の村", "map": "village_wind", "x": 12, "y": 17, "dir": "up" },
+  "village_fire": { "name": "炎の村", "map": "village_fire", "x": 12, "y": 17, "dir": "up" },
+  "village_thunder": { "name": "雷の村", "map": "village_thunder", "x": 12, "y": 17, "dir": "up" }
 }

@@ -60,7 +60,7 @@ export function isWallTile(map, x, y) {
 
 // isOn：その物が今あるかどうかを返す関数（フラグで出たり消えたりする物のため）
 export function entityAt(map, x, y, isOn = () => true) {
-  return map.objects.find((o) => o.x === x && o.y === y && o.type !== 'start' && o.type !== 'auto' && o.type !== 'house' && isOn(o)) ?? null;
+  return map.objects.find((o) => o.x === x && o.y === y && o.type !== 'start' && o.type !== 'auto' && o.type !== 'house' && o.type !== 'mark' && isOn(o)) ?? null;
 }
 
 export function canWalk(map, x, y, isOn) {

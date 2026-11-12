@@ -1,4 +1,12 @@
 {
   "town_weapon": { "type": "weapon", "keeper": "shop_weapon", "stock": ["wood_sword", "bronze_sword", "iron_sword", "wood_staff", "bronze_rod", "iron_rod", "leather_armor", "travel_clothes", "cotton_robe", "wood_shield", "leather_cap", "power_ring"] },
-  "town_item": { "type": "item", "keeper": "shop_item", "stock": ["potion_s", "cure_potion", "warp_potion"] }
+  "town_item": { "type": "item", "keeper": "shop_item", "stock": ["potion_s", "cure_potion", "warp_potion"] },
+  "water_weapon": { "type": "weapon", "keeper": "shop_weapon", "stock": ["steel_sword", "thunder_blade", "silver_sword", "magic_staff", "thunder_rod", "silver_rod", "chain_mail", "bronze_robe", "silk_robe", "bronze_shield", "bronze_helm", "guard_pendant"] },
+  "water_item": { "type": "item", "keeper": "shop_item", "stock": ["potion_s", "potion_m", "cure_potion", "warp_potion"] },
+  "wind_weapon": { "type": "weapon", "keeper": "shop_weapon", "stock": ["knight_sword", "flame_sword", "mithril_sword", "sage_staff", "flame_rod", "mithril_rod", "iron_armor", "wind_robe", "magic_robe", "iron_shield", "iron_helm", "swift_anklet"] },
+  "wind_item": { "type": "item", "keeper": "shop_item", "stock": ["potion_s", "potion_m", "mana_potion", "cure_potion", "warp_potion"] },
+  "fire_weapon": { "type": "weapon", "keeper": "shop_weapon", "stock": ["platinum_sword", "aqua_blade", "rune_blade", "holy_staff", "aqua_rod", "rune_staff", "knight_armor", "holy_robe", "flame_robe", "knight_shield", "knight_helm", "magic_earring"] },
+  "fire_item": { "type": "item", "keeper": "shop_item", "stock": ["potion_m", "potion_l", "mana_potion", "cure_potion", "revive_potion", "warp_potion"] },
+  "thunder_weapon": { "type": "weapon", "keeper": "shop_weapon", "stock": ["dragon_killer", "wind_blade", "orichalcum_sword", "dragon_staff", "wind_rod", "orichalcum_rod", "mithril_armor", "light_robe", "sage_robe", "mithril_shield", "mithril_helm", "life_charm"] },
+  "thunder_item": { "type": "item", "keeper": "shop_item", "stock": ["potion_m", "potion_l", "mana_potion", "cure_potion", "revive_potion", "warp_potion"] }
 }
