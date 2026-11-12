@@ -2,7 +2,7 @@
   "type": "map", "version": "1.10", "tiledversion": "1.10.2", "orientation": "orthogonal", "renderorder": "right-down", "infinite": false,
   "width": 21, "height": 15, "tilewidth": 32, "tileheight": 32, "nextlayerid": 6, "nextobjectid": 12,
   "properties": [
-    { "name": "name", "type": "string", "value": "王様のお城" },
+    { "name": "name", "type": "string", "value": "玉座の間" },
     { "name": "bgm", "type": "string", "value": "castle" },
     { "name": "lift", "type": "string", "value": "4,9,13" }
   ],
@@ -33,7 +33,7 @@
     { "id": 2, "type": "tilelayer", "name": "deco", "x": 0, "y": 0, "width": 21, "height": 15, "opacity": 1, "visible": true,
       "data": [
         0,0,631,0,0,829,0,0,829,0,0,0,829,0,0,829,0,0,631,0,0,
-        0,0,639,0,0,837,0,0,837,0,813,0,837,0,0,837,0,0,639,0,0,
+        0,0,639,0,0,837,0,997,837,0,813,0,837,997,0,837,0,0,639,0,0,
         0,909,0,0,0,0,0,1005,0,0,821,0,0,1005,0,0,0,0,0,909,0,
         0,917,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,917,0,
         0,0,0,907,0,0,0,0,0,0,0,0,0,0,0,0,0,907,0,0,0,

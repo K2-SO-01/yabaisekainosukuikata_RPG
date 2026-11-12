@@ -13,7 +13,6 @@ import { PixelFont } from './ui/font.js';
 import { SceneStack } from './ui/scene.js';
 import { TapScene } from './ui/scenes/tap.js';
 
-const FACE_IDS = ['hero_m_sword', 'hero_m_mage', 'hero_f_sword', 'hero_f_mage', 'luke', 'leo_sword', 'leo_mage', 'lina_sword', 'lina_mage', 'king', 'oji', 'oba'];
 
 const DEV = new URLSearchParams(location.search).has('dev');
 
@@ -98,8 +97,8 @@ async function loadGameData(game) {
   for (const k of Object.keys(characters)) if (k.startsWith('_')) delete characters[k];
   game.characters = characters;
   for (const [id, c] of Object.entries(characters)) jobs.push(assets.loadImage(`char:${id}`, c.sprite));
-  // 主要キャラの顔アイコン（assets/faces、tools/draw_faces.ps1 で描いたもの）
-  for (const id of FACE_IDS) jobs.push(assets.loadImage(`face:${id}`, `assets/faces/${id}.png`));
+  // 顔アイコン：すべての登場人物の顔（assets/faces、tools/draw_faces.ps1 で描いたもの）
+  for (const id of Object.keys(characters)) jobs.push(assets.loadImage(`face:${id}`, `assets/faces/${id}.png`));
   // 道をふさぐ物（炎の銅像・看板）
   jobs.push(assets.loadImage('img:blockers', 'assets/tiles/extra/blockers.png'));
 
@@ -143,9 +142,7 @@ async function loadGameData(game) {
   // 会話の顔アイコン：主要キャラは専用の顔。ほかの人は、歩行グラフィックの顔を切り出して拡大する
   game.faces = new Map();
   for (const id of Object.keys(characters)) game.faces.set(id, makeFace(assets.image(`char:${id}`)));
-  for (const id of FACE_IDS) if (assets.image(`face:${id}`)) game.faces.set(id, makePortrait(assets.image(`face:${id}`)));
-  // 町の人は、男女2種類の顔を使い回す（face に書いた人の顔）
-  for (const [id, c] of Object.entries(characters)) if (c.face && game.faces.has(c.face)) game.faces.set(id, game.faces.get(c.face));
+  for (const id of Object.keys(characters)) if (assets.image(`face:${id}`)) game.faces.set(id, makePortrait(assets.image(`face:${id}`)));
   // ボスの顔：戦闘の画像を縮小して使う（企画書10章）
   for (const [id, e] of Object.entries(game.enemies?.enemies ?? {})) if (e.boss) game.faces.set(`enemy:${id}`, makeBossFace(assets.image(`enemy:${id}`)));
   const BOSS_FACE = { 水の四天王: 'boss_water', 風の四天王: 'boss_wind', 炎の四天王: 'boss_fire', 雷の四天王: 'boss_thunder', 魔王: 'demon1' };

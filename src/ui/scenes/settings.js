@@ -192,7 +192,7 @@ class HelpScene extends Scene {
       : [
           'パソコンの操作',
           '',
-          '移動　　　　：矢印キー',
+          '移動　　　　：矢印キー または WASD',
           '決定　　　　：Enter・Z・スペース',
           'キャンセル　：X・Esc',
           'メニュー　　：歩いている時にX・Esc',

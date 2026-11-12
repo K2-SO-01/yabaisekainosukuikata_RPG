@@ -31,7 +31,7 @@ my @GOLD_DOOR = ([645, 646], [653, 654]);
 sub pillar { my ($m, $x, $y) = @_; col2($m, 'd', $x, $y, @$PILLAR); fill($m, 'c', $x, $y, $x, $y + 2, 1); }
 sub plant { my ($m, $x, $y) = @_; col2($m, 'd', $x, $y, @$PLANT); fill($m, 'c', $x, $y, $x, $y + 1, 1); }
 sub statue { my ($m, $x, $y) = @_; col2($m, 'd', $x, $y, @$STATUE); fill($m, 'c', $x, $y, $x, $y + 1, 1); }
-sub candle { my ($m, $x, $y) = @_; put($m, 'd', $x, $y, $CANDLE); put($m, 'c', $x, $y, 1); }
+sub candle { my ($m, $x, $y) = @_; put($m, 'd', $x, $y, $CANDLE); put($m, 'd', $x, $y - 1, $CANDLE - 8) if $y > 0; put($m, 'c', $x, $y, 1); } # 燭台は2マス（上はろうそくと火）
 sub bush { my ($m, $x, $y) = @_; put($m, 'd', $x, $y, (($x + $y) % 2) ? 42 : 41); put($m, 'c', $x, $y, 1); }
 
 # palace room: wall (2 rows), marble floor, gold-edged red carpet from $cx0 to $cx1
@@ -72,7 +72,7 @@ sub small_tower { my ($m, $x, $top, $bottom) = @_;
   obj($m, 'おばさん', 'npc', 12, 5, character => 'oba', dialogue => 'oba_morning', dir => 'up', if => 'ending');
   obj($m, 'エンディング', 'auto', 0, 0, script => 'ending_scene', if => 'ending', unless => 'cleared');
   obj($m, '出口', 'exit', $_, 14, map => 'castle_hall', x => 7, y => 2, dir => 'down') for 9 .. 11;
-  emit($m, 'castle_throne', '王様のお城', 'castle', lift => '4,9,13'); }
+  emit($m, 'castle_throne', '玉座の間', 'castle', lift => '4,9,13'); }
 
 # ---- castle_hall: castle entrance hall (16x13) ----
 { my $m = newmap(16, 13);

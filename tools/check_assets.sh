@@ -23,8 +23,8 @@ grep -o '"file": *"[a-z0-9_]*"' data/manifest.json | sed 's/.*"\([a-z0-9_]*\)"$/
 sed -n '/"se": \[/,/\]/p' data/manifest.json | grep -o '"[a-z0-9_]*"' | tr -d '"' | grep -v '^se$' | sed 's#^#assets/se/#; s#$#.mp3#' >> "$list"
 # monster pictures
 grep -o '"image": *"[^"]*"' data/enemies.json | sed 's/.*: *"//; s/"$//' >> "$list"
-# face icons of the main characters (listed in src/main.js, FACE_IDS)
-grep "^const FACE_IDS = " src/main.js | grep -o "'[a-z_]*'" | tr -d "'" | sed 's#^#assets/faces/#; s#$#.png#' >> "$list"
+# face icons of every character (one per id in data/characters.json)
+grep -o '^  "[a-z_0-9]*":' data/characters.json | tr -d ' ":' | grep -v "^_" | sed 's#^#assets/faces/#; s#$#.png#' >> "$list"
 # pictures of the things that block the way (flame statue, sign)
 echo assets/tiles/extra/blockers.png >> "$list"
 # fonts

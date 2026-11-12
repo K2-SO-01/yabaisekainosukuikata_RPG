@@ -59,6 +59,15 @@ function Face($ch) {
   Px $b 15 19 $SKIN_S
   Px $b 14 21 (C '#c46a5a'); Px $b 15 21 (C '#c46a5a'); Px $b 16 21 (C '#c46a5a')
   if ($ch.smile) { Px $b 13 20 (C '#c46a5a'); Px $b 17 20 (C '#c46a5a') }
+  # めがね
+  if ($ch.glasses) {
+    $gc = C $ch.glasses
+    foreach ($ex in @(10, 18)) {
+      for ($x = $ex - 1; $x -le $ex + 3; $x++) { Px $b $x 14 $gc; Px $b $x 18 $gc }
+      for ($y = 14; $y -le 18; $y++) { Px $b ($ex - 1) $y $gc; Px $b ($ex + 3) $y $gc }
+    }
+    Px $b 14 15 $gc; Px $b 15 15 $gc; Px $b 16 15 $gc
+  }
   return $b
 }
 
@@ -146,6 +155,97 @@ function Body($ch) {
   return $b
 }
 
+# ---- 町の人・お店の人・兵士など（すべての登場人物に顔を作る） ----
+# 髪・服の色は、その人の歩行グラフィックから自動で読む（色ちがいの村人も、それぞれの色になる）
+$CHARS = Get-Content (Join-Path $root 'data/characters.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+function Hex2($c) { '#{0:x2}{1:x2}{2:x2}' -f $c.R, $c.G, $c.B }
+function Shade($hex, [double]$k) { $c = C $hex; '#{0:x2}{1:x2}{2:x2}' -f [int][Math]::Min(255, [Math]::Max(0, $c.R * $k)), [int][Math]::Min(255, [Math]::Max(0, $c.G * $k)), [int][Math]::Min(255, [Math]::Max(0, $c.B * $k)) }
+function Tri($hex) { @($hex, (Shade $hex 0.72), (Shade $hex 1.25)) }
+function IsSkin($c) { $c.R -gt 200 -and $c.G -gt 150 -and $c.B -gt 110 -and $c.R -gt $c.B + 30 }
+# いちばん多い色（肌・輪郭の黒っぽい色・透明をのぞく）
+function MainColor($bmp, $x0, $y0, $x1, $y1) {
+  $count = @{}
+  for ($y = $y0; $y -le $y1; $y++) { for ($x = $x0; $x -le $x1; $x++) {
+    $c = $bmp.GetPixel(32 + $x, $y)
+    if ($c.A -lt 200 -or (IsSkin $c) -or ($c.R + $c.G + $c.B) -lt 120) { continue }
+    $k = Hex2 $c; if ($count.ContainsKey($k)) { $count[$k]++ } else { $count[$k] = 1 }
+  } }
+  if (-not $count.Count) { return '#7a5a40' }
+  ($count.GetEnumerator() | Sort-Object Value -Descending | Select-Object -First 1).Key
+}
+
+# 髪型・かぶり物の型。$h：髪（かぶり物）の色、$c：服の色
+$NPC_STYLE = @{
+  soldier = { param($h, $c) @{ eye = '#3a3a3a'; eyeD = '#1a1a1a'; brow = '#2a2a2a'; hair = (Tri $h); cloth = (Tri $c); collar = '#c8c8d0'; noFace = $true
+      back = { param($g, $col) E $g $col 4 1 23 26 }
+      front = { param($g, $col) E $g $col 4 1 23 26; Rc $g (C '#141418') 7 13 17 4; Rc $g (C '#141418') 14 17 3 7 } } }
+  bob = { param($h, $c) @{ eye = '#7a4a20'; eyeD = '#4a2410'; brow = (Shade $h 0.6); female = $true; hair = (Tri $h); cloth = (Tri $c); collar = '#f2f2e8'
+      back = { param($g, $col) E $g $col 5 3 21 20 }
+      front = { param($g, $col) P $g $col @(6, 14, 6, 6, 10, 3, 21, 3, 25, 6, 25, 14, 22, 10, 18, 11, 14, 9, 10, 11) } } }
+  tied = { param($h, $c) @{ eye = '#7a4a20'; eyeD = '#4a2410'; brow = (Shade $h 0.6); female = $true; hair = (Tri $h); cloth = (Tri $c); collar = '#e8e8e8'
+      back = { param($g, $col) E $g $col 5 3 21 19; E $g $col 11 -1 9 6 }
+      front = { param($g, $col) P $g $col @(6, 13, 6, 6, 10, 3, 21, 3, 25, 6, 25, 13, 22, 9, 15, 7, 9, 9) } } }
+  pigtails = { param($h, $c) @{ eye = '#7a4a20'; eyeD = '#4a2410'; brow = (Shade $h 0.6); female = $true; smile = $true; hair = (Tri $h); cloth = (Tri $c); collar = '#f2f2e8'
+      back = { param($g, $col) E $g $col 5 3 21 18; E $g $col 0 6 7 12; E $g $col 24 6 7 12 }
+      front = { param($g, $col) P $g $col @(6, 13, 6, 6, 10, 3, 21, 3, 25, 6, 25, 13, 22, 10, 16, 9, 10, 10) } } }
+  oldbun = { param($h, $c) @{ eye = '#7a4a20'; eyeD = '#4a2410'; brow = (Shade $h 0.6); female = $true; smile = $true; glasses = '#9a3ac8'; hair = (Tri $h); cloth = (Tri $c); collar = '#f2f2e8'
+      back = { param($g, $col) E $g $col 5 3 21 17; E $g $col 10 -2 11 8 }
+      front = { param($g, $col) P $g $col @(6, 12, 6, 6, 10, 3, 21, 3, 25, 6, 25, 12, 22, 8, 15, 7, 9, 8) } } }
+  maid = { param($h, $c) @{ eye = '#7a4a20'; eyeD = '#4a2410'; brow = (Shade $h 0.6); female = $true; smile = $true; hair = (Tri $h); cloth = (Tri $c); collar = '#ffffff'
+      back = { param($g, $col) E $g $col 5 3 21 20 }
+      front = { param($g, $col) P $g $col @(6, 14, 6, 6, 10, 3, 21, 3, 25, 6, 25, 14, 22, 10, 18, 11, 14, 9, 10, 11) }
+      extra = { param($g) Rc $g (C '#ffffff') 6 4 19 3; foreach ($x in 6, 10, 14, 18, 22) { E $g (C '#ffffff') $x 2 4 3 } }; extraC = @('#ffffff', '#c8c8d8', '#ffffff') } }
+  veil = { param($h, $c) @{ eye = '#7a4a20'; eyeD = '#4a2410'; brow = (Shade $h 0.6); female = $true; hair = (Tri $h); cloth = (Tri $c); collar = '#f2c83a'
+      back = { param($g, $col) E $g $col 4 3 23 18; Rc $g $col 4 12 6 16; Rc $g $col 21 12 6 16 }
+      front = { param($g, $col) P $g $col @(6, 13, 7, 8, 24, 8, 25, 13, 21, 10, 10, 10) }
+      extra = { param($g) E $g (C '#f8f8fa') 4 0 23 10; Rc $g (C '#f2c83a') 5 7 21 2 }; extraC = @('#f8f8fa', '#c8c8d8', '#ffffff') } }
+  hood = { param($h, $c) @{ eye = '#7a4a20'; eyeD = '#4a2410'; brow = '#e8e8e8'; hair = (Tri $h); cloth = (Tri $h); collar = '#f2c83a'; beardC = '#f0f0f0'
+      back = { param($g, $col) E $g $col 3 0 25 28 }
+      front = { param($g, $col) P $g $col @(4, 18, 6, 6, 11, 2, 15, -1, 20, 2, 25, 6, 27, 18, 24, 11, 15, 8, 7, 11) }
+      beard = { param($g, $col) P $g $col @(8, 18, 11, 21, 15, 21, 20, 21, 23, 18, 22, 24, 18, 29, 13, 29, 9, 24) }
+      extra = { param($g) Rc $g (C '#f2c83a') 6 9 19 1 }; extraC = @('#f2c83a', '#b08a1a', '#ffe88a') } }
+  hat = { param($h, $c) @{ eye = '#7a4a20'; eyeD = '#4a2410'; brow = '#8a8a8a'; hair = @('#a0a0a0', '#787878', '#c8c8c8'); cloth = (Tri $c); collar = '#3a8aa8'; beardC = '#b8b8b8'
+      back = { param($g, $col) E $g $col 5 6 21 16 }
+      front = { param($g, $col) Rc $g $col 7 11 2 4; Rc $g $col 22 11 2 4 }
+      beard = { param($g, $col) P $g $col @(8, 18, 11, 21, 15, 21, 20, 21, 23, 18, 22, 24, 18, 27, 13, 27, 9, 24) }
+      extra = ({ param($g) E $g (C $h) 0 6 31 7; P $g (C $h) @(7, 9, 9, 1, 22, 1, 24, 9); Rc $g (C '#6a8ad8') 8 6 16 2 }).GetNewClosure(); extraC = (Tri $h) } }
+  spiky = { param($h, $c) @{ eye = '#7a4a20'; eyeD = '#4a2410'; brow = (Shade $h 0.6); hair = (Tri $h); cloth = (Tri $c); collar = '#f2f2e8'
+      back = { param($g, $col) E $g $col 5 3 21 19 }
+      front = { param($g, $col) P $g $col @(5, 14, 4, 6, 8, 6, 9, 1, 13, 4, 16, 0, 19, 4, 23, 1, 23, 6, 27, 5, 26, 14, 23, 10, 20, 12, 17, 9, 14, 12, 11, 9, 8, 12) } } }
+  slick = { param($h, $c) @{ eye = '#7a4a20'; eyeD = '#4a2410'; brow = (Shade $h 0.6); hair = (Tri $h); cloth = (Tri $c); collar = '#d8c050'
+      back = { param($g, $col) E $g $col 5 2 21 18 }
+      front = { param($g, $col) P $g $col @(6, 12, 6, 5, 11, 2, 21, 2, 25, 5, 25, 12, 23, 8, 18, 6, 12, 7, 8, 9) } } }
+  bald = { param($h, $c) @{ eye = '#7a4a20'; eyeD = '#4a2410'; brow = '#8a8a8a'; smile = $true; hair = @('#9a9a9a', '#787878', '#c0c0c0'); cloth = (Tri $c); collar = '#e8e8d8'; beardC = '#a8a8a8'
+      back = { param($g, $col) Rc $g $col 5 11 3 7; Rc $g $col 23 11 3 7 }
+      front = { param($g, $col) Rc $g $col 6 11 2 5; Rc $g $col 23 11 2 5 }
+      beard = { param($g, $col) P $g $col @(8, 19, 11, 22, 15, 21, 20, 22, 23, 19, 22, 24, 18, 28, 13, 28, 9, 24) } } }
+  short = { param($h, $c) @{ eye = '#7a4a20'; eyeD = '#4a2410'; brow = (Shade $h 0.6); hair = (Tri $h); cloth = (Tri $c); collar = '#f2f2e8'
+      back = { param($g, $col) E $g $col 5 3 21 18 }
+      front = { param($g, $col) P $g $col @(6, 13, 6, 6, 10, 3, 21, 3, 25, 6, 25, 13, 22, 9, 16, 8, 10, 9) } } }
+  otaku = { param($h, $c) @{ eye = '#3a3a3a'; eyeD = '#1a1a1a'; brow = '#1a1a1a'; smile = $true; glasses = '#d8d8e0'; hair = @('#2a2a32', '#16161c', '#4a4a56'); cloth = (Tri $c); collar = '#f2f2f2'
+      back = { param($g, $col) E $g $col 4 2 23 19 }
+      front = { param($g, $col) P $g $col @(5, 13, 4, 5, 8, 2, 12, 3, 15, 0, 18, 3, 22, 1, 25, 5, 27, 13, 24, 9, 20, 11, 16, 8, 12, 11, 8, 9) } } }
+}
+# 歩行グラフィックの見た目ごとの型
+$LOOK_STYLE = @{ 'Soldier 06' = 'soldier'; 'Soldier 01' = 'soldier'; 'Female 17' = 'bob'; 'Male 07' = 'hood'; 'Female 05' = 'veil'; 'pipo-charachip_otaku01' = 'otaku'; 'Female 14' = 'maid'; 'Male 17' = 'hat'
+  'Male 03' = 'spiky'; 'Male 09' = 'slick'; 'Male 12' = 'bald'; 'Male 13' = 'short'; 'Male 14' = 'spiky'; 'Male 10' = 'short'; 'Female 02' = 'tied'; 'Female 19' = 'oldbun'; 'Female 20' = 'pigtails' }
+$NPC_IDS = @()
+foreach ($prop in $CHARS.PSObject.Properties) {
+  $id = $prop.Name
+  if ($id.StartsWith('_') -or $P.ContainsKey($id)) { continue }
+  $sprite = $prop.Value.sprite
+  $look = ([IO.Path]::GetFileNameWithoutExtension($sprite)) -replace '-\d+$', ''
+  $style = $LOOK_STYLE[$look]
+  if (-not $style) { Write-Output "（型がない）$id $look"; continue }
+  $bmp = [System.Drawing.Bitmap]::FromFile((Join-Path $root $sprite))
+  $hair = MainColor $bmp 9 1 22 8
+  $cloth = MainColor $bmp 9 21 22 27
+  $bmp.Dispose()
+  $P[$id] = & $NPC_STYLE[$style] $hair $cloth
+  $NPC_IDS += $id
+}
+Write-Output "町の人など：$($NPC_IDS.Count)人"
+
 foreach ($id in $P.Keys) {
   $ch = $P[$id]
   $final = New-Object System.Drawing.Bitmap $N, $N
@@ -154,7 +254,7 @@ foreach ($id in $P.Keys) {
   $layers += Layer $ch.back $ch.hair
   $layers += Body $ch
   $layers += Face $ch
-  if ($ch.beard) { $layers += Layer $ch.beard $ch.hair }
+  if ($ch.beard) { $layers += Layer $ch.beard $(if ($ch.beardC) { Tri $ch.beardC } else { $ch.hair }) }
   $layers += Layer $ch.front $ch.hair
   if ($ch.extra) { $layers += Layer $ch.extra $ch.extraC }
   foreach ($l in $layers) { $fg.DrawImage($l, 0, 0, $N, $N) }
