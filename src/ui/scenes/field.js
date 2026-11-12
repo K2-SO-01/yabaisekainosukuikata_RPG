@@ -2,8 +2,8 @@
 import { HEIGHT, TILE, WIDTH } from '../../config.js';
 import { isActive, runScript } from '../../core/events.js';
 import { rollEncounter } from '../../core/battle.js';
-import { canWalk, entityAt, findStart, stepTarget, tryMove } from '../../core/map.js';
-import { addItem, createMember, fullRecover, MEMBER_DEFS, partnerOf } from '../../core/party.js';
+import { canWalk, DIRS, entityAt, findStart, stepTarget, tryMove } from '../../core/map.js';
+import { addItem, createMember, fullRecover, MEMBER_DEFS, partnerOf, totalStats } from '../../core/party.js';
 import { writeSlot } from '../../core/save.js';
 import { addGold, addPlayTime } from '../../core/state.js';
 import { fillName } from '../../core/text.js';
@@ -140,15 +140,29 @@ export class FieldScene extends Scene {
       g.scenes.push(new FieldMenuScene({ mapProps: this.map.props }));
       return;
     }
+    // 画面をタップ：そのマスまで1マスずつ歩く。人や物をタップすると、となりまで歩いて話す・調べる
+    const tap = input.tap();
+    if (tap && !input.tapFromPad() && this.cam) {
+      this.planWalk(Math.floor((tap.x + this.cam.x) / TILE), Math.floor((tap.y + this.cam.y) / TILE));
+    }
     if (input.pressed('ok')) {
       this.interact();
       return;
     }
-    const dir = input.heldDir() ?? input.pressedDir();
+    let dir = input.heldDir() ?? input.pressedDir();
+    if (dir) this.walkPlan = null;
+    else dir = this.nextPlannedStep();
     if (!dir) return;
     this.dir = dir;
     loc.dir = dir;
     const to = tryMove(this.map, this.pos, dir, this.isOn);
+    if (!to && this.walkPlan) {
+      // 町の人が道に出てきた：道を探しなおす（だめならやめる）
+      const p = this.walkPlan;
+      this.walkPlan = null;
+      if (!p.retried) this.planWalk(p.tx, p.ty, true);
+      return;
+    }
     if (!to) {
       const f = stepTarget(this.pos, dir);
       const b = entityAt(this.map, f.x, f.y, this.isOn);
@@ -284,7 +298,98 @@ export class FieldScene extends Scene {
     return true;
   }
 
+  // ---- タップで歩く ----
+  // (tx, ty) のマスへの道を探す。人・物のマスなら、そのとなり（お店の人はカウンター越しも）まで行って、向いて話す
+  planWalk(tx, ty, retried = false) {
+    const map = this.map;
+    if (tx < 0 || ty < 0 || tx >= map.width || ty >= map.height) return;
+    if (tx === this.pos.x && ty === this.pos.y) {
+      this.walkPlan = null;
+      this.interact();
+      return;
+    }
+    const e = entityAt(map, tx, ty, this.isOn);
+    const target = e && !['exit', 'trigger'].includes(e.type) && !e.props.walkable;
+    let goals;
+    if (target) {
+      goals = [];
+      for (const [d, [dx, dy]] of Object.entries(DIRS)) {
+        goals.push({ x: tx - dx, y: ty - dy, face: d });
+        if (e.type === 'npc' && e.props.counter) goals.push({ x: tx - 2 * dx, y: ty - 2 * dy, face: d });
+      }
+    } else {
+      if (!canWalk(map, tx, ty, this.isOn)) return;
+      goals = [{ x: tx, y: ty }];
+    }
+    const here = goals.find((q) => q.x === this.pos.x && q.y === this.pos.y);
+    if (here) {
+      this.dir = here.face;
+      this.game.state.location.dir = here.face;
+      this.walkPlan = null;
+      this.interact();
+      return;
+    }
+    const path = this.findPath(goals);
+    this.walkPlan = path ? { path, goal: path.goal, tx, ty, retried, talk: target } : null;
+  }
+
+  // 幅優先で、いちばん近い目的地までのマスの並びを返す（出口やイベントのマスは、目的地の時だけ通る）
+  findPath(goals) {
+    const map = this.map;
+    const W = map.width;
+    const key = (x, y) => y * W + x;
+    const goalOf = new Map(goals.map((q) => [key(q.x, q.y), q]));
+    const start = key(this.pos.x, this.pos.y);
+    const prev = new Map([[start, -1]]);
+    const queue = [start];
+    for (let qi = 0; qi < queue.length; qi++) {
+      const c = queue[qi];
+      if (goalOf.has(c) && c !== start) {
+        const path = [];
+        for (let k = c; k !== start; k = prev.get(k)) path.unshift({ x: k % W, y: Math.floor(k / W) });
+        path.goal = goalOf.get(c);
+        return path;
+      }
+      const x = c % W;
+      const y = Math.floor(c / W);
+      for (const [dx, dy] of Object.values(DIRS)) {
+        const nx = x + dx;
+        const ny = y + dy;
+        const k = key(nx, ny);
+        if (prev.has(k) || !canWalk(map, nx, ny, this.isOn)) continue;
+        if (!goalOf.has(k) && map.objects.some((o) => (o.type === 'exit' || o.type === 'trigger') && o.x === nx && o.y === ny && this.isOn(o))) continue;
+        prev.set(k, c);
+        queue.push(k);
+      }
+    }
+    return null;
+  }
+
+  // 決めた道の、次の1歩の向き。着いたら向きを変えて話す・調べる
+  nextPlannedStep() {
+    const p = this.walkPlan;
+    if (!p) return null;
+    while (p.path.length && p.path[0].x === this.pos.x && p.path[0].y === this.pos.y) p.path.shift();
+    if (!p.path.length) {
+      this.walkPlan = null;
+      if (p.goal?.face) {
+        this.dir = p.goal.face;
+        this.game.state.location.dir = p.goal.face;
+        if (p.talk) this.interact();
+      }
+      return null;
+    }
+    const n = p.path[0];
+    const d = Object.entries(DIRS).find(([, [dx, dy]]) => this.pos.x + dx === n.x && this.pos.y + dy === n.y);
+    if (!d) {
+      this.walkPlan = null;
+      return null;
+    }
+    return d[0];
+  }
+
   startBattle({ enemyIds, area, boss = false, onEnd, fromScript = false, skipRewards = false }) {
+    this.walkPlan = null;
     const g = this.game;
     this.busy = true;
     this.moving = null;
@@ -319,6 +424,7 @@ export class FieldScene extends Scene {
   }
 
   async run(commands, npc = null) {
+    this.walkPlan = null;
     const g = this.game;
     this.busy = true;
     g.input.clear();
@@ -475,6 +581,7 @@ export class FieldScene extends Scene {
   }
 
   transfer(to) {
+    this.walkPlan = null;
     const g = this.game;
     g.scenes.fadeTo(() => {
       const loc = g.state.location;
@@ -510,7 +617,19 @@ export class FieldScene extends Scene {
       this.npcDirs.set(e.id, OPPOSITE[this.dir]);
       this.run(e.props.script ? g.scripts[e.props.script] : [{ say: e.props.dialogue }], e);
     } else if (e.type === 'savepoint') {
-      g.scenes.push(new MessageScene(['光の結晶が、やさしく光っている…'], { onDone: () => this.savePointMenu() }));
+      // 光の結晶は、調べると全員のHP・MPが全回復する（倒れた仲間も起き上がり、状態異常も治る）
+      const st = g.state;
+      const hurt = st.party.some((m) => {
+        const s = totalStats(m, g.items);
+        return m.hp < s.hp || m.mp < s.mp || m.ailments?.length;
+      });
+      const lines = ['光の結晶が、やさしく光っている…'];
+      if (hurt) {
+        fullRecover(st, g.items);
+        g.audio.playSe('heal');
+        lines.push('あたたかい光に つつまれて、みんなの HPと MPが 回復した！');
+      }
+      g.scenes.push(new MessageScene(lines, { onDone: () => this.savePointMenu() }));
     } else if (e.type === 'block') {
       this.run([{ say: e.props.msg }]);
     } else if (e.type === 'sign') {
@@ -600,6 +719,7 @@ export class FieldScene extends Scene {
     const camX = mapW <= WIDTH ? Math.round((mapW - WIDTH) / 2) : clamp(snap(p.x + TILE / 2 - WIDTH / 2), 0, mapW - WIDTH);
     const lift = cameraLift(map.props.lift, p.y / TILE) * TILE;
     const camY = mapH <= HEIGHT ? Math.round((mapH - HEIGHT) / 2) : clamp(snap(p.y - lift + TILE / 2 - HEIGHT / 2), 0, mapH - HEIGHT);
+    this.cam = { x: camX, y: camY };
 
     ctx.fillStyle = map.props.back ?? '#1b1722';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);

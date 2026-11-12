@@ -108,19 +108,20 @@ export class Input {
   }
 
   // 画面をタップした場所を、ゲーム画面（640×360）の中の位置にして覚える
-  queueTap(clientX, clientY) {
+  queueTap(clientX, clientY, fromPad = false) {
     const r = this.canvas.getBoundingClientRect();
     const x = ((clientX - r.left) / r.width) * WIDTH;
     const y = ((clientY - r.top) / r.height) * HEIGHT;
     const inside = x >= 0 && y >= 0 && x < WIDTH && y < HEIGHT;
-    this.tapQueue = { pos: inside ? { x, y } : null };
+    this.tapQueue = { pos: inside ? { x, y } : null, fromPad };
   }
 
   setupTouch() {
     const root = this.touchRoot;
     if (!root) return;
     const pad = root.querySelector('#pad');
-    const zone = pad; // 十字キーそのものをさわって操作する
+    // 十字キーの絵より広い範囲（#padZone）で指を受ける。少しずれた所をさわっても動かせる
+    const zone = root.querySelector('#padZone') ?? pad;
     let id = null;
     let cx = 0;
     let cy = 0;
@@ -185,7 +186,7 @@ export class Input {
       id = null;
       const quick = e.type === 'pointerup' && !moved && performance.now() - t0 < TAP_MS;
       setDir(null);
-      if (quick) this.queueTap(e.clientX, e.clientY);
+      if (quick) this.queueTap(e.clientX, e.clientY, true);
     };
     zone.addEventListener('pointerup', end);
     zone.addEventListener('pointercancel', end);
@@ -237,6 +238,11 @@ export class Input {
   // このフレームで画面がタップ（クリック）されたか
   tapped() {
     return this.enabled && !!this.tapNow;
+  }
+
+  // そのタップが十字キーを短くさわったもの（＝マップをタップしたのではない）か
+  tapFromPad() {
+    return !!this.tapNow?.fromPad;
   }
 
   // タップされた場所（ゲーム画面の中なら { x, y }。外なら null）

@@ -13,15 +13,16 @@
 <div id="stage"><canvas id="screen" width="640" height="360"></canvas></div>
 
 <div id="touch" hidden>
+  <div id="padZone"></div>
   <div id="pad">
     <span class="arrow up">▲</span>
     <span class="arrow left">◀</span>
     <span class="arrow right">▶</span>
     <span class="arrow down">▼</span>
   </div>
+  <button type="button" class="act menu" id="menuBtn" data-action="cancel">メニュー</button>
   <div id="buttons">
     <button type="button" class="act ok" data-action="ok">決定</button>
-    <button type="button" class="act cancel" data-action="cancel">キャンセル</button>
     <button type="button" class="act dash" data-action="dash">ダッシュ</button>
   </div>
 </div>

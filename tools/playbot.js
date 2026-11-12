@@ -158,6 +158,13 @@ export async function playthrough({ gender = 'male', job = 'swordsman', maxMinut
     // 休む：弱っている時、または ボスの前に村の近くにいる時
     const low = hpRatio() < 0.5 || mpRatio() < 0.25 || st.party.some((m) => m.hp <= 0);
     const inDungeon = !!field.map.props.dungeon;
+    // 光の結晶がこのマップにあれば、そこで回復する（弱っている時と、ボスの前）
+    const crystal = field.map.objects.find((o) => o.type === 'savepoint' && isActive(st, o));
+    const full = st.party.every((m) => m.hp >= sim.stats(m).hp && m.mp >= sim.stats(m).mp);
+    const nearBoss = here === c.boss.map || (field.map.props.dungeon && mapRoute(here, c.boss.map)?.length <= 2);
+    if (crystal && !full && (hpRatio() < 0.6 || mpRatio() < 0.4 || nearBoss || st.party.some((m) => m.hp <= 0))) {
+      return { map: here, x: crystal.x, y: crystal.y, act: 'talk', why: '光の結晶で回復', crystal: true };
+    }
     const canPay = st.gold >= 50 || restPlace() === 'town';
     if (canPay && (low || restWanted || (!inDungeon && (hpRatio() < 0.85 || mpRatio() < 0.6) && here === c.village))) {
       const place = restPlace();
@@ -215,7 +222,11 @@ export async function playthrough({ gender = 'male', job = 'swordsman', maxMinut
       return;
     }
     if (name === 'ChoiceScene') {
-      if (top.menu.index !== 0) input.press('up');
+      // 光の結晶のメニューは「とじる」、ほかは一番上（宿屋の「はい」など）
+      const close = top.menu.items.findIndex((i) => i.label === 'とじる');
+      const want = close >= 0 ? close : 0;
+      if (report.frames % 2) return;
+      if (top.menu.index !== want) input.press(top.menu.index < want ? 'down' : 'up');
       else input.press('ok');
       return;
     }
@@ -230,6 +241,7 @@ export async function playthrough({ gender = 'male', job = 'swordsman', maxMinut
     if (name === 'BattleScene') {
       if (!inBattle) {
         inBattle = { boss: top.b.boss, ids: top.b.enemies.map((e) => e.id).join(','), turns: 0 };
+        if (top.b.boss) inBattle.start = { party: g.state.party.map((m) => ({ id: m.id, lv: m.level, hp: `${m.hp}/${sim.stats(m).hp}`, mp: `${m.mp}/${sim.stats(m).mp}`, equip: Object.values(m.equip).filter(Boolean).join(',') })), bag: { ...g.state.bag } };
       }
       inBattle.turns = top.b.turn;
       inBattle.result = top.b.result;
@@ -248,7 +260,7 @@ export async function playthrough({ gender = 'male', job = 'swordsman', maxMinut
       if (inBattle.result === 'lose') report.defeats++;
       if (inBattle.boss) {
         const c = chapter();
-        report.bosses.push({ ids: inBattle.ids, result: inBattle.result, turns: inBattle.turns, level: st.party.map((m) => m.level).join('/') });
+        report.bosses.push({ ids: inBattle.ids, result: inBattle.result, turns: inBattle.turns, level: st.party.map((m) => m.level).join('/'), start: inBattle.start });
         say(`ボス戦 ${inBattle.ids}：${inBattle.result === 'win' ? '勝ち' : inBattle.result === 'lose' ? '負け' : inBattle.result}（${inBattle.turns}ターン、Lv ${st.party.map((m) => m.level).join('/')}）`);
         if (inBattle.result === 'lose' && c) extraLevel[c.flag] = (extraLevel[c.flag] ?? 0) + 1;
       } else if (inBattle.result === 'lose') say(`雑魚戦で全滅（${inBattle.ids}）。${st.location.map}に戻された`);
@@ -306,6 +318,7 @@ export async function playthrough({ gender = 'male', job = 'swordsman', maxMinut
         restWanted = false;
         report.rests++;
       }
+      if (goal.crystal) report.crystals = (report.crystals ?? 0) + 1;
       return input.press('ok');
     }
     return walkTo(field, spots, goal);

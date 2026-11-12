@@ -43,8 +43,11 @@ html, body {
 /* スマホ・タブレットの画面ボタン */
 #touch { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
 #touch[hidden], #rotate[hidden], #textio[hidden] { display: none; }
-#pad, #buttons { position: absolute; pointer-events: auto; touch-action: none; }
-#touch.overlay #pad, #touch.overlay #buttons { opacity: 0.55; }
+#pad, #buttons, #menuBtn, #padZone { position: absolute; pointer-events: auto; touch-action: none; }
+/* 十字キーは絵だけ。指は、そのまわりの広い範囲（#padZone）で受ける */
+#pad { pointer-events: none; }
+#padZone { width: 240px; height: 240px; border-radius: 50%; }
+#touch.overlay #pad, #touch.overlay #buttons, #touch.overlay #menuBtn { opacity: 0.6; }
 
 #pad {
   width: 132px;
@@ -84,9 +87,15 @@ html, body {
   -webkit-appearance: none;
   appearance: none;
 }
-.act.ok { width: 74px; height: 74px; right: 0; top: 40px; font-size: 16px; }
-.act.cancel { width: 60px; height: 60px; right: 84px; top: 82px; font-size: 11px; }
-.act.dash { width: 52px; height: 52px; right: 88px; top: 8px; font-size: 11px; }
+.act.ok { width: 84px; height: 84px; right: 4px; top: 50px; font-size: 18px; background: rgba(255, 255, 255, 0.2); border-width: 3px; }
+.act.dash { width: 54px; height: 54px; right: 100px; top: 86px; font-size: 11px; }
+/* メニューボタン：画面の右上。フィールドでは「メニュー」、メニューの中や戦闘で選んでいる途中は「もどる」 */
+.act.menu {
+  width: 96px; height: 40px; border-radius: 10px; font-size: 15px;
+  background: rgba(30, 24, 48, 0.55); border-color: rgba(255, 255, 255, 0.6);
+}
+.act.menu.back { background: rgba(70, 40, 40, 0.55); }
+#menuBtn[hidden], .act[hidden] { display: none; }
 .act.pressed { background: rgba(255, 211, 110, 0.55); }
 .act.dash.on { background: rgba(255, 170, 90, 0.75); border-color: #ffd36e; }
 

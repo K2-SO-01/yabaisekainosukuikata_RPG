@@ -48,6 +48,7 @@ async function boot() {
   await loadGameData(game);
 
   game.scenes = new SceneStack(game);
+  game.updateMenuButton = () => updateMenuButton(game); // 開発用のテストからも呼べるように
   game.scenes.push(new TapScene());
 
   let last = performance.now();
@@ -57,6 +58,7 @@ async function boot() {
     try {
       game.input.update(dt);
       if (!game.screen.portrait) game.scenes.update(dt);
+      updateMenuButton(game);
       useScale(ctx);
       ctx.fillStyle = '#000';
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -219,6 +221,30 @@ function makeFace(img) {
   x.fillRect(0, 0, 63, 63);
   if (img) x.drawImage(img, 32 + 5, 2, 21, 21, 0, 0, 63, 63);
   return c;
+}
+
+// スマホの画面ボタン「メニュー」：フィールドでは「メニュー」、メニューの中や戦闘で選んでいる途中は「もどる」。
+// 会話中・イベント中など、押しても何も起きない時は隠す（押すとキャンセルと同じ）
+const NO_BACK = ['TapScene', 'TitleScene', 'MessageScene', 'RestScene', 'BlackTextScene', 'EndRollScene', 'TheEndScene', 'PrologueScene'];
+let menuState = '';
+function updateMenuButton(game) {
+  const btn = document.getElementById('menuBtn');
+  if (!btn || !game.screen.touchEnabled) return;
+  // ダッシュのボタンは、シュンソクをもらってダッシュできるようになってから出す
+  const dashBtn = document.querySelector('#buttons .dash');
+  const canDash = !!game.state && game.state.flags?.dash !== false;
+  if (dashBtn && dashBtn.hidden === canDash) dashBtn.hidden = !canDash;
+  const top = game.scenes.top;
+  const name = top?.constructor?.name ?? '';
+  let label = 'もどる';
+  if (game.scenes.fade || NO_BACK.includes(name)) label = '';
+  else if (name === 'FieldScene') label = top.busy ? '' : 'メニュー';
+  else if (name === 'BattleScene') label = top.phase === 'list' || top.phase === 'target' || (top.phase === 'command' && top.who > top.firstInputIndex()) ? 'もどる' : '';
+  if (label === menuState) return;
+  menuState = label;
+  btn.hidden = !label;
+  btn.textContent = label;
+  btn.classList.toggle('back', label === 'もどる');
 }
 
 // 640×360 の座標のまま、拡大したキャンバスに描けるようにする

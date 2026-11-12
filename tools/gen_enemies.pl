@@ -47,7 +47,7 @@ my @enemies = (
     { boss => \1, acts => 2, special => 'inferno_blow', chargeText => '炎の四天王は 筋肉を 見せつけている！', immune => ['burn'], bgm => 'boss' }],
   [boss_thunder => '雷の四天王', "$M/pipo-enemy026.png", 1500, 31, 54, 30, 31, 'thunder', 350, [2500, 2500], undef, [qw(boss_lightning_slash boss_lightning_bolt)],
     { boss => \1, acts => 2, special => 'raimeizan', chargeText => '雷の四天王は 無言で 剣を構えた…', bgm => 'boss_storm', noJingle => \1 }],
-  [demon1 => '魔王', "$M/pipo-enemy043.png", 2050, 22, 69, 35, 33, 'dark', 0, [0, 0], undef, [qw(dark_bolt nightmare)],
+  [demon1 => '魔王', "$M/pipo-enemy043.png", 2300, 22, 69, 35, 33, 'dark', 0, [0, 0], undef, [qw(dark_bolt nightmare)],
     { boss => \1, acts => 2, special => 'end_of_light', chargeText => '魔王「…絶望するがよい」', next => 'demon2', transformTalk => 'demon_transform', bgm => 'demon1', big => 1.25 }],
   [demon2 => '魔王', "$M/pipo-enemy044b.png", 1900, 32, 75, 30, 30, 'dark', 0, [0, 0], undef, [qw(dragon_claw tail_sweep dark_breath)],
     { boss => \1, acts => 3, special => 'abyss_flare', specialPlus => \1, chargeText => '魔王は 翼を 大きく広げた！', bgm => 'demon2', noJingle => \1, big => 1.25 }],

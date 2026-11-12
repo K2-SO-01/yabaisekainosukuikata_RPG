@@ -84,6 +84,7 @@ export class Screen {
     const sal = parseFloat(cs.getPropertyValue('--sal')) || 0;
     const sar = parseFloat(cs.getPropertyValue('--sar')) || 0;
     const sab = parseFloat(cs.getPropertyValue('--sab')) || 0;
+    const sat = parseFloat(cs.getPropertyValue('--sat')) || 0;
     const side = (vw - cssW) / 2;
     const sideL = side - sal;
     const sideR = side - sar;
@@ -122,7 +123,22 @@ export class Screen {
     pad.dataset.homeTop = `${clampY(padY, PAD_SIZE)}px`;
     pad.style.left = pad.dataset.homeLeft;
     pad.style.top = pad.dataset.homeTop;
+    const zone = root.querySelector('#padZone');
+    if (zone) {
+      const zs = 240;
+      zone.style.left = `${padX + PAD_SIZE / 2 - zs / 2}px`;
+      zone.style.top = `${clampY(padY, PAD_SIZE) + PAD_SIZE / 2 - zs / 2}px`;
+    }
     buttons.style.left = `${btnX}px`;
     buttons.style.top = `${clampY(btnY, BTN_H)}px`;
+    // メニューボタン：右上（左右反転の時は左上）。横に余白があれば余白の中に置く
+    const menu = root.querySelector('#menuBtn');
+    if (menu) {
+      const mw = 96;
+      let mx = roomy ? vw - sar - (sideR + mw) / 2 : vw - sar - mw - 10;
+      if (swap) mx = vw - mx - mw;
+      menu.style.left = `${mx}px`;
+      menu.style.top = `${sat + 10}px`;
+    }
   }
 }
