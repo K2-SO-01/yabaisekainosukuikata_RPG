@@ -57,7 +57,7 @@ export class BattleScene extends Scene {
     this.enemyBoxes = this.b.enemies.map((e, i) => {
       const img = g.assets.image(`enemy:${e.id}`);
       const box = img ? alphaBox(img) : { x: 0, y: 0, w: 100, h: 100 };
-      const s = e.d.boss ? Math.min(1.1, 200 / box.h, 260 / box.w) * (e.d.big ?? 1) : Math.min(0.75, 130 / box.h, 150 / box.w);
+      const s = e.d.boss ? Math.min(1.1, (150 * (e.d.big ?? 1)) / box.h, 250 / box.w) : Math.min(0.75, 130 / box.h, 150 / box.w);
       const w = Math.round(box.w * s);
       const h = Math.round(box.h * s);
       const cx = Math.round(WIDTH / 2 + 45 + (i - (n - 1) / 2) * 150); // 左のコマンドの窓に重ならないよう、少し右に寄せる
@@ -518,22 +518,27 @@ export class BattleScene extends Scene {
     const e = this.b.enemies[i];
     const asleep = has(e, 'sleep');
     const h = 32;
-    let y = Math.round(box.y - h - 12);
     const shown = asleep ? [list[0]] : list;
+    // 上に入りきらない時（大きなボスが何回も動く時）は、体の横に上から順に並べる
+    if (box.y - 12 - shown.length * (h + 4) < 4) {
+      shown.forEach((it, k) => this.drawBubble(ctx, it, box, Math.round(box.y + 6 + k * (h + 4)), asleep, false, Math.round(box.x + box.w + 6)));
+      return;
+    }
+    let y = Math.round(box.y - h - 12);
     for (let k = shown.length - 1; k >= 0; k--) {
       this.drawBubble(ctx, shown[k], box, y, asleep, k === shown.length - 1);
       y -= h + 4;
     }
   }
 
-  drawBubble(ctx, it, box, y, asleep, withTail) {
+  drawBubble(ctx, it, box, y, asleep, withTail, left = null) {
     const g = this.game;
     const h = 32;
     const faces = asleep || it.charge || it.targets === 'self' ? [] : it.targets === 'all' ? this.b.allies.map((u) => u.index) : it.targets;
     const iconW = asleep ? 36 : it.ailment && it.icon !== 'skull' ? 44 : 22;
     const faceW = 21;
     const w = 12 + iconW + faces.length * (faceW + 2);
-    const x = Math.round(box.cx - w / 2);
+    const x = left != null ? Math.min(left, WIDTH - 4 - w) : Math.round(box.cx - w / 2);
     ctx.fillStyle = it.charge ? '#fff3a0' : '#ffffff';
     roundRect(ctx, x, y, w, h, 7);
     ctx.fill();
