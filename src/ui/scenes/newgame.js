@@ -266,15 +266,17 @@ export class NewGameScene extends Scene {
     ctx.fillRect(108, 56, 64, 64);
     this.drawHero(ctx, 108, 56, 64);
     g.font.draw(ctx, 'なまえを いれてください', 190, 58, COLORS.title);
+    // 何も入れていない時は、そのまま決めた時の名前を、うすく入れておく（入れないとこの名前になる）
+    const ghost = this.chars.length ? [] : Array.from(DEFAULT_NAMES[this.gender]);
     for (let i = 0; i < MAX_NAME; i++) {
       const x = 190 + i * 34;
       if (this.chars[i]) g.fontBig.draw(ctx, this.chars[i], x, 80, COLORS.text);
       else {
+        if (ghost[i]) g.fontBig.draw(ctx, ghost[i], x, 80, 'rgba(154,156,200,0.45)');
         ctx.fillStyle = i === this.chars.length && Math.floor(this.t / 400) % 2 === 0 ? COLORS.accent : COLORS.textDim;
         ctx.fillRect(x + 2, 112, 28, 2);
       }
     }
-    if (!this.chars.length) g.font.draw(ctx, `（入れないと「${DEFAULT_NAMES[this.gender]}」）`, 400, 96, COLORS.textDim);
     const grid = this.grid();
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {

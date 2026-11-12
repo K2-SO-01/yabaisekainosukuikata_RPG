@@ -10,6 +10,7 @@ import { Menu } from '../menu.js';
 import { MessageScene } from '../message.js';
 import { Scene } from '../scene.js';
 import { battleBackground, drawBackgroundLife, drawIntro, Effects, INTRO_MS } from '../battlefx.js';
+import { describeSkill } from '../../core/skilltext.js';
 
 const ELEMENT_COLOR = { none: '#8a8a8a', water: '#3b7dd8', wind: '#3aa45a', fire: '#e0503a', thunder: '#e6b800', dark: '#8a4fc8', light: '#e8c84a' };
 const AILMENT_COLOR = { poison: '#9b59b6', burn: '#e67e22', sleep: '#5dade2', confusion: '#ec7ab8', paralysis: '#f1c40f' };
@@ -18,6 +19,7 @@ const FRAME_Y = 280;
 const FRAME_H = 76;
 const GROUND_Y = 192;
 const MSG_Y = 229; // 戦いの文の窓
+const CMD = { x: 8, y: 90, w: 176, head: 36 }; // コマンドの窓（左下。上に行動する人の顔と名前）
 const DOWN_RED = '#ff6a5a';
 
 export class BattleScene extends Scene {
@@ -84,7 +86,7 @@ export class BattleScene extends Scene {
       const s = e.d.boss ? Math.min(1.1, Math.min(150 * (e.d.big ?? 1), GROUND_Y - 44) / box.h, 260 / box.w) : Math.min(0.75, 120 / box.h, 150 / box.w);
       const w = Math.round(box.w * s);
       const h = Math.round(box.h * s);
-      const cx = Math.round(WIDTH / 2 + 45 + (i - (n - 1) / 2) * 150); // 左のコマンドの窓に重ならないよう、少し右に寄せる
+      const cx = Math.round(WIDTH / 2 + 68 + (i - (n - 1) / 2) * 148); // 左のコマンドの窓に重ならないよう、少し右に寄せる
       const pic = img ? shrink(img, box, w, h, g.screen.renderScale || 1) : null;
       return { img, pic, box, x: cx - Math.round(w / 2), y: GROUND_Y - h, w, h, cx };
     });
@@ -313,7 +315,7 @@ export class BattleScene extends Scene {
         { label: 'ぼうぎょ', value: 'guard' },
         { label: 'にげる', value: 'escape' },
       ],
-      x: 8, y: 106, width: 128, index,
+      x: CMD.x, y: CMD.y + CMD.head, width: CMD.w, index,
     });
   }
 
@@ -453,7 +455,7 @@ export class BattleScene extends Scene {
       if (!ids.length) return this.notice('まだ 何も覚えていない。', 1);
       this.list = new ListMenu({
         items: ids.map((id) => ({ label: g.skills[id].name, right: `MP ${g.skills[id].mp}`, value: id, disabled: g.skills[id].mp > u.m.mp })),
-        x: 166, y: 56, w: 300, rows: 6, index: Math.max(0, ids.indexOf(this.memory?.[this.who]?.skill)),
+        x: 192, y: 56, w: 300, rows: 6, index: Math.max(0, ids.indexOf(this.memory?.[this.who]?.skill)),
       });
       this.listKind = 'skill';
       this.phase = 'list';
@@ -464,7 +466,7 @@ export class BattleScene extends Scene {
       if (!usable.length) return this.notice('使える道具を 持っていない。', 2);
       this.list = new ListMenu({
         items: usable.map((id) => ({ label: g.items[id].name, right: `×${this.available(id)}`, value: id })),
-        x: 166, y: 56, w: 300, rows: 6,
+        x: 192, y: 56, w: 300, rows: 6,
       });
       this.listKind = 'item';
       this.phase = 'list';
@@ -631,13 +633,63 @@ export class BattleScene extends Scene {
 
     // 戦いの文の窓
     if (this.text && this.phase !== 'target') this.drawMessage(ctx);
-    if (this.phase === 'command' || this.phase === 'list' || (this.phase === 'target' && this.menu)) this.menu?.draw(ctx, g.font);
-    if (this.phase === 'list' || (this.phase === 'target' && this.target?.back === 'list')) this.list?.draw(ctx, g.font, { active: this.phase === 'list' });
+    if (this.phase === 'command' || this.phase === 'list' || (this.phase === 'target' && this.menu)) this.drawCommandPanel(ctx);
+    if (this.phase === 'list' || (this.phase === 'target' && this.target?.back === 'list')) {
+      this.list?.draw(ctx, g.font, { active: this.phase === 'list' });
+      this.drawListInfo(ctx);
+    }
     if (this.phase === 'target') this.drawTargetCursor(ctx);
     this.drawPops(ctx);
     if (this.phase === 'victory') this.drawVictory(ctx);
     // 戦いが始まる時の演出
     drawIntro(ctx, this.introT, this.boss, this.b.enemies[0]?.name ?? '', g.font, g.fontBig);
+  }
+
+  // コマンドの窓：上に行動する人の顔・名前・レベル、下に大きなボタン（アイコン付き）
+  drawCommandPanel(ctx) {
+    const g = this.game;
+    const u = this.b.allies[this.who];
+    const menu = this.menu;
+    if (!u || !menu) return;
+    const h = CMD.head + 9 + menu.items.length * 26 + 9;
+    drawWindow(ctx, CMD.x, CMD.y, CMD.w, h);
+    const face = g.assets.image(`face:${faceKey(g, u.m)}`);
+    if (face) {
+      ctx.fillStyle = COLORS.winInner;
+      ctx.fillRect(CMD.x + 9, CMD.y + 7, 33, 33);
+      ctx.drawImage(face, CMD.x + 10, CMD.y + 8, 31, 31);
+    }
+    g.font.draw(ctx, u.name, CMD.x + 50, CMD.y + 7, COLORS.title);
+    g.font.draw(ctx, `Lv${u.m.level}`, CMD.x + 50, CMD.y + 23, COLORS.textDim);
+    ctx.fillStyle = 'rgba(216,192,122,0.5)';
+    ctx.fillRect(CMD.x + 8, CMD.y + CMD.head + 6, CMD.w - 16, 1);
+    menu.w = CMD.w;
+    const active = this.phase === 'command';
+    menu.items.forEach((it, i) => {
+      const ry = menu.y + 9 + i * 26;
+      const sel = i === menu.index;
+      if (sel) {
+        ctx.fillStyle = active ? 'rgba(122,208,255,0.22)' : 'rgba(154,156,200,0.15)';
+        ctx.fillRect(CMD.x + 8, ry, CMD.w - 16, 24);
+        ctx.fillStyle = active ? COLORS.accent : COLORS.textDim;
+        ctx.fillRect(CMD.x + 8, ry, 2, 24);
+      }
+      const icon = it.value === 'attack' ? 'sword' : it.value === 'skill' ? (u.m.job === 'swordsman' ? 'spark' : 'staff') : it.value === 'item' ? 'bag' : it.value === 'guard' ? 'shield' : 'foot';
+      drawCommandIcon(ctx, icon, CMD.x + 16, ry + 3, this.t);
+      g.font.draw(ctx, it.label, CMD.x + 46, ry + 4, sel ? COLORS.text : COLORS.textDim);
+    });
+  }
+
+  // 一覧の下に、選んでいる技・道具の説明
+  drawListInfo(ctx) {
+    const g = this.game;
+    const it = this.list?.items?.[this.list.index];
+    if (!it) return;
+    const text = this.listKind === 'skill' ? describeSkill(g.skills[it.value]) : g.items[it.value]?.desc ?? '';
+    if (!text) return;
+    const y = this.list.y + this.list.h + 4;
+    drawWindow(ctx, this.list.x, y, this.list.w, 32);
+    g.font.draw(ctx, text, this.list.x + 14, y + 8, COLORS.text);
   }
 
   // 戦いの文：紺の窓に金のふち。1文字ずつ出し、数字は黄色に
@@ -868,6 +920,8 @@ export class BattleScene extends Scene {
       const down = d.hp <= 0;
       const low = !down && d.hp / s.hp < 0.25;
       drawWindow(ctx, x, y, r.w, r.h);
+      // コマンドを選んでいる間は、選んでいない人を薄暗く
+      const choosing = (this.phase === 'command' || this.phase === 'list' || this.phase === 'target') && this.who !== i;
       // 光（行動・ダメージ・回復）
       const glow = fx.bounce > 0 ? ['rgba(255,230,140,', fx.bounce / 280] : fx.red > 0 ? ['rgba(255,40,40,', fx.red / 300] : fx.green > 0 ? ['rgba(90,255,140,', fx.green / 450] : null;
       if (glow) {
@@ -910,6 +964,10 @@ export class BattleScene extends Scene {
         const up = k !== 'defDown';
         g.font.draw(ctx, `${BUFF_LABEL[k]}${up ? '↑' : '↓'}${n}`, bx, y + 28, up ? '#ffa070' : '#9ac8ff');
         bx -= 42;
+      }
+      if (choosing) {
+        ctx.fillStyle = 'rgba(0,0,12,0.5)';
+        ctx.fillRect(x, y, r.w, r.h);
       }
     });
   }
@@ -1181,4 +1239,44 @@ function drawNextArrow(ctx, x, y) {
   ctx.lineTo(x + 10, y);
   ctx.lineTo(x + 5, y + 6);
   ctx.fill();
+}
+
+// コマンドのアイコン（剣・技の光・杖・袋・盾・足あと）。16×16くらい
+function drawCommandIcon(ctx, kind, x, y, t) {
+  const px = (dx, dy, w, h, c) => {
+    ctx.fillStyle = c;
+    ctx.fillRect(x + dx, y + dy, w, h);
+  };
+  if (kind === 'sword') {
+    for (let i = 0; i < 11; i++) px(4 + i, 12 - i, 2, 2, i > 8 ? '#ffffff' : '#d8e0f0');
+    px(2, 12, 6, 2, '#d8c07a');
+    px(3, 14, 2, 3, '#8a5a2a');
+  } else if (kind === 'spark') {
+    for (let i = 0; i < 9; i++) px(3 + i, 11 - i, 2, 2, '#d8e0f0');
+    const k = Math.floor(t / 150) % 2;
+    px(11, 1, 1, 5, '#ffe27a');
+    px(9, 3, 5, 1, '#ffe27a');
+    if (k) px(4, 2, 2, 2, '#ffffff');
+  } else if (kind === 'staff') {
+    for (let i = 0; i < 11; i++) px(3 + i, 15 - i, 2, 2, '#a0703a');
+    px(12, 1, 4, 4, '#7ad0ff');
+    px(13, 2, 1, 1, '#ffffff');
+  } else if (kind === 'bag') {
+    px(3, 6, 12, 10, '#c8964a');
+    px(4, 7, 10, 2, '#e0b070');
+    px(6, 3, 6, 3, '#8a5a2a');
+    px(8, 9, 2, 2, '#ffe27a');
+  } else if (kind === 'shield') {
+    px(3, 2, 12, 9, '#7a8aa0');
+    px(5, 11, 8, 3, '#7a8aa0');
+    px(7, 14, 4, 2, '#7a8aa0');
+    px(6, 4, 3, 7, '#c9d4e2');
+    px(8, 2, 2, 12, '#d8c07a');
+  } else {
+    // 足あと
+    px(3, 8, 4, 6, '#c8b8a0');
+    px(4, 5, 2, 2, '#c8b8a0');
+    px(10, 3, 4, 6, '#c8b8a0');
+    px(11, 0, 2, 2, '#c8b8a0');
+  }
 }
