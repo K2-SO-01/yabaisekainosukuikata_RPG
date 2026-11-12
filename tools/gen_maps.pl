@@ -72,7 +72,7 @@ sub small_tower { my ($m, $x, $top, $bottom) = @_;
   obj($m, 'おばさん', 'npc', 12, 5, character => 'oba', dialogue => 'oba_morning', dir => 'up', if => 'ending');
   obj($m, 'エンディング', 'auto', 0, 0, script => 'ending_scene', if => 'ending', unless => 'cleared');
   obj($m, '出口', 'exit', $_, 14, map => 'castle_hall', x => 7, y => 2, dir => 'down') for 9 .. 11;
-  emit($m, 'castle_throne', '王様のお城', 'castle'); }
+  emit($m, 'castle_throne', '王様のお城', 'castle', lift => '4,9,13'); }
 
 # ---- castle_hall: castle entrance hall (16x13) ----
 { my $m = newmap(16, 13);

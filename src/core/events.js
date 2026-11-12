@@ -87,5 +87,7 @@ export async function runScript(commands, ctx) {
     else if ('endroll' in cmd) await ui.endroll();
     else if ('epilogue' in cmd) await ui.epilogue(cmd.epilogue);
     else if ('theEnd' in cmd) await ui.theEnd();
+    // 豪華なお知らせ：{ fanfare: { text: 文 か セリフの名前 か 文の並び, kind: 'なかま' など, se, jingle } }
+    else if ('fanfare' in cmd) await ui.fanfare(cmd.fanfare);
   }
 }

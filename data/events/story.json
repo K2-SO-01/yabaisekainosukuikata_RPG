@@ -4,7 +4,7 @@
     { "say": "king_audience" },
     { "gold": 500 },
     { "se": "gold_get" },
-    { "notice": "〇〇は 500ゴールドを 受け取った！" },
+    { "fanfare": { "text": "〇〇は 500ゴールドを 受け取った！", "kind": "ゴールド" } },
     { "flag": "audience_done" }
   ],
   "talk_king": [
@@ -22,8 +22,7 @@
     { "keyItem": "shunsoku" },
     { "flag": "dash" },
     { "se": "item_get" },
-    { "notice": "〇〇は シュンソクを 手に入れた！" },
-    { "notice": "ダッシュが できるようになった！" },
+    { "fanfare": { "text": ["〇〇は シュンソクを 手に入れた！", "ダッシュが できるようになった！"], "kind": "だいじなもの" } },
     { "notice": { "pc": "Shiftキーを押している間、走れる", "touch": "ダッシュボタンで、走る・歩くを切りかえられる" } },
     { "say": "home_e" },
     { "flag": "home_event_done" }

@@ -36,8 +36,8 @@ export function normalizeSettings(raw) {
     textSpeed: clampInt(raw.textSpeed, 0, TEXT_SPEED_LABELS.length - 1, d.textSpeed),
     animSpeed: clampInt(raw.animSpeed, 0, ANIM_SPEED_LABELS.length - 1, d.animSpeed),
     swapButtons: raw.swapButtons === true,
-    alwaysDash: raw.alwaysDash === true,
-    moveSpeed: clampInt(raw.moveSpeed, 0, MOVE_SPEED_LABELS.length - 1, d.moveSpeed),
+    alwaysDash: false, // 移動の設定はなくした（ダッシュは画面のボタンで切りかえる）
+    moveSpeed: 0,
   };
 }
 

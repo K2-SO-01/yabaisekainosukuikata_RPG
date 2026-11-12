@@ -3,7 +3,8 @@
   "width": 21, "height": 15, "tilewidth": 32, "tileheight": 32, "nextlayerid": 6, "nextobjectid": 12,
   "properties": [
     { "name": "name", "type": "string", "value": "王様のお城" },
-    { "name": "bgm", "type": "string", "value": "castle" }
+    { "name": "bgm", "type": "string", "value": "castle" },
+    { "name": "lift", "type": "string", "value": "4,9,13" }
   ],
   "tilesets": [
     { "firstgid": 1, "name": "BaseChip", "image": "../../assets/tiles/Pipoya RPG Tileset 32x32/[Base]BaseChip_pipo.png", "imagewidth": 256, "imageheight": 4256, "tilewidth": 32, "tileheight": 32, "columns": 8, "tilecount": 1064, "margin": 0, "spacing": 0 },

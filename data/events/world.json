@@ -17,7 +17,7 @@
     { "say": "partner_join" },
     { "joinPartner": true },
     { "se": "item_get" },
-    { "say": "partner_joined_notice" },
+    { "fanfare": { "text": "partner_joined_notice", "kind": "なかま" } },
     { "flag": "partner_joined" }
   ],
   "fire_arrive": [
@@ -73,7 +73,7 @@
     { "bgm": "farewell" },
     { "say": "farewell" },
     { "learnLight": true },
-    { "say": "light_awaken" },
+    { "fanfare": { "text": "light_awaken", "kind": "ちから", "se": null } },
     { "se": "open_path" },
     { "say": "open_thunder" },
     { "transfer": { "map": "field_thunder", "x": 30, "y": 14, "dir": "down" } }

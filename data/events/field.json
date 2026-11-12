@@ -13,7 +13,7 @@
     { "say": "luke_join" },
     { "join": "luke" },
     { "se": "item_get" },
-    { "notice": "ルークが 仲間に 加わった！" },
+    { "fanfare": { "text": "ルークが 仲間に 加わった！", "kind": "なかま" } },
     { "flag": "luke_joined" },
     { "flag": "luke_appear", "value": false }
   ]

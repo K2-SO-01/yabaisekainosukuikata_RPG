@@ -14,6 +14,7 @@ import { MessageScene } from '../message.js';
 import { Scene } from '../scene.js';
 import { BattleScene } from './battle.js';
 import { BlackTextScene, EndRollScene, TheEndScene } from './ending.js';
+import { FanfareScene } from './fanfare.js';
 import { TitleScene } from './title.js';
 import { FieldMenuScene } from './fieldmenu.js';
 import { RestScene } from './rest.js';
@@ -447,6 +448,12 @@ export class FieldScene extends Scene {
     return {
       say: (what) => show(Array.isArray(what) ? what : g.pick(g.dialogues[what]) ?? [`（セリフ「${what}」が見つかりません）`]),
       notice: (text) => show([typeof text === 'string' ? text : g.screen.touchEnabled ? text.touch : text.pc]),
+      fanfare: (opts) =>
+        new Promise((done) => {
+          const raw = typeof opts.text === 'string' && g.dialogues[opts.text] ? g.pick(g.dialogues[opts.text]) : [].concat(opts.text ?? []);
+          const lines = raw.map((l) => fillName(l, g.state.player.name).replace(/〇〇/g, g.state.player.name));
+          g.scenes.push(new FanfareScene({ lines, kind: opts.kind, se: 'se' in opts ? opts.se : 'item_get', jingle: opts.jingle ?? null, onDone: done }));
+        }),
       // たずねる：セリフの窓を残したまま選択肢を出し、選んだ番号を返す（キャンセルは最後の選択肢）
       choice: (what, items) =>
         new Promise((done) => {
@@ -661,7 +668,11 @@ export class FieldScene extends Scene {
         }
         const got = p.itemMage && st.player.job === 'mage' ? p.itemMage : p.item;
         addItem(st, got, Number(p.count ?? 1));
-        if (g.items[got]?.rare) g.audio.playJingle('jingle_rare');
+        if (g.items[got]?.rare) {
+          // めずらしい物は、豪華なお知らせで
+          await say(g, [`${name}は 宝箱を開けた！`]);
+          return await new Promise((done) => g.scenes.push(new FanfareScene({ lines: [`${g.items[got]?.name ?? got}を 手に入れた！`], kind: 'おたから', se: null, jingle: 'jingle_rare', onDone: done })));
+        }
         return await say(g, [`${name}は 宝箱を開けた！`, `${g.items[got]?.name ?? got}を 手に入れた！`]);
       }
       const where = SEARCH_WORDS[p.kind] ?? 'つぼ';
@@ -716,8 +727,7 @@ export class FieldScene extends Scene {
       { battle: { enemies: [id], area: 'demon' } },
       { flag: 'shadow_defeated' },
       { say: 'shadow_down' },
-      { se: 'item_get' },
-      { say: 'shadow_title' },
+      { fanfare: { text: 'shadow_title', kind: '称号', jingle: 'jingle_rare' } },
       { bgm: this.map.props.bgm ?? 'field' },
     ]);
   }
@@ -810,16 +820,64 @@ export class FieldScene extends Scene {
   }
 
   // マップに入った時、場所の名前を画面の上に2秒ほど出す
+  // 場所の名前：左からすべりこむ帯。町は金、フィールドは緑、ダンジョンは紫
   drawBanner(ctx) {
     const name = this.placeLabel;
     const t = performance.now() - this.enterAt; // 会話の途中でも消えるように、実際の時間で数える
-    if (!name || t > 2400) return;
-    const a = t < 2000 ? 1 : 1 - (t - 2000) / 400;
-    ctx.globalAlpha = Math.max(0, a);
-    const w = this.game.font.width(name) + 48;
-    drawWindow(ctx, WIDTH / 2 - w / 2, 14, w, 36);
-    this.game.font.drawCentered(ctx, name, WIDTH / 2, 24, COLORS.title);
-    ctx.globalAlpha = 1;
+    if (!name || t > 2600) return;
+    const g = this.game;
+    const kind = this.map.props.dungeon ? 'dungeon' : this.map.props.area ? 'field' : 'town';
+    const theme = { town: ['rgba(48,30,10,', '#ffd36e'], field: ['rgba(14,40,26,', '#8ae8a8'], dungeon: ['rgba(34,14,48,', '#c89aff'] }[kind];
+    const k = Math.min(1, t / 380);
+    const e = 1 - (1 - k) ** 3;
+    const alpha = t < 2100 ? 1 : Math.max(0, 1 - (t - 2100) / 500);
+    const font = g.fontBig ?? g.font;
+    const tw = font.width(name);
+    const w = Math.min(WIDTH, Math.max(320, tw + 170));
+    const h = 54;
+    const y = 22;
+    const x = Math.round(WIDTH / 2 - w / 2 - (1 - e) * WIDTH * 0.7);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    // 帯（両はしはすけていく）
+    const band = ctx.createLinearGradient(x, 0, x + w, 0);
+    band.addColorStop(0, `${theme[0]}0)`);
+    band.addColorStop(0.18, `${theme[0]}0.88)`);
+    band.addColorStop(0.82, `${theme[0]}0.88)`);
+    band.addColorStop(1, `${theme[0]}0)`);
+    ctx.fillStyle = band;
+    ctx.fillRect(x, y, w, h);
+    // 上下の細い線
+    const line = ctx.createLinearGradient(x, 0, x + w, 0);
+    line.addColorStop(0, 'rgba(0,0,0,0)');
+    line.addColorStop(0.5, theme[1]);
+    line.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = line;
+    ctx.fillRect(x, y + 3, w, 2);
+    ctx.fillRect(x, y + h - 5, w, 2);
+    // 名前の両わきのひし形
+    ctx.fillStyle = theme[1];
+    for (const dx of [-tw / 2 - 26, tw / 2 + 18]) {
+      const cx = Math.round(x + w / 2 + dx);
+      const cy = y + h / 2;
+      for (let i = 0; i < 4; i++) ctx.fillRect(cx + 4 - i, cy - 3 + i, 1 + i * 2, 1), ctx.fillRect(cx + 4 - i, cy + 3 - i, 1 + i * 2, 1);
+    }
+    // 名前（かげ付き）
+    const ty = y + Math.round((h - (font === g.fontBig ? 34 : 18)) / 2);
+    font.drawCentered(ctx, name, x + w / 2 + 2, ty + 2, '#000000');
+    font.drawCentered(ctx, name, x + w / 2, ty, '#fff6e0');
+    // 光が横切る
+    const sw = (t - 450) / 600;
+    if (sw > 0 && sw < 1) {
+      const sx = x + w * sw;
+      const gl = ctx.createLinearGradient(sx - 50, 0, sx + 50, 0);
+      gl.addColorStop(0, 'rgba(255,255,255,0)');
+      gl.addColorStop(0.5, 'rgba(255,255,255,0.28)');
+      gl.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = gl;
+      ctx.fillRect(sx - 50, y, 100, h);
+    }
+    ctx.restore();
   }
 }
 
