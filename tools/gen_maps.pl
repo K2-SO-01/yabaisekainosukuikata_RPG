@@ -167,13 +167,19 @@ sub ttree { my ($m, @at) = @_; for my $p (@at) { put($m, 'd', $p->[0], $p->[1], 
   fill($m, 'g', 0, 8, 0, 31, E(10, 6)); fill($m, 'g', 39, 8, 39, 31, E(10, 6)); fill($m, 'c', 0, 8, 0, 33, 1); fill($m, 'c', 39, 8, 39, 33, 1);
   fill($m, 'd', 0, 32, 39, 32, E(3, 7)); fill($m, 'g', 0, 33, 39, 33, E(6, 7)); fill($m, 'c', 0, 32, 39, 33, 1);
   small_tower($m, 0, 29, 33); small_tower($m, 38, 29, 33); fill($m, 'c', $_->[0], 29, $_->[0] + 1, 33, 1) for ([0], [38]);
-  for my $y (32, 33) { put($m, 'g', 19, $y, 291); put($m, 'd', 19, $y, 0); put($m, 'c', 19, $y, 0); }
+  for my $y (32, 33) { for my $x (18 .. 20) { put($m, 'g', $x, $y, 291); put($m, 'd', $x, $y, 0); put($m, 'c', $x, $y, 0); } }
+  for my $tx (16, 21) {
+    for my $dy (0, 1) { for my $dx (0, 1) { put($m, 'r', $tx + $dx, 29 + $dy, E(3 + $dy, 5 + $dx)); } }
+    put($m, 'r', $tx + $_, 31, E(3, 3 + $_)) for (0, 1);
+    put($m, 'd', $tx + $_, 32, E(4, 3 + $_)) for (0, 1);
+    put($m, 'd', $tx + $_, 33, E(6, 3 + $_)) for (0, 1);
+    fill($m, 'c', $tx, 32, $tx + 1, 33, 1); }
   # streets: the cobbled main street (castle -> gate), the cross street, the plaza; dirt paths to the doors
   fill($m, 'g', 18, 10, 20, 31, 291); fill($m, 'g', 1, 16, 38, 17, 291); fill($m, 'g', 15, 16, 23, 21, 291);
   fill($m, 'g', 3, 15, 3, 15, 6); fill($m, 'g', 33, 15, 33, 15, 6);
   fill($m, 'g', 4, 24, 14, 24, 6); fill($m, 'g', 8, 18, 8, 24, 6); fill($m, 'g', 11, 23, 11, 23, 6);
   fill($m, 'g', 27, 24, 38, 24, 6); fill($m, 'g', 32, 18, 32, 24, 6); fill($m, 'g', 35, 23, 35, 23, 6);
-  fill($m, 'g', 1, 31, 38, 31, 6); fill($m, 'g', 15, 24, 17, 24, 6); fill($m, 'g', 21, 24, 26, 24, 6);
+  fill($m, 'g', 2, 31, 37, 31, 6); fill($m, 'g', 15, 24, 17, 24, 6); fill($m, 'g', 21, 24, 26, 24, 6);
   fill($m, 'g', 1, 9, 6, 14, 6);                                               # the yard of the house by the stream
   # the castle garden: lawns, hedges, flower beds and two knight statues
   statue($m, 17, 10); statue($m, 21, 10);
@@ -224,14 +230,14 @@ sub ttree { my ($m, @at) = @_; for my $p (@at) { put($m, 'd', $p->[0], $p->[1], 
   put($m, 'd', 17, 22, 227); put($m, 'c', 17, 22, 1);
   obj($m, '井戸', 'sign', 17, 22, script => 'well_down');
   # trees along the main street and around the town, hedges between the houses
-  ttree($m, [16, 23], [16, 25], [16, 27], [16, 29], [22, 23], [22, 25], [22, 27], [22, 29], [8, 15], [29, 15], [12, 15], [25, 15],
+  ttree($m, [16, 23], [16, 25], [16, 27], [22, 23], [22, 25], [22, 27], [8, 15], [29, 15], [12, 15], [25, 15],
             [29, 8], [38, 9], [8, 26], [8, 28], [30, 26], [30, 28], [1, 15], [38, 15], [38, 23], [1, 24], [15, 30], [23, 30]);
   hedge($m, 15, 25, 15, 29);
   # a few things by the doors
-  props($m, [barrel => 5, 15], [crate => 2, 15], [barrel => 23, 22], [sacks => 37, 24],
-            [pot => 37, 15], [wood => 13, 24], [flowerpot => 15, 22], [flowerpot => 23, 23], [mail => 9, 24]);
+  props($m, [barrel => 5, 15], [crate => 2, 15], [barrel => 23, 22], [sacks => 38, 25],
+            [pot => 37, 15], [wood => 14, 25], [flowerpot => 15, 22], [flowerpot => 23, 23], [mail => 10, 23]);
   # people
-  obj($m, '町の人A', 'npc', 17, 30, character => 'town_a', dialogue => 'town_a', wander => 1);
+  obj($m, '町の人A', 'npc', 24, 30, character => 'town_a', dialogue => 'town_a', dir => 'down');
   obj($m, '町の人B', 'npc', 36, 16, character => 'town_b', dialogue => 'town_b', dir => 'down');
   obj($m, '町の人C', 'npc', 10, 24, character => 'town_c', dialogue => 'town_c', wander => 1);
   obj($m, '町の人D', 'npc', 16, 20, character => 'town_d', dialogue => 'town_d', wander => 1);
@@ -241,10 +247,10 @@ sub ttree { my ($m, @at) = @_; for my $p (@at) { put($m, 'd', $p->[0], $p->[1], 
   obj($m, '町の人I', 'npc', 17, 19, character => 'town_i', dialogue => 'town_i', dir => 'right');
   obj($m, '科学の村人', 'npc', 13, 25, character => 'science', dialogue => 'science', dir => 'down');
   obj($m, 'start', 'start', 19, 10, dir => 'down');
-  obj($m, '光の結晶', 'savepoint', 22, 20);
+  obj($m, '光の結晶', 'savepoint', 21, 22);
   obj($m, '門の兵士', 'npc', 19, 31, character => 'gate_soldier', dialogue => 'gate_before', dir => 'up', unless => 'home_event_done');
-  obj($m, '門の兵士', 'npc', 20, 30, character => 'gate_soldier', dialogue => 'gate_after', dir => 'left', if => 'home_event_done');
-  obj($m, '町の門', 'trigger', 19, 32, script => 'town_gate');
+  obj($m, '門の兵士', 'npc', 23, 31, character => 'gate_soldier', dialogue => 'gate_after', dir => 'left', if => 'home_event_done');
+  obj($m, '町の門', 'trigger', $_, 32, script => 'town_gate') for (18 .. 20);
   emit($m, "town", "城下町", "town", lift => "5,11,17", town => "town"); }
 
 # ---- the little room under the well ----

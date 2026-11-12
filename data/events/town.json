@@ -1,7 +1,9 @@
 {
   "talk_shop_weapon": [{ "shop": "town_weapon" }],
   "talk_shop_item": [{ "shop": "town_item" }],
-  "town_gate": [{ "run": "leave_town" }],
+  "town_gate": [
+    { "if": "home_event_done", "then": [{ "run": "leave_town" }], "else": [{ "say": "gate_before" }, { "playerMove": ["up"] }] }
+  ],
   "leave_town": [
     { "transfer": { "map": "field_town", "x": 18, "y": 13, "dir": "down" } }
   ],

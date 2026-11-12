@@ -117,6 +117,13 @@ export class FieldScene extends Scene {
       loc.y = m.to.y;
       this.moving = null;
       this.stepCount++;
+      if (this.moveDone) {
+        // イベントで歩かせた1歩：出口やイベントは調べない
+        const done = this.moveDone;
+        this.moveDone = null;
+        done();
+        return;
+      }
       if (this.afterStep()) return;
       if (this.checkEncounter()) return;
     }
@@ -334,6 +341,16 @@ export class FieldScene extends Scene {
       faceNpc: (name, dir) => {
         const o = this.map.objects.find((x) => x.type === 'npc' && x.name === name);
         if (o) o.facing = dir;
+      },
+      // 主人公を歩かせる（向きは変えずに、後ろへ下がることもできる）
+      movePlayer: async (dirs) => {
+        for (const dir of dirs) {
+          const to = stepTarget(this.pos, dir);
+          await new Promise((done) => {
+            this.moveDone = done;
+            this.moving = { from: { ...this.pos }, to, t: 0, dur: WALK_MS };
+          });
+        }
       },
       facePlayer: (dir) => {
         this.dir = dir;

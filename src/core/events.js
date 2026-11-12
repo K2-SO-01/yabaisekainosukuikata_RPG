@@ -19,6 +19,7 @@
 //   { "join": "luke" }                  仲間に加える
 //   { "move": { "npc": "名前", "steps": ["down", ...], "ms": 1歩の時間 } }   マップの人を歩かせる（走らせる）
 //   { "face": { "npc": "名前", "dir": "left" } } / { "playerFace": "right" }  向きを変える
+//   { "playerMove": ["up"] }            主人公を歩かせる（通せんぼで一歩戻す時など）
 import { addGold, addKeyItem } from './state.js';
 
 export function checkCond(state, cond) {
@@ -67,5 +68,6 @@ export async function runScript(commands, ctx) {
     else if ('move' in cmd) await ui.moveNpc(cmd.move.npc, cmd.move.steps ?? [], cmd.move.ms);
     else if ('face' in cmd) ui.faceNpc(cmd.face.npc, cmd.face.dir);
     else if ('playerFace' in cmd) ui.facePlayer(cmd.playerFace);
+    else if ('playerMove' in cmd) await ui.movePlayer(cmd.playerMove);
   }
 }
