@@ -258,9 +258,10 @@ export class FieldScene extends Scene {
     return false;
   }
 
-  // ---- エンカウント（フィールドとダンジョンだけ。30〜40歩に1回くらい） ----
+  // ---- エンカウント（フィールドとダンジョンだけ。30〜40歩に1回くらい。長い城はエリアの steps で少なめ） ----
   resetEncounter() {
-    this.encSteps = 30 + Math.floor(Math.random() * 11);
+    const [lo, hi] = this.game.enemies?.areas?.[this.map?.props.area]?.steps ?? [30, 40];
+    this.encSteps = lo + Math.floor(Math.random() * (hi - lo + 1));
   }
 
   checkEncounter() {

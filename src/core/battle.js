@@ -588,8 +588,9 @@ function endOfTurn(b) {
 
 function checkEnd(b) {
   if (b.result) return true;
-  if (!living(b.enemies).length) b.result = 'win';
-  else if (!living(b.allies).length) b.result = 'lose';
+  // 味方が全員倒れたら、同時に敵がいなくなっても（ばくはつ など）全滅
+  if (!living(b.allies).length) b.result = 'lose';
+  else if (!living(b.enemies).length) b.result = 'win';
   if (b.result && b.result !== 'lose') endBattleAilments(b);
   return !!b.result;
 }

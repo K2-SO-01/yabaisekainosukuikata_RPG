@@ -17,6 +17,7 @@ export class DevPanel {
         <button data-cmd="touch">画面ボタンを出す／隠す</button>
         <button data-cmd="saves">セーブを全部消す</button>
         <button data-cmd="settings">設定を初期値にする</button>
+        <button data-cmd="bot">バランス確認ボット</button>
         <button data-cmd="hide">この窓を小さく</button>
       </div>
       <div>曲を聞く：<select class="bgmlist"></select>
@@ -33,7 +34,9 @@ export class DevPanel {
 
   command(cmd) {
     const g = this.game;
-    if (cmd === 'touch') {
+    if (cmd === 'bot') {
+      window.open('tools/bot.html', '_blank');
+    } else if (cmd === 'touch') {
       g.screen.forceTouch = !g.screen.forceTouch;
       g.screen.layout();
     } else if (cmd === 'saves') {

@@ -1,6 +1,6 @@
 # Writes data/enemies.json: the areas (which enemies appear, battle background, where you go when the party falls),
-# every enemy and boss, and their techniques. Numbers are provisional until stage 8 (balance).
-# Bosses: the plan's table (chapter 4-3) with attack and magic x1.5, as the plan says to start testing with.
+# every enemy and boss, and their techniques. Numbers were tuned in stage 8 with the balance bot (tools/bot.html).
+# steps: how many steps between battles in that area (default 30-40; the long castles use 45-60).
 # Run from the project root:  perl tools/gen_enemies.pl
 use strict; use warnings; use utf8;
 my $M = 'assets/monsters/Pipoya RPG Monster Pack/shade';
@@ -14,42 +14,42 @@ my @areas = (
   lake => { enemies => [qw(merfish aqua_spirit doronuman)], bg => ['#6fa9d6', '#cfe8f3'], home => [$INN{water}, $HOME_TOWN] },
   tower => { enemies => [qw(wind_spirit mini_tornado dash_ostrich)], bg => ['#a7d8c9', '#eef7e6'], home => [$INN{wind}, $INN{water}, $HOME_TOWN] },
   volcano => { enemies => [qw(flame_spirit chibi_salamander homuran)], bg => ['#e08a5a', '#f6d9b8'], home => [$INN{fire}, $INN{wind}, $INN{water}, $HOME_TOWN] },
-  storm => { enemies => [qw(thunder_spirit lost_soldier utsuro)], bg => ['#5e6688', '#c9cde0'], home => [$INN{thunder}, $INN{fire}, $INN{wind}, $INN{water}, $HOME_TOWN] },
-  demon => { enemies => [qw(dark_knight arch_demon gargoyle)], bg => ['#3a2a4a', '#9a88a8'], home => [$INN{thunder}, $INN{fire}, $INN{wind}, $INN{water}, $HOME_TOWN] },
+  storm => { steps => [45, 60], enemies => [qw(thunder_spirit lost_soldier utsuro)], bg => ['#5e6688', '#c9cde0'], home => [$INN{thunder}, $INN{fire}, $INN{wind}, $INN{water}, $HOME_TOWN] },
+  demon => { steps => [45, 60], enemies => [qw(dark_knight arch_demon gargoyle)], bg => ['#3a2a4a', '#9a88a8'], home => [$INN{thunder}, $INN{fire}, $INN{wind}, $INN{water}, $HOME_TOWN] },
 );
 # name, image, hp, atk, def, spd, mat, element, exp, gold, drop, actions, extra
 my @enemies = (
-  [blue_slime => 'ブルースライム', "$M/pipo-enemy009.png", 22, 9, 14, 5, 3, 'none', 12, [25, 45], 'slime_goo', [qw(attack purupuru_guard)]],
-  [green_slime => 'グリーンスライム', "$X/slime_green.png", 18, 10, 6, 13, 3, 'none', 12, [25, 45], 'slime_goo', [qw(attack pyonpyon_attack)]],
-  [red_slime => 'レッドスライム', "$X/slime_red.png", 18, 6, 6, 8, 11, 'none', 12, [25, 45], 'slime_goo', [qw(small_fire hinoko_ame)]],
-  [nitaridake => 'ニタリダケ', "$M/pipo-enemy008.png", 24, 10, 8, 7, 5, 'none', 12, [25, 45], 'nitari_cap', [qw(attack nemuri_houshi)]],
-  [merfish => 'マーフィッシュ', "$M/pipo-enemy042.png", 44, 11, 11, 10, 8, 'water', 57, [100, 140], 'rainbow_scale', [qw(poison_bite mizushibuki)]],
-  [aqua_spirit => 'アクアスピリット', "$M/pipo-enemy046a.png", 38, 6, 10, 11, 17, 'water', 57, [100, 140], 'drop_crystal', [qw(sleep_song shizuku_ya)]],
-  [doronuman => 'ドロヌマン', "$M/pipo-enemy017.png", 52, 12, 14, 6, 4, 'water', 57, [100, 140], 'mud_ball', [qw(attack dorodango)]],
-  [wind_spirit => 'ウィンドスピリット', "$M/pipo-enemy029a.png", 100, 12, 14, 24, 25, 'wind', 108, [200, 300], 'wind_crystal', [qw(wind_confuse tsumujikaze)]],
-  [mini_tornado => 'ミニトルネード', "$M/pipo-enemy012a.png", 105, 24, 16, 20, 22, 'wind', 108, [200, 300], 'leaf', [qw(wind_confuse makikomi)]],
-  [dash_ostrich => 'ダッシュダチョウ', $OST, 120, 27, 15, 30, 5, 'wind', 108, [200, 300], 'ostrich_feather', [qw(swift_kick kakenuke)]],
-  [flame_spirit => 'フレイムスピリット', "$M/pipo-enemy013.png", 120, 12, 26, 14, 30, 'fire', 186, [300, 400], 'flame_crystal', [qw(fire_bolt hibashira)]],
-  [chibi_salamander => 'ちびサラマンダー', "$M/pipo-enemy016b.png", 130, 22, 28, 12, 28, 'fire', 186, [300, 400], 'warm_tail', [qw(fire_burn tail_slap)]],
-  [homuran => 'ホムラン', "$M/pipo-enemy012.png", 110, 24, 24, 13, 10, 'fire', 186, [300, 400], 'burnt_stone', [qw(fire_tackle bakuhatsu)]],
-  [thunder_spirit => 'サンダースピリット', "$M/pipo-enemy029b.png", 140, 15, 32, 24, 34, 'thunder', 303, [300, 400], 'bolt_crystal', [qw(bolt_paralyze raimei_small)]],
-  [lost_soldier => 'ロストソルジャー', "$M/pipo-enemy039.png", 175, 34, 40, 18, 8, 'thunder', 303, [300, 400], 'rusty_helm', [qw(sword_attack cover_others)]],
-  [utsuro => 'ウツロ', "$M/pipo-enemy010.png", 120, 30, 30, 22, 20, 'thunder', 303, [300, 400], 'nameless_letter', [qw(attack search_name)], { physImmune => \1, immune => ['poison', 'burn'] }],
-  [dark_knight => 'ダークナイト', "$M/pipo-enemy018b.png", 190, 40, 50, 24, 10, 'dark', 414, [300, 400], 'iron_shard', [qw(attack dark_sword)]],
-  [arch_demon => 'アークデーモン', "$M/pipo-enemy024.png", 180, 34, 42, 26, 40, 'dark', 414, [300, 400], 'demon_horn', [qw(attack dark_flame)]],
-  [gargoyle => 'ガーゴイル', "$M/pipo-enemy040b.png", 170, 38, 46, 30, 10, 'dark', 414, [300, 400], 'stone_wing', [qw(attack dive)]],
+  [blue_slime => 'ブルースライム', "$M/pipo-enemy009.png", 15, 8, 14, 5, 3, 'none', 10, [20, 35], 'slime_goo', [qw(attack purupuru_guard)]],
+  [green_slime => 'グリーンスライム', "$X/slime_green.png", 13, 8, 6, 13, 3, 'none', 10, [20, 35], 'slime_goo', [qw(attack pyonpyon_attack)]],
+  [red_slime => 'レッドスライム', "$X/slime_red.png", 13, 6, 6, 8, 9, 'none', 10, [20, 35], 'slime_goo', [qw(small_fire hinoko_ame)]],
+  [nitaridake => 'ニタリダケ', "$M/pipo-enemy008.png", 16, 8, 8, 7, 5, 'none', 10, [20, 35], 'nitari_cap', [qw(attack nemuri_houshi)]],
+  [merfish => 'マーフィッシュ', "$M/pipo-enemy042.png", 21, 8, 11, 10, 8, 'water', 15, [50, 70], 'rainbow_scale', [qw(poison_bite mizushibuki)]],
+  [aqua_spirit => 'アクアスピリット', "$M/pipo-enemy046a.png", 18, 6, 10, 11, 11, 'water', 15, [50, 70], 'drop_crystal', [qw(sleep_song shizuku_ya)]],
+  [doronuman => 'ドロヌマン', "$M/pipo-enemy017.png", 24, 10, 14, 6, 4, 'water', 15, [50, 70], 'mud_ball', [qw(attack dorodango)]],
+  [wind_spirit => 'ウィンドスピリット', "$M/pipo-enemy029a.png", 48, 12, 14, 24, 14, 'wind', 18, [80, 110], 'wind_crystal', [qw(wind_confuse tsumujikaze)]],
+  [mini_tornado => 'ミニトルネード', "$M/pipo-enemy012a.png", 50, 14, 16, 20, 12, 'wind', 18, [80, 110], 'leaf', [qw(wind_confuse makikomi)]],
+  [dash_ostrich => 'ダッシュダチョウ', $OST, 54, 15, 15, 30, 5, 'wind', 18, [80, 110], 'ostrich_feather', [qw(swift_kick kakenuke)]],
+  [flame_spirit => 'フレイムスピリット', "$M/pipo-enemy013.png", 81, 12, 26, 24, 32, 'fire', 65, [120, 160], 'flame_crystal', [qw(fire_bolt hibashira)]],
+  [chibi_salamander => 'ちびサラマンダー', "$M/pipo-enemy016b.png", 88, 32, 28, 22, 32, 'fire', 65, [120, 160], 'warm_tail', [qw(fire_burn tail_slap)]],
+  [homuran => 'ホムラン', "$M/pipo-enemy012.png", 75, 32, 24, 23, 10, 'fire', 65, [120, 160], 'burnt_stone', [qw(fire_tackle bakuhatsu)]],
+  [thunder_spirit => 'サンダースピリット', "$M/pipo-enemy029b.png", 95, 13, 32, 36, 42, 'thunder', 60, [120, 150], 'bolt_crystal', [qw(bolt_paralyze raimei_small)]],
+  [lost_soldier => 'ロストソルジャー', "$M/pipo-enemy039.png", 118, 44, 40, 30, 7, 'thunder', 60, [120, 150], 'rusty_helm', [qw(sword_attack cover_others)]],
+  [utsuro => 'ウツロ', "$M/pipo-enemy010.png", 41, 35, 30, 34, 32, 'thunder', 60, [120, 150], 'nameless_letter', [qw(attack search_name)], { physImmune => \1, immune => ['poison', 'burn'] }],
+  [dark_knight => 'ダークナイト', "$M/pipo-enemy018b.png", 176, 70, 50, 40, 9, 'dark', 140, [150, 200], 'iron_shard', [qw(attack dark_sword)]],
+  [arch_demon => 'アークデーモン', "$M/pipo-enemy024.png", 169, 60, 42, 42, 69, 'dark', 140, [150, 200], 'demon_horn', [qw(attack dark_flame)]],
+  [gargoyle => 'ガーゴイル', "$M/pipo-enemy040b.png", 162, 67, 46, 46, 9, 'dark', 140, [150, 200], 'stone_wing', [qw(attack dive)]],
   # bosses
-  [boss_water => '水の四天王', "$X/boss_water_temp.png", 360, 15, 18, 12, 26, 'water', 285, [400, 400], undef, [qw(aqua_splash madoromi poison_scale)],
+  [boss_water => '水の四天王', "$X/boss_water_temp.png", 300, 15, 18, 12, 22, 'water', 100, [400, 400], undef, [qw(aqua_splash madoromi poison_scale)],
     { boss => \1, acts => 1, special => 'royal_tidal', chargeText => '水の四天王「おーっほっほっほ!」', immune => ['poison'], bgm => 'boss' }],
-  [boss_wind => '風の四天王', $OST, 910, 39, 25, 40, 18, 'wind', 540, [800, 800], undef, [qw(dash_kick sonic_boom memai)],
+  [boss_wind => '風の四天王', $OST, 910, 23, 25, 40, 18, 'wind', 120, [800, 800], undef, [qw(dash_kick sonic_boom memai)],
     { boss => \1, acts => 1, first => \1, special => 'mach_rampage', chargeText => '風の四天王「計算中…」', bgm => 'boss' }],
-  [boss_fire => '炎の四天王', "$M/pipo-enemy019.png", 1070, 30, 45, 12, 9, 'fire', 930, [1500, 1500], undef, [qw(burning_knuckle muscle_tackle)],
+  [boss_fire => '炎の四天王', "$M/pipo-enemy019.png", 1070, 30, 45, 12, 9, 'fire', 300, [1500, 1500], undef, [qw(burning_knuckle muscle_tackle)],
     { boss => \1, acts => 2, special => 'inferno_blow', chargeText => '炎の四天王は 筋肉を 見せつけている！', immune => ['burn'], bgm => 'boss' }],
-  [boss_thunder => '雷の四天王', "$M/pipo-enemy026.png", 1280, 40, 54, 30, 40, 'thunder', 1515, [2500, 2500], undef, [qw(boss_lightning_slash boss_lightning_bolt)],
+  [boss_thunder => '雷の四天王', "$M/pipo-enemy026.png", 1500, 31, 54, 30, 31, 'thunder', 350, [2500, 2500], undef, [qw(boss_lightning_slash boss_lightning_bolt)],
     { boss => \1, acts => 2, special => 'raimeizan', chargeText => '雷の四天王は 無言で 剣を構えた…', bgm => 'boss_storm', noJingle => \1 }],
-  [demon1 => '魔王', "$M/pipo-enemy043.png", 1230, 38, 69, 35, 58, 'dark', 0, [0, 0], undef, [qw(dark_bolt nightmare)],
+  [demon1 => '魔王', "$M/pipo-enemy043.png", 2300, 22, 69, 35, 33, 'dark', 0, [0, 0], undef, [qw(dark_bolt nightmare)],
     { boss => \1, acts => 2, special => 'end_of_light', chargeText => '魔王「…絶望するがよい」', next => 'demon2', transformTalk => 'demon_transform', bgm => 'demon1', big => 1.25 }],
-  [demon2 => '魔王', "$M/pipo-enemy044b.png", 1530, 54, 75, 30, 30, 'dark', 0, [0, 0], undef, [qw(dragon_claw tail_sweep dark_breath)],
+  [demon2 => '魔王', "$M/pipo-enemy044b.png", 2100, 32, 75, 30, 30, 'dark', 0, [0, 0], undef, [qw(dragon_claw tail_sweep dark_breath)],
     { boss => \1, acts => 3, special => 'abyss_flare', specialPlus => \1, chargeText => '魔王は 翼を 大きく広げた！', bgm => 'demon2', noJingle => \1, big => 1.25 }],
 );
 # id => name, kind, element, power, target, text, extra

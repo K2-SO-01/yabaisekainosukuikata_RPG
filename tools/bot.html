@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>バランス確認ボット</title>
+<style>
+  body { font: 13px/1.5 sans-serif; margin: 16px; background: #fff; color: #222; }
+  table { border-collapse: collapse; margin: 8px 0 20px; }
+  th, td { border: 1px solid #bbb; padding: 2px 6px; text-align: right; white-space: nowrap; }
+  th { background: #eef; }
+  td.l, th.l { text-align: left; }
+  .ng { background: #fdd; }
+  .ok { background: #dfd; }
+  textarea { width: 100%; height: 160px; font: 11px monospace; }
+</style>
+</head>
+<body>
+<h1>バランス確認ボット（企画書14章）</h1>
+<p>ゲームの戦闘のルール（src/core/battle.js）をそのまま使い、4通りの主人公 × いろいろな遊び方で、最初から魔王までを自動で遊ばせます。</p>
+<div>
+  回数（1つの組み合わせあたり）：<input id="runs" type="number" value="20" min="1" style="width:60px">
+  <button id="go">実行</button>
+  <span id="status"></span>
+</div>
+<div id="out"></div>
+<h3>CSV</h3>
+<textarea id="csv"></textarea>
+<script type="module" src="bot.js"></script>
+</body>
+</html>
