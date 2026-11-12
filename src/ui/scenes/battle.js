@@ -54,10 +54,11 @@ export class BattleScene extends Scene {
       const img = g.assets.image(`enemy:${e.id}`);
       const box = img ? alphaBox(img) : { x: 0, y: 0, w: 100, h: 100 };
       const s = Math.min(0.75, 130 / box.h, 150 / box.w) * (this.boss ? 1.5 : 1);
-      const w = box.w * s;
-      const h = box.h * s;
-      const cx = WIDTH / 2 + 45 + (i - (n - 1) / 2) * 150; // 左のコマンドの窓に重ならないよう、少し右に寄せる
-      return { img, box, x: cx - w / 2, y: GROUND_Y - h, w, h, cx };
+      const w = Math.round(box.w * s);
+      const h = Math.round(box.h * s);
+      const cx = Math.round(WIDTH / 2 + 45 + (i - (n - 1) / 2) * 150); // 左のコマンドの窓に重ならないよう、少し右に寄せる
+      const pic = img ? shrink(img, box, w, h, g.screen.renderScale || 1) : null;
+      return { img, pic, box, x: cx - Math.round(w / 2), y: GROUND_Y - h, w, h, cx };
     });
   }
 
@@ -84,6 +85,7 @@ export class BattleScene extends Scene {
       const e = this.queue.shift();
       const fast = g.settings.animSpeed === 1;
       if (e.t === 'msg') {
+        this.prevText = this.text && this.text !== e.text ? this.text : '';
         this.text = e.text;
         this.waitT = this.msgDelay();
         return;
@@ -122,6 +124,7 @@ export class BattleScene extends Scene {
     if (b.result) return this.finish();
     planEnemies(b);
     this.text = '';
+    this.prevText = '';
     this.commands = [];
     this.who = -1;
     this.nextActor(1);
@@ -144,7 +147,7 @@ export class BattleScene extends Scene {
     return this.b.allies.findIndex((u) => alive(u) && !mustSkipInput(u));
   }
 
-  openCommandMenu(index = 0) {
+  openCommandMenu(index = this.memory?.[this.who]?.cmd ?? 0) {
     const u = this.b.allies[this.who];
     this.phase = 'command';
     this.menu = new Menu({
@@ -238,6 +241,8 @@ export class BattleScene extends Scene {
     const u = this.b.allies[this.who];
     const v = r.item.value;
     this.cmdIndex = this.menu.index;
+    this.memory ??= [];
+    this.memory[this.who] = { ...(this.memory[this.who] ?? {}), cmd: this.menu.index };
     if (v === 'attack') return this.chooseTarget('enemy', (t) => this.setCommand({ type: 'attack', target: t }));
     if (v === 'guard') return this.setCommand({ type: 'guard' });
     if (v === 'escape') {
@@ -251,7 +256,7 @@ export class BattleScene extends Scene {
       if (!ids.length) return this.notice('まだ 何も覚えていない。', 1);
       this.list = new ListMenu({
         items: ids.map((id) => ({ label: g.skills[id].name, right: `MP ${g.skills[id].mp}`, value: id, disabled: g.skills[id].mp > u.m.mp })),
-        x: 166, y: 56, w: 300, rows: 6,
+        x: 166, y: 56, w: 300, rows: 6, index: Math.max(0, ids.indexOf(this.memory?.[this.who]?.skill)),
       });
       this.listKind = 'skill';
       this.phase = 'list';
@@ -289,6 +294,7 @@ export class BattleScene extends Scene {
     if (!r || r.type === 'move') return;
     if (r.type === 'cancel') return this.openCommandMenu(this.cmdIndex);
     const id = r.item.value;
+    this.memory[this.who][this.listKind] = id;
     if (this.listKind === 'skill') {
       const sk = g.skills[id];
       const target = sk.target;
@@ -308,6 +314,10 @@ export class BattleScene extends Scene {
     const candidates = list.filter(ok).map((u) => u.index);
     if (!candidates.length) {
       this.game.audio.playSe('buzzer');
+      return;
+    }
+    if (candidates.length === 1 && kind === 'enemy') {
+      done(candidates[0]); // 敵が1体だけなら、選ばずにそのまま決める
       return;
     }
     this.target = { kind, candidates, pos: 0, done, back };
@@ -410,7 +420,11 @@ export class BattleScene extends Scene {
       ctx.globalAlpha = 1;
     }
     this.drawFrames(ctx);
-    if (this.text) {
+    if (this.text && this.phase === 'play' && this.prevText) {
+      drawWindow(ctx, 8, 8, WIDTH - 16, 64);
+      g.font.draw(ctx, this.prevText, 24, 18, COLORS.textDim);
+      g.font.draw(ctx, this.text, 24, 42, COLORS.text);
+    } else if (this.text) {
       drawWindow(ctx, 8, 8, WIDTH - 16, 40);
       g.font.draw(ctx, this.text, 24, 20, COLORS.text);
     }
@@ -439,7 +453,7 @@ export class BattleScene extends Scene {
       const appear = Math.min(1, this.introT / 300);
       ctx.globalAlpha = appear * (f.fade > 0 ? Math.max(0, 1 - (f.fade - 1)) : 1);
       if (f.flash > 0 && Math.floor(f.flash / 60) % 2 === 0) ctx.globalAlpha *= 0.25;
-      if (box.img) ctx.drawImage(box.img, box.box.x, box.box.y, box.box.w, box.box.h, Math.round(box.x), Math.round(box.y), Math.round(box.w), Math.round(box.h));
+      if (box.pic) ctx.drawImage(box.pic, box.x, box.y, box.w, box.h);
       ctx.globalAlpha = 1;
       if (!alive(e)) return;
       // HPゲージ（数字は出さない）
@@ -472,7 +486,7 @@ export class BattleScene extends Scene {
     const asleep = has(e, 'sleep');
     const faces = asleep || it.targets === 'self' ? [] : it.targets === 'all' ? this.b.allies.map((u) => u.index) : it.targets;
     const iconW = asleep ? 36 : it.ailment && it.icon !== 'skull' ? 44 : 22;
-    const faceW = faces.length > 1 ? 18 : 24;
+    const faceW = 21;
     const w = 12 + iconW + faces.length * (faceW + 2);
     const h = 32;
     const x = Math.round(box.cx - w / 2);
@@ -506,12 +520,9 @@ export class BattleScene extends Scene {
     }
     for (const idx of faces) {
       const u = this.b.allies[idx];
-      const face = g.faces.get(faceKey(g, u.m));
-      if (face) {
-        ctx.globalAlpha = alive(u) ? 1 : 0.35;
-        ctx.drawImage(face, ix, y + (h - faceW) / 2, faceW, faceW);
-        ctx.globalAlpha = 1;
-      }
+      ctx.globalAlpha = alive(u) ? 1 : 0.35;
+      drawFace(ctx, g, u.m, ix, y + Math.round((h - faceW) / 2), 1);
+      ctx.globalAlpha = 1;
       ix += faceW + 2;
     }
   }
@@ -532,12 +543,9 @@ export class BattleScene extends Scene {
       }
       const s = totalStats(m, g.items);
       const down = isDown(m);
-      const face = g.faces.get(faceKey(g, m));
-      if (face) {
-        ctx.globalAlpha = down ? 0.35 : 1;
-        ctx.drawImage(face, r.x + sh + 12, r.y + 12, 42, 42);
-        ctx.globalAlpha = 1;
-      }
+      ctx.globalAlpha = down ? 0.35 : 1;
+      drawFace(ctx, g, m, r.x + sh + 12, r.y + 12, 2);
+      ctx.globalAlpha = 1;
       const tx = r.x + sh + 62;
       g.font.draw(ctx, u.name, tx, r.y + 10, down ? DOWN_RED : COLORS.title);
       g.font.draw(ctx, `HP ${m.hp}/${s.hp}`, tx, r.y + 32, COLORS.text);
@@ -584,6 +592,42 @@ export class BattleScene extends Scene {
 }
 
 // ---- 小さな絵 ----
+// 顔のアイコン：歩く絵の顔（21×21）を、整数倍のまま描く（ドット絵の粒の大きさをそろえる）
+function drawFace(ctx, g, m, x, y, scale) {
+  const img = g.assets.image(`char:${faceKey(g, m)}`);
+  const size = 21 * scale;
+  ctx.fillStyle = '#f3e3c5';
+  ctx.fillRect(x, y, size, size);
+  if (img) ctx.drawImage(img, 37, 2, 21, 21, x, y, size, size);
+}
+
+// 大きな絵（480×480）を、表示する大きさまで半分ずつ縮める（なめらかに縮めて、ギザギザやちらつきを防ぐ）
+function shrink(img, box, w, h, renderScale) {
+  let src = document.createElement('canvas');
+  src.width = box.w;
+  src.height = box.h;
+  src.getContext('2d').drawImage(img, box.x, box.y, box.w, box.h, 0, 0, box.w, box.h);
+  const tw = Math.max(1, Math.round(w * renderScale));
+  const th = Math.max(1, Math.round(h * renderScale));
+  while (src.width / 2 >= tw && src.height / 2 >= th) {
+    const half = document.createElement('canvas');
+    half.width = Math.round(src.width / 2);
+    half.height = Math.round(src.height / 2);
+    const c = half.getContext('2d');
+    c.imageSmoothingEnabled = true;
+    c.imageSmoothingQuality = 'high';
+    c.drawImage(src, 0, 0, half.width, half.height);
+    src = half;
+  }
+  const out = document.createElement('canvas');
+  out.width = tw;
+  out.height = th;
+  const c = out.getContext('2d');
+  c.imageSmoothingEnabled = true;
+  c.imageSmoothingQuality = 'high';
+  c.drawImage(src, 0, 0, tw, th);
+  return out;
+}
 function faceKey(g, m) {
   if (m.id !== 'hero') return m.id;
   const p = g.state.player;
