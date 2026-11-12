@@ -239,10 +239,11 @@ sub counter2 { my ($m, $x0, $x1, $y) = @_; put($m, 'd', $x0, $y, 758); put($m, '
   my $mount = sub { my ($x0, $y0, $x1, $y1, $snow) = @_; for my $y ($y0 .. $y1) { for my $x ($x0 .. $x1) {
     my $v = ($x * 7 + $y * 13) % 5; my $c = $snow && $v == 0 ? 2 : ($v % 2);
     put($m, 'd', $x, $y, E(10, $c)); put($m, 'c', $x, $y, 1); } } };
-  # forests (walkable), laid the way the tileset is meant to be: trees overlap by half a tile.
-  # top row = treetops (9/10), middle rows = one tree's bottom with the next tree's top (33/34), bottom row = trunks (17/18)
-  my $forest = sub { my ($x0, $y0, $x1, $y1) = @_; for my $y ($y0 .. $y1) { for my $x ($x0 .. $x1) { my $k = ($x - $x0) % 2;
-    put($m, 'd', $x, $y, ($y == $y0 ? 9 : $y == $y1 ? 17 : 33) + $k); } } };
+  # forests (walkable): one-tile groves of small round trees drawn for this game (extra sheet row 11, c0/c1).
+  # every tree sits inside its own tile, so a forest never shows a cut tree; the two groves are mixed so it doesn't look stamped
+  my $forest = sub { my ($x0, $y0, $x1, $y1) = @_; for my $y ($y0 .. $y1) { for my $x ($x0 .. $x1) {
+    put($m, 'd', $x, $y, E(11, (($x * 7 + $y * 13) % 3) == 0 ? 1 : 0)); } } };
+
 
   $mount->(0, 0, 59, 2, 1); $mount->(0, 37, 59, 39, 0); $mount->(0, 0, 2, 39, 1);
   $mount->(57, 0, 59, 17, 1); $mount->(57, 22, 59, 39, 0); $mount->(54, 15, 56, 17, 0); $mount->(54, 22, 56, 24, 0);
@@ -252,6 +253,7 @@ sub counter2 { my ($m, $x0, $x1, $y) = @_; put($m, 'd', $x0, $y, 758); put($m, '
   water($m, [39, 3, 41, 36], [42, 9, 44, 12], [15, 13, 19, 15]);
   bridge($m, 39, 19, 'ew');
   # hills and flowers
+  put($m, 'd', $_->[0], $_->[1], E(11, 2)) for ([24, 17], [35, 11], [11, 15], [46, 34], [33, 22], [21, 29], [50, 20]);
   put($m, 'd', $_->[0], $_->[1], E(10, 3)) for ([22, 22], [33, 13], [12, 11], [46, 20], [50, 27], [24, 27], [8, 26], [35, 24], [52, 9]);
   put($m, 'd', $_->[0], $_->[1], 53) for ([27, 21], [32, 16], [44, 17], [21, 13], [10, 15], [37, 27]);
   put($m, 'd', $_->[0], $_->[1], 56) for ([25, 15], [47, 23], [9, 24], [31, 25]);

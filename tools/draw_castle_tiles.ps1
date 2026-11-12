@@ -413,6 +413,37 @@ for ($y = 0; $y -lt 32; $y++) { for ($x = 0; $x -lt 32; $x++) {
   P (224 + $x) (320 + $y) $c
 } }
 
+
+# ---- world-map forest (row 11): c0 and c1 are two groves of small round trees, each fully inside its tile,
+#      c2 is a single small tree. Nothing crosses the tile edge, so a forest never shows a cut tree ----
+$leaf = '#3e6a2a', '#5a8a35', '#7fb247', '#a6d36a', '#cdeb98' | ForEach-Object { Hex $_ }
+$bark = '#5b3d24', '#7a5634' | ForEach-Object { Hex $_ }
+$shadowC = [System.Drawing.Color]::FromArgb(70, 30, 50, 20)
+function SmallTree($ox, $oy, [double]$cx, [double]$cy, [double]$r) {
+  # shadow on the ground, then the trunk, then the round crown with light from the upper left
+  for ($y = [int]($cy + $r - 2); $y -le [int]($cy + $r + 3); $y++) { for ($x = [int]($cx - $r + 1); $x -le [int]($cx + $r - 1); $x++) {
+    $dx = ($x + 0.5 - $cx) / ($r - 0.5); $dy = ($y + 0.5 - ($cy + $r + 0.5)) / 2.6
+    if ($dx * $dx + $dy * $dy -le 1 -and $x -ge 0 -and $x -lt 32 -and $y -ge 0 -and $y -lt 32) { P ($ox + $x) ($oy + $y) $shadowC }
+  } }
+  for ($y = [int]($cy + $r * 0.55); $y -le [int]($cy + $r + 1); $y++) { for ($x = [int]($cx - 1); $x -le [int]($cx + 1); $x++) {
+    if ($y -lt 32) { P ($ox + $x) ($oy + $y) $(if ($x -le [int]$cx - 1) { $bark[1] } else { $bark[0] }) }
+  } }
+  for ($y = [int]($cy - $r); $y -le [int]($cy + $r); $y++) { for ($x = [int]($cx - $r); $x -le [int]($cx + $r); $x++) {
+    $dx = $x + 0.5 - $cx; $dy = $y + 0.5 - $cy
+    $d = [Math]::Sqrt($dx * $dx + $dy * $dy) / $r
+    if ($d -gt 1 -or $x -lt 0 -or $x -ge 32 -or $y -lt 0 -or $y -ge 32 -or ($y + 0.5 -gt $cy + $r * 0.62 -and [Math]::Abs($dx) -lt 1.5 -and $d -gt 0.9)) { continue }
+    $light = (-$dx * 0.6 - $dy * 0.8) / $r   # toward the upper left
+    $s = 2
+    if ($d -gt 0.86) { $s = 0 } elseif ($light -gt 0.45 -and $d -lt 0.7) { $s = 4 } elseif ($light -gt 0.1) { $s = 3 } elseif ($light -lt -0.45) { $s = 1 }
+    # a little leaf texture
+    if ($s -ge 2 -and (($x * 5 + $y * 3) % 7) -eq 0) { $s-- }
+    P ($ox + $x) ($oy + $y) $leaf[$s]
+  } }
+}
+SmallTree 0 352 9.0 9.0 7.5;  SmallTree 0 352 23.0 8.0 7.5;  SmallTree 0 352 8.0 22.5 7.5;  SmallTree 0 352 23.5 23.0 7.5
+SmallTree 32 352 8.5 8.0 7.0; SmallTree 32 352 23.5 10.0 7.5; SmallTree 32 352 15.5 22.5 8.5
+SmallTree 64 352 15.5 13.0 10.5
+
 $out = Join-Path $outDir 'castle_extra.png'
 $bmp.Save($out, [System.Drawing.Imaging.ImageFormat]::Png)
 $bmp.Dispose()
