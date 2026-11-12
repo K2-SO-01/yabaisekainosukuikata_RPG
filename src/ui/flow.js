@@ -55,7 +55,7 @@ export function pickMember(g, { filter = () => true, x = 24, y = 24, index = 0 }
       right: `HP ${m.hp}/${s.hp}  MP ${m.mp}/${s.mp}`,
       value: i,
       disabled: !filter(m),
-      color: isDown(m) ? '#c0392b' : undefined,
+      color: isDown(m) ? '#ff6a5a' : undefined,
     };
   });
   return pick(g, { items, x, y, w: 300, rows: items.length, index });

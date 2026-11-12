@@ -18,7 +18,7 @@ const FRAME_Y = 280;
 const FRAME_H = 76;
 const GROUND_Y = 192;
 const MSG_Y = 229; // 戦いの文の窓
-const DOWN_RED = '#c0392b';
+const DOWN_RED = '#ff6a5a';
 
 export class BattleScene extends Scene {
   // enemyIds：出てくる敵、area：data/enemies.json の areas の名前、onEnd(result)：戦闘が終わった時
@@ -886,16 +886,16 @@ export class BattleScene extends Scene {
       const tx = x + 62;
       const nx = g.font.draw(ctx, u.name, tx, y + 8, down ? DOWN_RED : COLORS.title);
       g.font.draw(ctx, `Lv${m.level}`, nx + 8, y + 8, COLORS.textDim);
-      g.font.draw(ctx, `HP ${Math.max(0, Math.round(d.hp))}/${s.hp}`, tx, y + 28, low ? '#c0392b' : COLORS.text);
+      g.font.draw(ctx, `HP ${Math.max(0, Math.round(d.hp))}/${s.hp}`, tx, y + 28, low ? '#ff6a5a' : COLORS.text);
       const gw = r.w - 78;
-      ctx.fillStyle = '#d8c8a8';
+      ctx.fillStyle = '#0a0e22';
       ctx.fillRect(tx, y + 48, gw, 5);
       ctx.fillStyle = '#ffd38a';
       ctx.fillRect(tx, y + 48, Math.round((gw * Math.max(0, Math.max(d.hp, d.lag ?? d.hp))) / s.hp), 5);
       ctx.fillStyle = d.hp / s.hp < 0.25 ? '#e85a4f' : '#5fbf6a';
       ctx.fillRect(tx, y + 48, Math.round((gw * Math.max(0, d.hp)) / s.hp), 5);
       g.font.draw(ctx, `MP ${Math.max(0, Math.round(d.mp))}`, tx, y + 56, COLORS.text);
-      ctx.fillStyle = '#d8c8a8';
+      ctx.fillStyle = '#0a0e22';
       ctx.fillRect(tx + 64, y + 63, gw - 64, 3);
       ctx.fillStyle = '#5a8ae8';
       ctx.fillRect(tx + 64, y + 63, Math.round(((gw - 64) * Math.max(0, d.mp)) / Math.max(1, s.mp)), 3);
@@ -908,7 +908,7 @@ export class BattleScene extends Scene {
       let bx = x + r.w - 46;
       for (const [k, n] of Object.entries(u.buffs)) {
         const up = k !== 'defDown';
-        g.font.draw(ctx, `${BUFF_LABEL[k]}${up ? '↑' : '↓'}${n}`, bx, y + 28, up ? '#d06a3a' : '#3a6ad0');
+        g.font.draw(ctx, `${BUFF_LABEL[k]}${up ? '↑' : '↓'}${n}`, bx, y + 28, up ? '#ffa070' : '#9ac8ff');
         bx -= 42;
       }
     });
@@ -978,10 +978,10 @@ export class BattleScene extends Scene {
     g.font.draw(ctx, `+${count(v.exp)}`, x + 200, ry, COLORS.text);
     ry += 24;
     g.font.draw(ctx, 'ゴールド', x + 24, ry, COLORS.title);
-    g.font.draw(ctx, `+${count(v.gold)} G`, x + 200, ry, '#b8861e');
+    g.font.draw(ctx, `+${count(v.gold)} G`, x + 200, ry, '#ffd36e');
     ry += 24;
     for (const dItem of v.drops) {
-      if (t > 1100) g.font.draw(ctx, `${dItem} を 手に入れた！`, x + 24, ry, '#2a8a5a');
+      if (t > 1100) g.font.draw(ctx, `${dItem} を 手に入れた！`, x + 24, ry, '#8ef0a0');
       ry += 24;
     }
     for (const lu of v.levelUps) {
@@ -989,12 +989,12 @@ export class BattleScene extends Scene {
         const glow = Math.floor(t / 200) % 2 === 0;
         ctx.fillStyle = glow ? 'rgba(255,220,90,0.35)' : 'rgba(255,220,90,0.15)';
         ctx.fillRect(x + 12, ry - 3, w - 24, 22);
-        g.font.draw(ctx, `${lu.name}は レベル${lu.level}に 上がった！`, x + 24, ry, '#c0392b');
+        g.font.draw(ctx, `${lu.name}は レベル${lu.level}に 上がった！`, x + 24, ry, '#ff6a5a');
       }
       ry += 24;
     }
     for (const ln of v.learned) {
-      if (t > 1300) g.font.draw(ctx, ln, x + 24, ry, '#3a6ad0');
+      if (t > 1300) g.font.draw(ctx, ln, x + 24, ry, '#9ac8ff');
       ry += 24;
     }
     if (t > 1400 && Math.floor(t / 380) % 2 === 0) drawNextArrow(ctx, x + w - 26, y + h - 16);
@@ -1007,7 +1007,7 @@ export class BattleScene extends Scene {
 function drawFace(ctx, g, m, x, y, scale) {
   const img = g.assets.image(`char:${faceKey(g, m)}`);
   const size = 21 * scale;
-  ctx.fillStyle = '#f3e3c5';
+  ctx.fillStyle = '#33407a';
   ctx.fillRect(x, y, size, size);
   if (img) ctx.drawImage(img, 37, 2, 21, 21, x, y, size, size);
 }
@@ -1175,7 +1175,7 @@ function drawColored(font, ctx, text, x, y, color, maxChars = Infinity) {
 
 // 「次へ」の小さな三角
 function drawNextArrow(ctx, x, y) {
-  ctx.fillStyle = '#c0392b';
+  ctx.fillStyle = '#ff6a5a';
   ctx.beginPath();
   ctx.moveTo(x, y);
   ctx.lineTo(x + 10, y);

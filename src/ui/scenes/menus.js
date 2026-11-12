@@ -8,7 +8,7 @@ import { COLORS, drawWindow } from '../draw.js';
 import { pick, pickMember, say } from '../flow.js';
 import { Scene } from '../scene.js';
 
-const DOWN_COLOR = '#c0392b';
+const DOWN_COLOR = '#ff6a5a';
 const UP_COLOR = '#2e8b57';
 
 // 説明の窓（画面の下）

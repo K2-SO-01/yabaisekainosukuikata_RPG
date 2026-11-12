@@ -118,7 +118,7 @@ function drawCompare(g, ctx, id) {
     const next = statsWith(m, slot, id, g.items);
     const k = ['atk', 'def', 'mat', 'spd', 'hp'].find((key) => next[key] !== now[key]) ?? (slot === 'weapon' ? 'atk' : 'def');
     const diff = next[k] - now[k];
-    g.font.draw(ctx, `${STAT_LABELS[k]} ${diff >= 0 ? '+' : ''}${diff}`, 470, ty, diff > 0 ? '#2e8b57' : diff < 0 ? '#c0392b' : COLORS.textDim);
+    g.font.draw(ctx, `${STAT_LABELS[k]} ${diff >= 0 ? '+' : ''}${diff}`, 470, ty, diff > 0 ? '#2e8b57' : diff < 0 ? '#ff6a5a' : COLORS.textDim);
   });
   drawWindow(ctx, 16, HEIGHT - 64, WIDTH - 32, 48);
   g.font.draw(ctx, item.desc ?? '', 32, HEIGHT - 50, COLORS.text);

@@ -181,7 +181,7 @@ function makeBossFace(img) {
   c.width = 63;
   c.height = 63;
   const x = c.getContext('2d');
-  x.fillStyle = '#f3e3c5';
+  x.fillStyle = '#33407a';
   x.fillRect(0, 0, 63, 63);
   if (!img) return c;
   const t = document.createElement('canvas');
@@ -208,7 +208,7 @@ function makePortrait(img) {
   c.height = 63;
   const x = c.getContext('2d');
   x.imageSmoothingEnabled = false;
-  x.fillStyle = '#f3e3c5';
+  x.fillStyle = '#33407a';
   x.fillRect(0, 0, 63, 63);
   x.drawImage(img, 0, 0, 31, 31, 1, 1, 62, 62);
   return c;
@@ -220,7 +220,7 @@ function makeFace(img) {
   c.height = 63;
   const x = c.getContext('2d');
   x.imageSmoothingEnabled = false;
-  x.fillStyle = '#f3e3c5';
+  x.fillStyle = '#33407a';
   x.fillRect(0, 0, 63, 63);
   if (img) x.drawImage(img, 32 + 5, 2, 21, 21, 0, 0, 63, 63);
   return c;

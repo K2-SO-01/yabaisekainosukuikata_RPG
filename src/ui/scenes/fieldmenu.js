@@ -72,13 +72,13 @@ export class FieldMenuScene extends Scene {
       if (face) ctx.drawImage(face, x + 10, y + 10, 63, 63);
       ctx.globalAlpha = 1;
       const tx = x + 84;
-      const nx = g.font.draw(ctx, memberName(st, m), tx, y + 9, down ? '#c0392b' : COLORS.title);
+      const nx = g.font.draw(ctx, memberName(st, m), tx, y + 9, down ? '#ff6a5a' : COLORS.title);
       g.font.draw(ctx, `${JOB_NAMES[m.job] ?? ''}  Lv${m.level}`, nx + 12, y + 9, COLORS.textDim);
       const bar = (label, v, max, by, color) => {
         g.font.draw(ctx, `${label} ${Math.max(0, v)}/${max}`, tx, by, COLORS.text);
         const bx = tx + 150;
         const bw = cardW - 84 - 150 - 14;
-        ctx.fillStyle = '#d8c8a8';
+        ctx.fillStyle = '#0a0e22';
         ctx.fillRect(bx, by + 6, bw, 6);
         ctx.fillStyle = color;
         ctx.fillRect(bx, by + 6, Math.round((bw * Math.max(0, v)) / Math.max(1, max)), 6);
@@ -89,7 +89,7 @@ export class FieldMenuScene extends Scene {
       const info = m.level >= MAX_LEVEL ? 'レベル最大' : `次まで ${expToNext(m.level) - m.exp}`;
       const ail = (m.ailments ?? []).map((a) => ({ poison: '毒', burn: 'やけど' })[a]).filter(Boolean).join('・');
       const right = ail ? `${ail}  ${info}` : info;
-      g.font.draw(ctx, right, x + cardW - 14 - g.font.width(right), y + 9 + 62, ail ? '#8a3ab0' : COLORS.textDim);
+      g.font.draw(ctx, right, x + cardW - 14 - g.font.width(right), y + 9 + 62, ail ? '#d8a0ff' : COLORS.textDim);
     });
     // お金とプレイ時間（メニューの下）
     const py = 16 + 5 * 24 + 40;
