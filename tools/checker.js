@@ -348,11 +348,14 @@ function checkText(g, add) {
     const keys = [...new Set(halfMarks.map((k) => k.split('.')[0]))];
     add('参考', '文字', `半角の「!」「?」と全角の「！」「？」がまざっている（半角は ${halfMarks.length}行・${keys.length}か所）。そろえるなら、どちらかに決める：${keys.slice(0, 12).join('、')}${keys.length > 12 ? ' …' : ''}`);
   }
-  // 話す人の顔・名前
+  // 話す人の顔・名前（主人公・影の勇者などは、冒険のデータから顔を決めるので、仮の冒険で調べる）
+  const before = g.state;
+  g.state = createNewGame({ job: 'swordsman' }, g.items);
   for (const s of speakers) {
     const info = g.speakerInfo?.(s);
-    if (!info?.faceKey && !['主人公', 'レオ', 'リナ', '???', '？？？'].includes(s)) add('参考', '文字', `「${s}」のセリフに顔が出ない`, s);
+    if (!info?.faceKey && !['主人公', 'レオ', 'リナ', '???', '？？？', '称号'].includes(s)) add('参考', '文字', `「${s}」のセリフに顔が出ない`, s);
   }
+  g.state = before;
   // 名前の長さ：一覧や敵の名前の札からはみ出さないか
   // 戦闘の一覧（幅300）で、右に「MP 12」「×99」を出しても入る長さ
   for (const it of Object.values(g.items)) if (font.width(it.name) > 200) add('注意', '文字', `道具の名前が長く、一覧からはみ出すかも：${it.name}`);
