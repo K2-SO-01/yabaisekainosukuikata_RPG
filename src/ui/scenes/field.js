@@ -25,7 +25,9 @@ const DIR_ROW = { down: 0, left: 1, right: 2, up: 3 };
 const OPPOSITE = { up: 'down', down: 'up', left: 'right', right: 'left' };
 const WALK_MS = 200;
 const DASH_MS = 110;
-const FIRST_HOLD_MS = 330; // 押し始めの1歩のあと、歩き続けるまで（さっと押してはなせば、ちょうど1マス）
+// 押し始めの1歩だけ、少しゆっくり歩き出す（止まらずにそのまま歩き続けるので、カクつかない）。
+// その1歩の間に指をはなせば、ちょうど1マスで止まる
+const FIRST_STEP_SLOW = 1.4;
 const DIAG_SLOW = 1.3; // ななめの1歩は、少しだけ時間をかける（たて横より長い距離なので）
 const STEP_FRAMES = [0, 1, 2, 1];
 const NPC_STEP_MS = 320;
@@ -152,11 +154,10 @@ export class FieldScene extends Scene {
       this.interact();
       return;
     }
-    // 1マスだけ動きやすく：押し始めの1歩のあと、少し待ってから歩き続ける
+    // 1マスだけ動きやすく：押し始めの1歩は少しゆっくり（下の FIRST_STEP_SLOW）
     const holding = input.heldDir();
     if (!holding) this.hold = null;
-    else if (!this.hold) this.hold = { t0: this.time, steps: 0 };
-    if (holding && this.hold.steps === 1 && this.time - this.hold.t0 < FIRST_HOLD_MS) return;
+    else if (!this.hold) this.hold = { steps: 0 };
     let dir = holding ?? input.pressedDir();
     if (dir) this.walkPlan = null;
     else dir = this.nextPlannedStep();
@@ -208,7 +209,7 @@ export class FieldScene extends Scene {
     }
     if (to) {
       const dashing = g.state.flags.dash !== false && (g.settings.alwaysDash ? !input.dash() : input.dash());
-      const dur = (dashing ? DASH_MS : WALK_MS) * (g.settings.moveSpeed === 1 ? 0.8 : 1) * (diagStep ? DIAG_SLOW : 1);
+      const dur = (dashing ? DASH_MS : WALK_MS) * (g.settings.moveSpeed === 1 ? 0.8 : 1) * (diagStep ? DIAG_SLOW : 1) * (this.hold && this.hold.steps === 0 && !this.walkPlan ? FIRST_STEP_SLOW : 1);
       this.moving = { from: { ...this.pos }, to, t: Math.min(carry, dur * 0.9), dur };
       if (this.hold) this.hold.steps++;
     }
