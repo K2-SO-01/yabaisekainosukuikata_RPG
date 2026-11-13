@@ -164,7 +164,7 @@ export class FieldScene extends Scene {
     if (!dir) return;
     const noclip = this.game.state.devTools?.noclip;
     const open = (x, y) => (noclip ? isInside(this.map, x, y) : canWalk(this.map, x, y, this.isOn));
-    // ななめ（画面の十字キーのななめ）：ななめのマスと、両どなりのたて・横のマスが空いている時だけ、ななめに1歩。
+    // ななめ（画面の十字キーのななめ、またはキーボードでたてと横を1つずつ）：ななめのマスと、両どなりのたて・横のマスが空いている時だけ、ななめに1歩。
     // 行けない時は、たてか横の行ける方へ（壁に沿ってすべる）
     let to = null;
     let diagStep = false;

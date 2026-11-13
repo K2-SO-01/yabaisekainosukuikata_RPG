@@ -275,12 +275,16 @@ export class Input {
     return Math.floor((t - REPEAT_DELAY) / REPEAT_EVERY) !== Math.floor((before - REPEAT_DELAY) / REPEAT_EVERY) || before < REPEAT_DELAY;
   }
 
-  // 画面の十字キーで、ななめを押しているか。{ v: 'up'|'down', h: 'left'|'right' } か null
-  // （キーボードで2つ押した時は、ななめにしない：向きを切りかえる途中で、思わずななめに歩かないように）
+  // ななめを押しているか。{ v: 'up'|'down', h: 'left'|'right' } か null
+  // 画面の十字キーのななめ、またはキーボードでたてと横を1つずつ（フィールドで歩いている時だけ）
   heldDiag() {
     if (!this.enabled) return null;
     const d = this.padDirs();
-    return d.length === 2 ? { v: d[0], h: d[1] } : null;
+    if (d.length === 2) return { v: d[0], h: d[1] };
+    if (this.diagMode !== 'both') return null;
+    const v = ['up', 'down'].filter((x) => this.keys.has(x));
+    const h = ['left', 'right'].filter((x) => this.keys.has(x));
+    return v.length === 1 && h.length === 1 ? { v: v[0], h: h[0] } : null;
   }
 
   // いま押されている方向（あとから押した方を優先）
