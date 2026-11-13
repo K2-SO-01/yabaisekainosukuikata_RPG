@@ -123,11 +123,13 @@ export class Screen {
     pad.dataset.homeTop = `${clampY(padY, PAD_SIZE)}px`;
     pad.style.left = pad.dataset.homeLeft;
     pad.style.top = pad.dataset.homeTop;
+    // 十字キーの指を受ける範囲：画面の左半分（左右反転の時は右半分）。十字キーは、さわった所に出る
     const zone = root.querySelector('#padZone');
     if (zone) {
-      const zs = 240;
-      zone.style.left = `${padX + PAD_SIZE / 2 - zs / 2}px`;
-      zone.style.top = `${clampY(padY, PAD_SIZE) + PAD_SIZE / 2 - zs / 2}px`;
+      zone.style.left = `${swap ? vw / 2 : 0}px`;
+      zone.style.top = '0px';
+      zone.style.width = `${vw / 2}px`;
+      zone.style.height = `${vh}px`;
     }
     buttons.style.left = `${btnX}px`;
     buttons.style.top = `${clampY(btnY, BTN_H)}px`;

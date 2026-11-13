@@ -25,6 +25,8 @@ const DIR_ROW = { down: 0, left: 1, right: 2, up: 3 };
 const OPPOSITE = { up: 'down', down: 'up', left: 'right', right: 'left' };
 const WALK_MS = 200;
 const DASH_MS = 110;
+const FIRST_HOLD_MS = 330; // 押し始めの1歩のあと、歩き続けるまで（さっと押してはなせば、ちょうど1マス）
+const DIAG_SLOW = 1.3; // ななめの1歩は、少しだけ時間をかける（たて横より長い距離なので）
 const STEP_FRAMES = [0, 1, 2, 1];
 const NPC_STEP_MS = 320;
 const CHEST_CLOSED = 863;
@@ -143,22 +145,51 @@ export class FieldScene extends Scene {
     }
     // 画面をタップ：そのマスまで1マスずつ歩く。人や物をタップすると、となりまで歩いて話す・調べる
     const tap = input.tap();
-    if (tap && !input.tapFromPad() && this.cam) {
+    if (tap && this.cam) {
       this.planWalk(Math.floor((tap.x + this.cam.x) / TILE), Math.floor((tap.y + this.cam.y) / TILE));
     }
     if (input.pressed('ok')) {
       this.interact();
       return;
     }
-    let dir = input.heldDir() ?? input.pressedDir();
+    // 1マスだけ動きやすく：押し始めの1歩のあと、少し待ってから歩き続ける
+    const holding = input.heldDir();
+    if (!holding) this.hold = null;
+    else if (!this.hold) this.hold = { t0: this.time, steps: 0 };
+    if (holding && this.hold.steps === 1 && this.time - this.hold.t0 < FIRST_HOLD_MS) return;
+    let dir = holding ?? input.pressedDir();
     if (dir) this.walkPlan = null;
     else dir = this.nextPlannedStep();
     if (!dir) return;
+    const noclip = this.game.state.devTools?.noclip;
+    const open = (x, y) => (noclip ? isInside(this.map, x, y) : canWalk(this.map, x, y, this.isOn));
+    // ななめ（画面の十字キーのななめ）：ななめのマスと、両どなりのたて・横のマスが空いている時だけ、ななめに1歩。
+    // 行けない時は、たてか横の行ける方へ（壁に沿ってすべる）
+    let to = null;
+    let diagStep = false;
+    const diag = !this.walkPlan && input.heldDiag();
+    if (diag) {
+      const dx = diag.h === 'left' ? -1 : 1;
+      const dy = diag.v === 'up' ? -1 : 1;
+      if (open(this.pos.x + dx, this.pos.y + dy) && open(this.pos.x + dx, this.pos.y) && open(this.pos.x, this.pos.y + dy)) {
+        to = { x: this.pos.x + dx, y: this.pos.y + dy };
+        diagStep = true;
+        dir = diag.h; // 絵は4方向なので、横を向く
+      } else {
+        const other = dir === diag.v ? diag.h : diag.v;
+        dir = [dir, other].find((d) => {
+          const t = stepTarget(this.pos, d);
+          return open(t.x, t.y);
+        }) ?? dir;
+      }
+    }
     this.dir = dir;
     loc.dir = dir;
-    // 開発者モードの「壁のすり抜け」：マップの中なら、どこへでも進める
-    const through = this.game.state.devTools?.noclip ? stepTarget(this.pos, dir) : null;
-    const to = through && isInside(this.map, through.x, through.y) ? through : tryMove(this.map, this.pos, dir, this.isOn);
+    if (!to) {
+      // 開発者モードの「壁のすり抜け」：マップの中なら、どこへでも進める
+      const through = noclip ? stepTarget(this.pos, dir) : null;
+      to = through && isInside(this.map, through.x, through.y) ? through : tryMove(this.map, this.pos, dir, this.isOn);
+    }
     if (!to && this.walkPlan) {
       // 町の人が道に出てきた：道を探しなおす（だめならやめる）
       const p = this.walkPlan;
@@ -177,8 +208,9 @@ export class FieldScene extends Scene {
     }
     if (to) {
       const dashing = g.state.flags.dash !== false && (g.settings.alwaysDash ? !input.dash() : input.dash());
-      const dur = (dashing ? DASH_MS : WALK_MS) * (g.settings.moveSpeed === 1 ? 0.8 : 1);
+      const dur = (dashing ? DASH_MS : WALK_MS) * (g.settings.moveSpeed === 1 ? 0.8 : 1) * (diagStep ? DIAG_SLOW : 1);
       this.moving = { from: { ...this.pos }, to, t: Math.min(carry, dur * 0.9), dur };
+      if (this.hold) this.hold.steps++;
     }
   }
 

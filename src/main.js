@@ -52,10 +52,20 @@ async function boot() {
   game.scenes.push(new TapScene());
 
   let last = performance.now();
+  let lastTop = '';
   const frame = (now) => {
     const dt = Math.min(50, Math.max(0, now - last));
     last = now;
     try {
+      // 十字キーのななめ：フィールドで歩いている時だけ、ななめに歩く。メニューなどでは、たての向きだけ。
+      // フィールドから戦闘・メニューなどに切りかわった時は、押しっぱなしの向きを止める（カーソルが勝手に動かないように）
+      const top = game.scenes.top;
+      const topName = top?.constructor?.name ?? '';
+      game.input.diagMode = topName === 'FieldScene' && !top.busy ? 'both' : 'vertical';
+      if (topName !== lastTop) {
+        if (topName !== 'FieldScene') game.input.holdUntilChange();
+        lastTop = topName;
+      }
       game.input.update(dt);
       if (!game.screen.portrait) game.scenes.update(dt);
       updateMenuButton(game);

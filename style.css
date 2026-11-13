@@ -44,9 +44,9 @@ html, body {
 #touch { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
 #touch[hidden], #rotate[hidden], #textio[hidden] { display: none; }
 #pad, #buttons, #menuBtn, #padZone { position: absolute; pointer-events: auto; touch-action: none; }
-/* 十字キーは絵だけ。指は、そのまわりの広い範囲（#padZone）で受ける */
-#pad { pointer-events: none; }
-#padZone { width: 240px; height: 240px; border-radius: 50%; }
+/* 十字キーは絵だけ。指は、画面の半分の広い範囲（#padZone）で受け、さわった所に十字キーを出す。はなすと消える */
+#pad { pointer-events: none; display: none; }
+#pad.show { display: block; }
 #touch.overlay #pad, #touch.overlay #buttons, #touch.overlay #menuBtn { opacity: 0.6; }
 
 #pad {
@@ -70,8 +70,16 @@ html, body {
 #pad .arrow.down { left: 44px; bottom: 2px; }
 #pad .arrow.left { left: 2px; top: 44px; }
 #pad .arrow.right { right: 2px; top: 44px; }
+/* ななめ（小さめの矢印） */
+#pad .arrow.ul, #pad .arrow.ur, #pad .arrow.dl, #pad .arrow.dr { width: 28px; height: 28px; line-height: 28px; font-size: 13px; }
+#pad .arrow.ul { left: 14px; top: 14px; }
+#pad .arrow.ur { right: 14px; top: 14px; }
+#pad .arrow.dl { left: 14px; bottom: 14px; }
+#pad .arrow.dr { right: 14px; bottom: 14px; }
 #pad.dir-up .arrow.up, #pad.dir-down .arrow.down,
-#pad.dir-left .arrow.left, #pad.dir-right .arrow.right { color: #ffd36e; }
+#pad.dir-left .arrow.left, #pad.dir-right .arrow.right,
+#pad.dir-up-left .arrow.ul, #pad.dir-up-right .arrow.ur,
+#pad.dir-down-left .arrow.dl, #pad.dir-down-right .arrow.dr { color: #ffd36e; }
 
 #buttons { width: 170px; height: 150px; }
 .act {

@@ -1,5 +1,6 @@
 // 操作（キーボードと、スマホ・タブレットの画面ボタン）を「上・下・左・右・決定・キャンセル・ダッシュ」にまとめる
-// スマホ・タブレットの移動は、決まった場所にある十字キー。画面のタップも拾う
+// スマホ・タブレットの移動は、画面の左半分（左右反転の時は右半分）をさわった所に出る8方向の十字キー。
+// 指をはなすと消える。短くさわっただけ（タップ）は、その場所のタップとして扱う
 import { HEIGHT, WIDTH } from '../config.js';
 
 const KEYMAP = {
@@ -23,8 +24,12 @@ const KEYMAP = {
 const DIR_ACTIONS = ['up', 'down', 'left', 'right'];
 const REPEAT_DELAY = 320;
 const REPEAT_EVERY = 90;
-const STICK_DEAD = 13; // これより小さい動きは「たおしていない」
-const STICK_MAX = Infinity; // 十字キーの中心は動かさない（固定）
+const STICK_DEAD = 14; // これより小さい動きは「たおしていない」
+const STICK_MAX = 58; // 指がこれより遠くへ行ったら、十字キーの中心が指についていく（反対向きへすぐ切りかえられる）
+const SHOW_MS = 110; // さわってから十字キーの絵を出すまで（タップの時にちらつかないように）
+// 8方向（右から時計回り）。ななめは、たてと横の両方
+const SECTORS = [['right'], ['down', 'right'], ['down'], ['down', 'left'], ['left'], ['up', 'left'], ['up'], ['up', 'right']];
+const SECTOR_NAMES = ['right', 'down-right', 'down', 'down-left', 'left', 'up-left', 'up', 'up-right'];
 const TAP_MS = 350; // これより短くて動かないタッチは「タップ」
 
 // 指が要素の外に出ても、離すまでその要素の操作として扱う（使えない時は何もしない）
@@ -41,6 +46,10 @@ export class Input {
     this.canvas = canvas;
     this.keys = new Set();
     this.touchHeld = new Set();
+    this.padSector = -1; // 十字キーの向き（SECTORS の番号。さわっていない・まん中なら -1）
+    this.padStale = false; // 場面が変わった時：指をそのままにしていても、向きを変えるかはなすまで動かさない
+    // ななめの扱い：'both'（フィールド：ななめに歩く）／'vertical'（メニューなど：たての向きだけ）
+    this.diagMode = 'vertical';
     this.pressedQueue = new Set();
     this.pressedNow = new Set();
     this.tapQueue = null;
@@ -124,28 +133,34 @@ export class Input {
     const root = this.touchRoot;
     if (!root) return;
     const pad = root.querySelector('#pad');
-    // 十字キーの絵より広い範囲（#padZone）で指を受ける。少しずれた所をさわっても動かせる
+    // 指を受ける範囲（#padZone）：画面の左半分（左右反転の時は右半分）。位置と大きさは screen.js が決める
     const zone = root.querySelector('#padZone') ?? pad;
     let id = null;
     let cx = 0;
     let cy = 0;
     let t0 = 0;
     let moved = false;
-    let dir = null;
+    let showTimer = 0;
 
-    const place = () => {
-      pad.style.left = `${cx - pad.offsetWidth / 2}px`;
-      pad.style.top = `${cy - pad.offsetHeight / 2}px`;
-    };
-    const setDir = (d) => {
-      if (d === dir) return;
-      if (dir) this.touchHeld.delete(dir);
-      dir = d;
-      pad.className = d ? `dir-${d}` : '';
-      if (d) {
-        this.touchHeld.add(d);
-        this.press(d);
+    const show = (on) => {
+      pad.classList.toggle('show', on);
+      if (on) {
+        // 画面の外にはみ出さないように
+        const w = pad.offsetWidth;
+        const x = Math.min(Math.max(4, cx - w / 2), window.innerWidth - w - 4);
+        const y = Math.min(Math.max(4, cy - w / 2), window.innerHeight - w - 4);
+        pad.style.left = `${x}px`;
+        pad.style.top = `${y}px`;
       }
+    };
+    const setSector = (k) => {
+      if (k === this.padSector) return;
+      const before = new Set(this.padDirs());
+      this.padSector = k;
+      this.padStale = false;
+      pad.className = `${pad.classList.contains('show') ? 'show ' : ''}${k >= 0 ? `dir-${SECTOR_NAMES[k]}` : ''}`.trim();
+      // 新しく押された向きは「押した瞬間」にもする（メニューのカーソルが1つ動く・1歩進む）
+      for (const d of this.padDirs()) if (!before.has(d)) this.press(d);
     };
 
     zone.addEventListener('pointerdown', (e) => {
@@ -153,12 +168,12 @@ export class Input {
       e.preventDefault();
       id = e.pointerId;
       capture(zone, id);
-      const r = pad.getBoundingClientRect();
-      cx = r.left + r.width / 2;
-      cy = r.top + r.height / 2;
+      cx = e.clientX;
+      cy = e.clientY;
       t0 = performance.now();
       moved = false;
-      steer(e);
+      clearTimeout(showTimer);
+      showTimer = setTimeout(() => id !== null && show(true), SHOW_MS);
     });
     const steer = (e) => {
       if (e.pointerId !== id) return;
@@ -172,24 +187,36 @@ export class Input {
         cy += dy * k;
         dx = e.clientX - cx;
         dy = e.clientY - cy;
-        place();
+        if (pad.classList.contains('show')) show(true);
       }
-      if (dist < (dir ? STICK_DEAD * 0.6 : STICK_DEAD)) {
-        setDir(null);
+      if (dist < (this.padSector >= 0 ? STICK_DEAD * 0.6 : STICK_DEAD)) {
+        setSector(-1);
         return;
       }
-      moved = true;
-      // 今の向きを少し優先して、ななめの時に向きがぶれないようにする
-      const ax = Math.abs(dx) * (dir === 'left' || dir === 'right' ? 1.25 : 1);
-      const ay = Math.abs(dy) * (dir === 'up' || dir === 'down' ? 1.25 : 1);
-      setDir(ax > ay ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up');
+      if (!moved) {
+        moved = true;
+        show(true);
+      }
+      // 8方向。今の向きを少し優先して、境い目で向きがぶれないようにする
+      const a = Math.atan2(dy, dx);
+      let k = ((Math.round(a / (Math.PI / 4)) % 8) + 8) % 8;
+      if (this.padSector >= 0 && k !== this.padSector) {
+        const center = this.padSector * (Math.PI / 4);
+        let diff = Math.abs(a - center) % (Math.PI * 2);
+        if (diff > Math.PI) diff = Math.PI * 2 - diff;
+        if (diff < Math.PI / 8 + 0.14) k = this.padSector;
+      }
+      setSector(k);
     };
     zone.addEventListener('pointermove', steer);
     const end = (e) => {
       if (e.pointerId !== id) return;
       id = null;
+      clearTimeout(showTimer);
       const quick = e.type === 'pointerup' && !moved && performance.now() - t0 < TAP_MS;
-      setDir(null);
+      setSector(-1);
+      show(false);
+      // 短くさわっただけ：その場所のタップ（フィールドならそのマスへ歩く、メニューならそこを選ぶ）
       if (quick) this.queueTap(e.clientX, e.clientY, true);
     };
     zone.addEventListener('pointerup', end);
@@ -218,6 +245,18 @@ export class Input {
     }
   }
 
+  // 十字キーで今押している向き（ななめは、フィールドでは両方、メニューなどではたてだけ）
+  padDirs() {
+    if (this.padSector < 0 || this.padStale) return [];
+    const dirs = SECTORS[this.padSector];
+    return dirs.length === 2 && this.diagMode !== 'both' ? [dirs[0]] : dirs;
+  }
+
+  // 場面が変わった時（フィールドから戦闘・メニューなど）：押しっぱなしの十字キーで、カーソルが勝手に動かないようにする
+  holdUntilChange() {
+    if (this.padSector >= 0) this.padStale = true;
+  }
+
   update(dt) {
     this.dt = dt;
     this.pressedNow = this.pressedQueue;
@@ -232,7 +271,7 @@ export class Input {
 
   isDown(action) {
     if (!this.enabled) return false;
-    return this.keys.has(action) || this.touchHeld.has(action);
+    return this.keys.has(action) || this.touchHeld.has(action) || this.padDirs().includes(action);
   }
 
   pressed(action) {
@@ -261,6 +300,14 @@ export class Input {
     if (t < REPEAT_DELAY) return false;
     const before = t - this.dt;
     return Math.floor((t - REPEAT_DELAY) / REPEAT_EVERY) !== Math.floor((before - REPEAT_DELAY) / REPEAT_EVERY) || before < REPEAT_DELAY;
+  }
+
+  // 画面の十字キーで、ななめを押しているか。{ v: 'up'|'down', h: 'left'|'right' } か null
+  // （キーボードで2つ押した時は、ななめにしない：向きを切りかえる途中で、思わずななめに歩かないように）
+  heldDiag() {
+    if (!this.enabled) return null;
+    const d = this.padDirs();
+    return d.length === 2 ? { v: d[0], h: d[1] } : null;
   }
 
   // いま押されている方向（あとから押した方を優先）
@@ -296,6 +343,7 @@ export class Input {
   clear() {
     this.keys.clear();
     this.touchHeld.clear();
+    this.holdUntilChange(); // 指がまだ十字キーにあっても、向きを変えるかはなすまで止める
     this.pressedQueue.clear();
     this.pressedNow.clear();
     this.tapQueue = null;
