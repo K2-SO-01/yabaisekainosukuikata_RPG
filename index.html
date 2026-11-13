@@ -7,12 +7,12 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#000000">
 <title>ヤバい世界の救い方</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=4929f73723">
 </head>
 <body>
 <div id="stage"><canvas id="screen" width="640" height="360"></canvas></div>
 
-<div id="touch" hidden>
+<div id="touch" class="loading" hidden>
   <div id="padZone"></div>
   <div id="pad">
     <span class="arrow up">▲</span>
@@ -24,10 +24,10 @@
     <span class="arrow dl">◣</span>
     <span class="arrow dr">◢</span>
   </div>
-  <button type="button" class="act menu" id="menuBtn" data-action="cancel">メニュー</button>
+  <button type="button" class="act menu" id="menuBtn" data-action="cancel" hidden></button>
   <div id="buttons">
     <button type="button" class="act ok" data-action="ok">決定</button>
-    <button type="button" class="act dash" data-action="dash">ダッシュ</button>
+    <button type="button" class="act dash" data-action="dash" hidden>ダッシュ</button>
   </div>
 </div>
 
@@ -43,6 +43,59 @@
   </div>
 </div>
 
-<script type="module" src="src/main.js"></script>
+<!-- build: tools/stamp.pl が書く（ファイルの中身から作った番号。古いファイルと新しいファイルがまざらないように） -->
+<script type="importmap">
+{
+  "imports": {
+    "./src/config.js": "./src/config.js?v=887f339ea6",
+    "./src/core/battle.js": "./src/core/battle.js?v=3034f034cb",
+    "./src/core/brain.js": "./src/core/brain.js?v=a13b088595",
+    "./src/core/events.js": "./src/core/events.js?v=2f6d95058b",
+    "./src/core/map.js": "./src/core/map.js?v=31d8cdd42d",
+    "./src/core/party.js": "./src/core/party.js?v=83eabfdcd1",
+    "./src/core/rng.js": "./src/core/rng.js?v=0f50a07b5d",
+    "./src/core/save.js": "./src/core/save.js?v=7ab44633cd",
+    "./src/core/secrets.js": "./src/core/secrets.js?v=b88dcf14dc",
+    "./src/core/settings.js": "./src/core/settings.js?v=a6b42c307f",
+    "./src/core/skilltext.js": "./src/core/skilltext.js?v=1e96294f2f",
+    "./src/core/state.js": "./src/core/state.js?v=cd73bf669d",
+    "./src/core/story.js": "./src/core/story.js?v=4954612e7a",
+    "./src/core/text.js": "./src/core/text.js?v=7f3c2d0394",
+    "./src/engine/assets.js": "./src/engine/assets.js?v=dd755121ad",
+    "./src/engine/audio.js": "./src/engine/audio.js?v=42066a413a",
+    "./src/engine/dev.js": "./src/engine/dev.js?v=e8a2422496",
+    "./src/engine/input.js": "./src/engine/input.js?v=2b43b60dbf",
+    "./src/engine/screen.js": "./src/engine/screen.js?v=d223a9db0c",
+    "./src/engine/storage.js": "./src/engine/storage.js?v=97ac4e5575",
+    "./src/main.js": "./src/main.js?v=bc83450112",
+    "./src/ui/battlefx.js": "./src/ui/battlefx.js?v=5448ca35fa",
+    "./src/ui/draw.js": "./src/ui/draw.js?v=15a74e16fd",
+    "./src/ui/flow.js": "./src/ui/flow.js?v=f5f9f21724",
+    "./src/ui/font.js": "./src/ui/font.js?v=4ea94a39ed",
+    "./src/ui/list.js": "./src/ui/list.js?v=9b03119724",
+    "./src/ui/menu.js": "./src/ui/menu.js?v=6fe768f1aa",
+    "./src/ui/message.js": "./src/ui/message.js?v=74301b7323",
+    "./src/ui/scene.js": "./src/ui/scene.js?v=992e603252",
+    "./src/ui/scenes/battle.js": "./src/ui/scenes/battle.js?v=e379ae3259",
+    "./src/ui/scenes/devmenu.js": "./src/ui/scenes/devmenu.js?v=e37ba024f1",
+    "./src/ui/scenes/ending.js": "./src/ui/scenes/ending.js?v=1728812c5c",
+    "./src/ui/scenes/fanfare.js": "./src/ui/scenes/fanfare.js?v=0c0793bd0d",
+    "./src/ui/scenes/field.js": "./src/ui/scenes/field.js?v=41569b94a1",
+    "./src/ui/scenes/fieldmenu.js": "./src/ui/scenes/fieldmenu.js?v=0c06a61fa0",
+    "./src/ui/scenes/menus.js": "./src/ui/scenes/menus.js?v=a1319d547d",
+    "./src/ui/scenes/newgame.js": "./src/ui/scenes/newgame.js?v=9309764386",
+    "./src/ui/scenes/prologue.js": "./src/ui/scenes/prologue.js?v=db67bb0bc4",
+    "./src/ui/scenes/rest.js": "./src/ui/scenes/rest.js?v=fe98ba9921",
+    "./src/ui/scenes/saveload.js": "./src/ui/scenes/saveload.js?v=f3ec1c6fb1",
+    "./src/ui/scenes/settings.js": "./src/ui/scenes/settings.js?v=ac5c5e4c76",
+    "./src/ui/scenes/shop.js": "./src/ui/scenes/shop.js?v=f58a5917af",
+    "./src/ui/scenes/tap.js": "./src/ui/scenes/tap.js?v=303a2e2f84",
+    "./src/ui/scenes/title.js": "./src/ui/scenes/title.js?v=6b54910ff7",
+    "./src/ui/textio.js": "./src/ui/textio.js?v=fc7b8ea1b4"
+  }
+}
+</script>
+<script type="module">import './src/main.js';</script>
+<!-- /build -->
 </body>
 </html>

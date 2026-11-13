@@ -50,6 +50,8 @@ async function boot() {
   game.scenes = new SceneStack(game);
   game.updateMenuButton = () => updateMenuButton(game); // 開発用のテストからも呼べるように
   game.scenes.push(new TapScene());
+  // よみこみが終わるまで、画面のボタンと十字キーは出さない（index.html の #touch.loading）
+  document.getElementById('touch')?.classList.remove('loading');
 
   let last = performance.now();
   let lastTop = '';

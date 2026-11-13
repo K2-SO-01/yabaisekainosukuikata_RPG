@@ -44,5 +44,7 @@ while IFS= read -r p; do
 done < <(sort -u "$list")
 rm -f "$list"
 
+# index.html の版の番号（tools/stamp.pl）。直す時は書きなおし、--check の時は古くないかだけ見る
+if [ "$mode" = "--check" ]; then perl tools/stamp.pl --check || bad=$((bad + 1)); else perl tools/stamp.pl; fi
 echo "assets in use: $total, added now: $fixed, problems: $bad"
 [ "$bad" -eq 0 ]

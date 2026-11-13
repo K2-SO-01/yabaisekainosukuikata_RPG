@@ -177,3 +177,6 @@ html, body {
 #dev button { font: 11px monospace; margin: 2px 4px 2px 0; }
 #dev .missing { color: #ffb36b; }
 #dev select { font: 11px monospace; max-width: 150px; }
+
+/* よみこみ中は、画面のボタンと十字キーを出さない（よみこみが終わると main.js が loading を外す） */
+#touch.loading > * { visibility: hidden; }
