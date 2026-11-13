@@ -18,6 +18,7 @@ export class DevPanel {
         <button data-cmd="saves">セーブを全部消す</button>
         <button data-cmd="settings">設定を初期値にする</button>
         <button data-cmd="bot">バランス確認ボット</button>
+        <button data-cmd="check">全体チェック</button>
         <button data-cmd="hide">この窓を小さく</button>
       </div>
       <div>曲を聞く：<select class="bgmlist"></select>
@@ -36,6 +37,11 @@ export class DevPanel {
     const g = this.game;
     if (cmd === 'bot') {
       window.open('tools/bot.html', '_blank');
+    } else if (cmd === 'check') {
+      // 全体チェック：結果の窓を先に開いておく（あとで開くと、ブラウザに止められることがある）
+      const w = window.open('', 'checker');
+      if (w) w.document.body.textContent = 'チェック中…（10〜30秒ほど）';
+      import('../../tools/checker.js').then(({ runChecks }) => runChecks()).then((r) => console.log(r)).catch((e) => console.error(e));
     } else if (cmd === 'touch') {
       g.screen.forceTouch = !g.screen.forceTouch;
       g.screen.layout();

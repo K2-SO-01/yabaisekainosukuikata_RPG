@@ -56,9 +56,10 @@ export function checkTiles({ maps = null, minEdge = 5 } = {}) {
           }
           if (e.bottomN >= minEdge && y < map.height - 1) {
             const below = cell(x, y + 1);
+            // 下が水（動くタイル）なら、岸や橋の絵が水に続いているので、切れていない
             const ok = below.some((g2) => {
               const e2 = edges(map, g2);
-              return e2 && (e2.full || e2.top.some((v, k) => v && e.bottom[k]));
+              return !e2 || e2.full || e2.top.some((v, k) => v && e.bottom[k]);
             });
             if (!ok) out.push({ map: id, x, y, gid, layer: name, problem: '下が切れている' });
           }

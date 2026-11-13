@@ -1,7 +1,4 @@
 {
-  "to_water_area": [
-    { "notice": "（この先の水エリアは、段階5で作ります）" }
-  ],
   "luke_join_field": [
     { "wait": 500 },
     { "flag": "luke_appear" },
