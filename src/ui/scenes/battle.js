@@ -486,7 +486,7 @@ export class BattleScene extends Scene {
     this.cmdIndex = this.menu.index;
     this.memory ??= [];
     this.memory[this.who] = { ...(this.memory[this.who] ?? {}), cmd: this.menu.index };
-    if (v === 'attack') return this.chooseTarget('enemy', (t) => this.setCommand({ type: 'attack', target: t }));
+    if (v === 'attack') return this.chooseTarget('enemy', (t) => this.setCommand({ type: 'attack', target: t }), 'command', 'たたかう');
     if (v === 'guard') return this.setCommand({ type: 'guard' });
     if (v === 'repeat') return this.repeatLast();
     if (v === 'escape') {
@@ -543,16 +543,17 @@ export class BattleScene extends Scene {
     if (this.listKind === 'skill') {
       const sk = g.skills[id];
       const target = sk.target;
-      if (target === 'enemy') return this.chooseTarget('enemy', (t) => this.setCommand({ type: 'skill', skill: id, target: t }), 'list');
-      if (target === 'ally' || target === 'ally_down') return this.chooseTarget(target, (t) => this.setCommand({ type: 'skill', skill: id, target: t }), 'list');
+      if (target === 'enemy') return this.chooseTarget('enemy', (t) => this.setCommand({ type: 'skill', skill: id, target: t }), 'list', sk.name);
+      if (target === 'ally' || target === 'ally_down') return this.chooseTarget(target, (t) => this.setCommand({ type: 'skill', skill: id, target: t }), 'list', sk.name);
       return this.setCommand({ type: 'skill', skill: id, target: null });
     }
     const item = g.items[id];
     if (item.use?.warp || item.battle === false) return this.notice('ここでは使えないようだ…', 2);
-    this.chooseTarget(item.target === 'ally_down' ? 'ally_down' : 'ally', (t) => this.setCommand({ type: 'item', item: id, target: t }), 'list');
+    this.chooseTarget(item.target === 'ally_down' ? 'ally_down' : 'ally', (t) => this.setCommand({ type: 'item', item: id, target: t }), 'list', item.name);
   }
 
-  chooseTarget(kind, done, back = 'command') {
+  // label：使うもの（たたかう・技の名前・道具の名前）。相手を選ぶ間、下の窓に「だれが：何を ▶ だれに」と出す
+  chooseTarget(kind, done, back = 'command', label = '') {
     const b = this.b;
     const list = kind === 'enemy' ? b.enemies : b.allies;
     const ok = (u) => (kind === 'ally_down' ? !alive(u) : alive(u));
@@ -565,7 +566,7 @@ export class BattleScene extends Scene {
       done(candidates[0]); // 敵が1体だけなら、選ばずにそのまま決める
       return;
     }
-    this.target = { kind, candidates, pos: 0, done, back };
+    this.target = { kind, candidates, pos: 0, done, back, label };
     if (kind !== 'enemy') this.target.pos = Math.max(0, candidates.indexOf(this.who));
     this.phase = 'target';
   }
@@ -617,7 +618,7 @@ export class BattleScene extends Scene {
 
   hitEnemy(i, p) {
     const e = this.enemyBoxes[i];
-    return p.x >= e.x - 10 && p.x <= e.x + e.w + 10 && p.y >= e.y - 10 && p.y <= GROUND_Y + 10;
+    return p.x >= e.x - 10 && p.x <= e.x + e.w + 10 && p.y >= e.y - 10 && p.y <= GROUND_Y + 34; // 名前の所をタップしても選べる
   }
 
   hitFrame(i, p) {
@@ -679,8 +680,9 @@ export class BattleScene extends Scene {
 
     // 戦いの文の窓
     if (this.text && this.phase !== 'target') this.drawMessage(ctx);
-    if (this.phase === 'command' || this.phase === 'list' || (this.phase === 'target' && this.menu)) this.drawCommandPanel(ctx);
-    if (this.phase === 'list' || (this.phase === 'target' && this.target?.back === 'list')) {
+    // 相手を選ぶ間は、コマンドの窓と一覧を隠す（敵が隠れないように）
+    if (this.phase === 'command' || this.phase === 'list') this.drawCommandPanel(ctx);
+    if (this.phase === 'list') {
       this.list?.draw(ctx, g.font, { active: this.phase === 'list' });
       this.drawListInfo(ctx);
     }
@@ -813,13 +815,24 @@ export class BattleScene extends Scene {
       const d = this.disp.enemy[i];
       if (d.hp <= 0 && f.fade >= 2) return;
       const appear = Math.min(1, this.introT / (this.boss ? INTRO_MS.boss : INTRO_MS.normal));
+      // 敵を選んでいる時：選んでいる敵は足もとが光って少し大きく、ほかの敵は薄暗く
+      const tg = this.phase === 'target' && this.target?.kind === 'enemy' ? this.target : null;
+      const sel = !!tg && tg.candidates[tg.pos] === i;
+      const pulse = (Math.sin(this.t / 140) + 1) / 2;
+      if (sel) {
+        ctx.fillStyle = `rgba(255,224,138,${(0.3 + 0.25 * pulse).toFixed(3)})`;
+        ctx.beginPath();
+        ctx.ellipse(box.cx, GROUND_Y + 2, Math.max(36, box.w * 0.5) + 6, 10, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.save();
       ctx.globalAlpha = appear * (f.fade > 0 ? Math.max(0, 1 - (f.fade - 1)) : 1);
+      if (tg && !sel) ctx.globalAlpha *= 0.35;
       if (f.flash > 0 && Math.floor(f.flash / 60) % 2 === 0) ctx.globalAlpha *= 0.25;
       const sx = f.shake > 0 ? Math.round(Math.sin(f.shake / 30) * 5) : 0;
       // 攻撃する時は、少し前に出て大きくなる
       const lunge = f.lunge > 0 ? Math.sin((1 - f.lunge / 260) * Math.PI) : 0;
-      const sc = 1 + lunge * 0.1;
+      const sc = 1 + lunge * 0.1 + (sel ? 0.06 : 0);
       // ゆっくり息をするように上下する（ボスは大きく）
       const breathe = Math.round(Math.sin(this.t / 600 + i) * (e.d.boss ? 2 : 1));
       if (box.pic) {
@@ -848,9 +861,11 @@ export class BattleScene extends Scene {
         ctx.fillStyle = d.hp / d.max < 0.3 ? '#ff7a5a' : '#e85a4f';
         ctx.fillRect(gx, gy, Math.round((gw * d.hp) / d.max), 4);
         const nw = g.font.width(e.name);
-        ctx.fillStyle = 'rgba(10,8,20,0.55)';
+        if (tg && !sel) ctx.globalAlpha = 0.4;
+        ctx.fillStyle = sel ? '#ffe08a' : 'rgba(10,8,20,0.55)';
         ctx.fillRect(Math.round(box.cx - nw / 2 - 6), gy + 7, nw + 12, 19);
-        g.font.drawCentered(ctx, e.name, box.cx, gy + 9, '#ffffff');
+        g.font.drawCentered(ctx, e.name, box.cx, gy + 9, sel ? '#2a1c08' : '#ffffff');
+        ctx.globalAlpha = 1;
       }
       // 状態異常と、弱った・強くなったのしるし
       let ax = Math.round(box.cx + (e.d.boss ? box.w / 2 - 10 : 30));
@@ -971,21 +986,32 @@ export class BattleScene extends Scene {
       const r = this.frameRect(i);
       const sh = fx.shake > 0 ? Math.round(Math.sin(fx.shake / 25) * 4) : 0;
       const hop = fx.bounce > 0 ? Math.round(Math.sin((1 - fx.bounce / 280) * Math.PI) * 10) : 0;
+      // 味方を選んでいる時：選んでいる人の枠は金色に光って少し上がり、ほかの人は薄暗く
+      const tgA = this.phase === 'target' && this.target && this.target.kind !== 'enemy' ? this.target : null;
+      const selA = !!tgA && tgA.candidates[tgA.pos] === i;
       const x = r.x + sh;
-      const y = r.y - hop;
+      const y = r.y - hop - (selA ? 5 : 0);
       const s = totalStats(m, g.items);
       const down = d.hp <= 0;
       const low = !down && d.hp / s.hp < 0.25;
       drawWindow(ctx, x, y, r.w, r.h);
       // コマンドを選んでいる間は、選んでいない人を薄暗く
-      const choosing = (this.phase === 'command' || this.phase === 'list' || this.phase === 'target') && this.who !== i;
+      const choosing = tgA ? !selA : (this.phase === 'command' || this.phase === 'list' || this.phase === 'target') && this.who !== i;
+      if (selA) {
+        const p = (Math.sin(this.t / 140) + 1) / 2;
+        ctx.fillStyle = `rgba(255,224,138,${(0.14 + 0.12 * p).toFixed(3)})`;
+        ctx.fillRect(x + 3, y + 3, r.w - 6, r.h - 6);
+        ctx.strokeStyle = p > 0.5 ? '#fff0b8' : '#ffd36e';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x + 3.5, y + 3.5, r.w - 7, r.h - 7);
+      }
       // 光（行動・ダメージ・回復）
       const glow = fx.bounce > 0 ? ['rgba(255,230,140,', fx.bounce / 280] : fx.red > 0 ? ['rgba(255,40,40,', fx.red / 300] : fx.green > 0 ? ['rgba(90,255,140,', fx.green / 450] : null;
       if (glow) {
         ctx.fillStyle = `${glow[0]}${(0.35 * glow[1]).toFixed(3)})`;
         ctx.fillRect(x + 4, y + 4, r.w - 8, r.h - 8);
       }
-      const active = (this.phase === 'command' || this.phase === 'list' || this.phase === 'target') && this.who === i;
+      const active = !tgA && (this.phase === 'command' || this.phase === 'list' || this.phase === 'target') && this.who === i;
       if (active || low) {
         ctx.strokeStyle = active ? COLORS.accent : Math.floor(this.t / 300) % 2 ? '#ff3a3a' : '#a01818';
         ctx.lineWidth = 2;
@@ -1031,28 +1057,33 @@ export class BattleScene extends Scene {
     });
   }
 
+  // 相手を選ぶ時のしるし：選んでいる相手を金色のかぎかっこで囲み、大きな矢印でさす。
+  // 下の窓には「だれが：何を ▶ だれに」と、決め方を出す
   drawTargetCursor(ctx) {
     const g = this.game;
     const tg = this.target;
     const i = tg.candidates[tg.pos];
     const bob = Math.round(Math.sin(this.t / 120) * 3);
-    let label;
-    if (tg.kind === 'enemy') {
-      const box = this.enemyBoxes[i];
-      ctx.save();
-      ctx.translate(Math.round(box.cx) + 6, Math.round(box.y) - 4 + bob);
-      ctx.rotate(Math.PI / 2);
-      drawCursor(ctx, 0, 0);
-      ctx.restore();
-      label = this.b.enemies[i].name;
-    } else {
-      const r = this.frameRect(i);
-      drawCursor(ctx, r.x + r.w / 2 - 3, r.y - 14 + bob);
-      label = this.b.allies[i].name;
-    }
-    this.text = label;
+    const enemy = tg.kind === 'enemy';
+    const name = enemy ? this.b.enemies[i].name : this.b.allies[i].name;
+    const actor = this.b.allies[this.who];
+    this.text = `${actor?.name ?? ''}：${tg.label || ''} ▶ ${name}`;
     this.textShown = 999;
     this.drawMessage(ctx);
+    // しるしは、文の窓より手前に描く（味方の枠の上の矢印が、窓に隠れないように）
+    if (enemy) {
+      const box = this.enemyBoxes[i];
+      drawBrackets(ctx, box.x, box.y, box.w, GROUND_Y - box.y, this.t);
+      drawBigArrow(ctx, box.x - 24 + bob, Math.round(box.y + (GROUND_Y - box.y) / 2), 'right');
+    } else {
+      const r = this.frameRect(i);
+      drawBrackets(ctx, r.x + 2, r.y - 3, r.w - 4, r.h - 4, this.t);
+      drawBigArrow(ctx, Math.round(r.x + r.w / 2), r.y - 26 + bob, 'down');
+    }
+    // 決め方の説明は、文のすぐ右に（味方の枠をさす矢印と重ならないように）
+    const hint = g.screen.touchEnabled ? 'もう一度タップで決定' : '←→でえらぶ';
+    const hx = 24 + g.font.width(this.text) + 28;
+    if (hx + g.font.width(hint) < WIDTH - 20) g.font.draw(ctx, hint, hx, MSG_Y + 14, COLORS.textDim);
   }
 
   // 勝った時：「勝利！」と、経験値・お金が数え上がり、レベルアップが光る
@@ -1349,4 +1380,49 @@ function drawCommandIcon(ctx, kind, x, y, t) {
     px(10, 3, 4, 6, '#c8b8a0');
     px(11, 0, 2, 2, '#c8b8a0');
   }
+}
+
+// 相手を選ぶ時の、四すみのかぎかっこ（金色。少し広がったり縮んだりする）
+function drawBrackets(ctx, x, y, w, h, t) {
+  const p = Math.round(((Math.sin(t / 140) + 1) / 2) * 4);
+  const x0 = Math.round(x) - 5 - p;
+  const y0 = Math.round(y) - 5 - p;
+  const x1 = Math.round(x + w) + 5 + p;
+  const y1 = Math.round(y + h) + 5 + p;
+  const len = 12;
+  const corner = (cx, cy, dx, dy) => {
+    for (const [c, pad] of [['#1a1208', 1], ['#ffd36e', 0]]) {
+      ctx.fillStyle = c;
+      ctx.fillRect(Math.min(cx, cx + dx * len) - pad, cy - (dy < 0 ? 3 : 0) - pad, len + pad * 2, 3 + pad * 2);
+      ctx.fillRect(cx - (dx < 0 ? 3 : 0) - pad, Math.min(cy, cy + dy * len) - pad, 3 + pad * 2, len + pad * 2);
+    }
+  };
+  corner(x0, y0, 1, 1);
+  corner(x1, y0, -1, 1);
+  corner(x0, y1, 1, -1);
+  corner(x1, y1, -1, -1);
+}
+
+// 相手をさす、大きな矢印（金色に黒いふち）。(x, y) が矢印の根もと側のまん中
+function drawBigArrow(ctx, x, y, dir) {
+  const tri = (grow, color) => {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    if (dir === 'down') {
+      ctx.moveTo(x, y + 14 + grow);
+      ctx.lineTo(x - 10 - grow, y - grow);
+      ctx.lineTo(x + 10 + grow, y - grow);
+    } else {
+      ctx.moveTo(x + 14 + grow, y);
+      ctx.lineTo(x - grow, y - 10 - grow);
+      ctx.lineTo(x - grow, y + 10 + grow);
+    }
+    ctx.closePath();
+    ctx.fill();
+  };
+  tri(2, '#1a1208');
+  tri(0, '#ffd36e');
+  ctx.fillStyle = '#fff6d8';
+  if (dir === 'down') ctx.fillRect(x - 6, y + 1, 12, 2);
+  else ctx.fillRect(x + 1, y - 6, 2, 12);
 }
