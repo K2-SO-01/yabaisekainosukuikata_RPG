@@ -143,7 +143,9 @@ export function planEnemies(b) {
           e.history.push(p.sid);
           const sk = b.enemyData.skills[p.sid];
           const targets = sk.target === 'one' ? [p.target ?? pickOne(b, allies).index] : sk.target === 'all' ? 'all' : 'self';
-          return { actor: e.index, sid: p.sid, sk, targets, icon: iconFor(sk), element: sk.element ?? 'none', ailment: sk.inflict ?? null };
+          // big：大技（倍率1.6以上の攻撃）。吹き出しを赤く点滅させて知らせる（見た目だけ。必殺技 special とはちがい、ためは入らない）
+          const big = (sk.kind === 'physical' || sk.kind === 'magic') && (sk.power ?? 1) >= 1.6;
+          return { actor: e.index, sid: p.sid, sk, targets, icon: iconFor(sk), element: sk.element ?? 'none', ailment: sk.inflict ?? null, big };
         });
       }
       // 作戦の表がない時は、でたらめに選ぶ（学習前の状態）

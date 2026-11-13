@@ -2,7 +2,31 @@
   "talk_shop_weapon": [{ "shop": "town_weapon" }],
   "talk_shop_item": [{ "shop": "town_item" }],
   "town_gate": [
-    { "if": "home_event_done", "then": [{ "run": "leave_town" }], "else": [{ "say": "gate_before" }, { "playerMove": ["up"] }] }
+    {
+      "if": "home_event_done",
+      "then": [
+        {
+          "if": "slime_beaten",
+          "then": [{ "run": "leave_town" }],
+          "else": [{ "playerMove": ["up"] }, { "if": "slime_in", "then": [{ "run": "slime_retry" }], "else": [{ "run": "slime_invasion" }] }]
+        }
+      ],
+      "else": [{ "say": "gate_before" }, { "playerMove": ["up"] }]
+    }
+  ],
+  "slime_invasion": [
+    { "bgmStop": 400 },
+    { "se": "warning" },
+    { "flag": "slime_in" },
+    { "wait": 400 },
+    { "say": "slime_in" },
+    { "run": "slime_fight" }
+  ],
+  "slime_retry": [{ "say": "slime_again" }, { "run": "slime_fight" }],
+  "slime_fight": [
+    { "battle": { "enemies": ["trick_slime"], "area": "field_town", "gentle": true, "lose": [{ "say": "slime_lose" }] } },
+    { "flag": "slime_beaten" },
+    { "say": "slime_win" }
   ],
   "leave_town": [
     { "transfer": { "map": "field_town", "x": 18, "y": 13, "dir": "down" } }

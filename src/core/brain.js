@@ -1,4 +1,4 @@
-// 頭で考えるボス（裏ボス「影の勇者」）の作戦。画面には依存しない
+// 頭で考える敵（裏ボス「影の勇者」と、町に入りこむスライム）の作戦。画面には依存しない
 // ・行動とねらう相手の組み合わせごとに「特徴」（どれだけ削れるか、回復役か、自分のHPは少ないか など）を数にして、
 //   作戦の表（重み。data/brains/shadow.json）とかけ合わせた点がいちばん高いものを選ぶ
 // ・重みは、ボットと何万回も戦わせて学習したもの（tools/bot.html の「影の勇者を鍛える」）
@@ -23,6 +23,7 @@ export const FEATURES = [
   'bigIntoGuard', // 大技を、よく身を守るプレイヤーにぶつける（癖）
   'beforeHeal', // 倒しきれず、プレイヤーがいつも回復するHPまで減らすだけ（癖）
   'vsItems', // 道具をよく使うプレイヤーに、状態異常（癖）
+  'guardLow', // 自分のHPが少ない時に、身を守る（町のスライム）。あとから足した特徴なので、影の勇者の表では 0 のまま
 ];
 
 // プレイヤーの癖のまとめ（記録がなければ、ふつうの人の値）
@@ -74,6 +75,8 @@ function features(b, e, sid, t, habits, last, plannedDamage) {
     const r = e.hp / e.maxHp;
     set('selfLow', 1 - r);
     set('healWaste', r);
+  } else if (sk.kind === 'guard') {
+    set('guardLow', 1 - e.hp / e.maxHp);
   } else if (sk.kind === 'buff') {
     if (e.buffs[sk.buff]) set('buffAgain', 1);
     else set('buffNew', 1);
@@ -98,6 +101,8 @@ function candidates(b, e, plan) {
   for (const sid of e.d.actions) {
     const sk = b.enemyData.skills[sid];
     if (sid !== 'attack' && (plan.some((p) => p.sid === sid) || prevTurn.includes(sid))) continue;
+    // 1回の戦闘で使える回数が決まっている技（町のスライムの回復・守り。回復と守りをくり返して、いつまでも終わらないことがないように）
+    if (sk.uses && e.history.filter((h) => h === sid).length >= sk.uses) continue;
     if (sk.target === 'one') for (const t of b.allies.filter(alive)) out.push({ sid, t });
     else out.push({ sid, t: null });
   }

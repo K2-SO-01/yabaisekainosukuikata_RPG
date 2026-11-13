@@ -112,7 +112,7 @@ async function loadGameData(game) {
   jobs.push(assets.loadJson('enemies', manifest.enemies).then(async (d) => {
     game.enemies = d ?? { areas: {}, enemies: {}, skills: {} };
     // 頭で考えるボス（裏ボス）の作戦の表
-    game.enemies.brains = { shadow: await assets.loadJson('brain:shadow', 'data/brains/shadow.json') };
+    game.enemies.brains = { shadow: await assets.loadJson('brain:shadow', 'data/brains/shadow.json'), slime: await assets.loadJson('brain:slime', 'data/brains/slime.json') };
     await Promise.all(Object.entries(game.enemies.enemies).map(([id, e]) => assets.loadImage(`enemy:${id}`, e.image)));
   }));
   jobs.push(assets.loadJson('shops', manifest.shops).then((d) => (game.shops = d ?? {})));

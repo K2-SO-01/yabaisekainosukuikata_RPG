@@ -3,7 +3,7 @@ import { HEIGHT, WIDTH } from '../../config.js';
 import {
   alive, applyDefeat, createBattle, finishWin, has, mustSkipInput, planEnemies, resolveTurn, startTurnEvents,
 } from '../../core/battle.js';
-import { characterIdOf, isDown, itemCount, learnedSkills, totalStats } from '../../core/party.js';
+import { characterIdOf, fullRecover, isDown, itemCount, learnedSkills, totalStats } from '../../core/party.js';
 import { COLORS, drawCursor, drawWindow } from '../draw.js';
 import { ListMenu } from '../list.js';
 import { Menu } from '../menu.js';
@@ -25,13 +25,15 @@ const DOWN_RED = '#ff6a5a';
 export class BattleScene extends Scene {
   // enemyIds：出てくる敵、area：data/enemies.json の areas の名前、onEnd(result)：戦闘が終わった時
   // skipRewards：勝っても経験値などを出さずに終える（魔王）
-  constructor({ enemyIds, area, boss = false, onEnd, skipRewards = false }) {
+  // gentle：負けても全滅の扱いにしない（お金は減らず、その場で全員が元気になる。旅立ちの前の、町のスライム）
+  constructor({ enemyIds, area, boss = false, onEnd, skipRewards = false, gentle = false }) {
     super();
     this.enemyIds = enemyIds;
     this.areaId = area;
     this.boss = boss;
     this.onEnd = onEnd;
     this.skipRewards = skipRewards;
+    this.gentle = gentle;
   }
 
   enter() {
@@ -276,7 +278,7 @@ export class BattleScene extends Scene {
     this.syncDisp(); // 見せ終わったら、画面の数字を本当の値にそろえる（毒・MPなど）
     if (b.result) return this.finish();
     planEnemies(b);
-    if (b.intents.some((list) => list?.some((it) => it.special))) this.game.audio.playSe('warning');
+    if (b.intents.some((list) => list?.some((it) => it.special || it.big))) this.game.audio.playSe('warning');
     // ターンの始めの出来事（ルークのビビり覚醒）を見せてから、コマンドを選ぶ
     const begin = () => {
       this.text = '';
@@ -385,14 +387,17 @@ export class BattleScene extends Scene {
     } else if (b.result === 'lose') {
       g.audio.stopBgm(300);
       g.audio.playJingle('jingle_gameover');
-      this.play([{ t: 'msg', text: `${b.allies[0].name}たちは 全滅してしまった…` }, { t: 'msg', text: '' }], () => this.close('lose'));
+      const text = this.gentle ? `${b.allies[0].name}は 力つきてしまった…` : `${b.allies[0].name}たちは 全滅してしまった…`;
+      this.play([{ t: 'msg', text }, { t: 'msg', text: '' }], () => this.close('lose'));
     } else this.close(b.result);
   }
 
   close(result) {
     const g = this.game;
     this.phase = 'done';
-    if (result === 'lose') {
+    if (result === 'lose' && this.gentle) {
+      fullRecover(g.state, g.items);
+    } else if (result === 'lose') {
       const homes = [].concat(this.area.home ?? []);
       const visited = g.state.visited ?? [];
       const home = homes.find((h) => !h.town || visited.includes(h.town)) ?? homes[homes.length - 1] ?? { map: 'town', x: 4, y: 24, dir: 'down' };
@@ -941,9 +946,10 @@ export class BattleScene extends Scene {
       ctx.lineTo(box.cx + 6, y + h - 1);
       ctx.fill();
     }
-    const blink = it.special && Math.floor(this.t / 250) % 2 === 0;
-    ctx.strokeStyle = it.special ? (blink ? '#e02828' : '#ff9a9a') : it.charge ? '#c9a020' : '#8c6a4f';
-    ctx.lineWidth = it.special ? 3 : 2;
+    const danger = it.special || it.big; // 必殺技と大技は、赤く点滅
+    const blink = danger && Math.floor(this.t / 250) % 2 === 0;
+    ctx.strokeStyle = danger ? (blink ? '#e02828' : '#ff9a9a') : it.charge ? '#c9a020' : '#8c6a4f';
+    ctx.lineWidth = danger ? 3 : 2;
     roundRect(ctx, x, y, w, h, 7);
     ctx.stroke();
     if (asleep) {

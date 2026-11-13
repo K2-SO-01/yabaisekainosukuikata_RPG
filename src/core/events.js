@@ -23,6 +23,7 @@
 //   { "inn": { "event": "セリフ", "flag": "見たら立てる", "unless": "このフラグがあれば出さない" } }  宿屋（50ゴールド）
 //   { "stay": { ...inn と同じ } }        お金を取らずに泊まる（炎の村に着いた時）
 //   { "battle": { "enemies": [...], "area": "lake", "skipRewards": false } }  戦う。勝った時だけ先へ進む
+//     "gentle": true で、負けても全滅にしない（お金は減らず、その場で元気になる）。"lose": [...] は負けた時の流れ
 //   { "joinPartner": true }              レオ／リナが仲間になる
 //   { "learnLight": true }               主人公が光の技を覚える
 //   { "flash": "#ffffff" }               画面を光らせる
@@ -80,7 +81,11 @@ export async function runScript(commands, ctx) {
     else if ('stay' in cmd) await ui.inn(cmd.stay, false);
     else if ('battle' in cmd) {
       const r = await ui.battle(cmd.battle);
-      if (r !== 'win') return; // 負けた時は、全滅の処理（宿屋や家へ）に任せる
+      // 負けた時は、全滅の処理（宿屋や家へ）に任せる。gentle の戦いは、lose の流れ（あれば）をしてから終える
+      if (r !== 'win') {
+        if (cmd.battle.gentle && cmd.battle.lose) await runScript(cmd.battle.lose, ctx);
+        return;
+      }
     } else if ('joinPartner' in cmd) ui.joinPartner();
     else if ('learnLight' in cmd) ui.learnLight();
     else if ('learnKeepsake' in cmd) ui.learnKeepsake();

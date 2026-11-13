@@ -52,6 +52,10 @@ my @enemies = (
   [demon2 => '魔王', "$M/pipo-enemy044b.png", 1900, 32, 75, 30, 30, 'dark', 0, [0, 0], undef, [qw(dragon_claw tail_sweep dark_breath)],
     { boss => \1, acts => 3, special => 'abyss_flare', specialPlus => \1, chargeText => '魔王は 翼を 大きく広げた！', bgm => 'demon2', noJingle => \1, big => 1.25 }],
 );
+# 町に入りこむスライム：旅立ちの直前、町の門で1人で戦う。行動は作戦の表（data/brains/slime.json）を見て頭で決める
+# 強さは、作戦の表を学習したあとで、プレイヤーの勝率が7割前後になるように合わせる（tools/bot.html の trainSlime / evalSlime）
+push @enemies, [trick_slime => 'いたずらスライム', "$M/pipo-enemy009a.png", 69, 7, 10, 8, 4, 'none', 30, [50, 50], 'slime_goo', [qw(attack slime_press purupuru_guard slime_heal poison_drop)],
+  { boss => \1, acts => 1, ai => 'slime', bgm => 'boss', big => 0.65 }];
 # 裏ボス「影の勇者」：クリア後に戦える。主人公の見た目（4種）ごとに絵だけちがう。
 # 強さは「理想の個体」として固定（レベルや勝率には合わせない）。行動は作戦の表（data/brains/shadow.json）を見て頭で決める
 my @SHADOW_ACTS = qw(attack kage_slash kage_wide kage_bolt kage_flare kage_sleep kage_confuse kage_heal kage_power kage_break);
@@ -72,8 +76,12 @@ my @skills = (
   [kage_power => '影の力', 'buff', undef, undef, 'self', '{actor}は 影の力を まとった！', { buff => 'atkUp' }],
   [kage_break => '影ののろい', 'debuff', undef, undef, 'one', '{actor}は 影ののろいを かけた！', { debuff => 'defDown' }],
   [attack => '攻撃', 'physical', 'none', 1, 'one', '{actor}の 攻撃！'],
+  # 町に入りこむスライムの技
+  [slime_press => 'のしかかり', 'physical', 'none', 1.8, 'one', '{actor}は 大きく ふくらんで のしかかってきた！'],
+  [slime_heal => 'ぷるぷる再生', 'heal', undef, 0.25, 'self', '{actor}は ぷるぷるふるえて 傷をふさいだ！', { uses => 2 }],
+  [poison_drop => 'どくのしずく', 'status', undef, undef, 'one', '{actor}は どくのしずくを とばした！', { inflict => 'poison', chance => 0.7, uses => 2 }],
   [small_fire => '火の玉', 'magic', 'fire', 1, 'one', '{actor}は 小さな火を はなった！'],
-  [purupuru_guard => 'ぷるぷるガード', 'guard', undef, undef, 'self', '{actor}は ぷるぷるガードで 身を守っている！'],
+  [purupuru_guard => 'ぷるぷるガード', 'guard', undef, undef, 'self', '{actor}は ぷるぷるガードで 身を守っている！', { uses => 3 }],
   [pyonpyon_attack => 'ぴょんぴょんアタック', 'physical', 'none', 1.3, 'one', '{actor}の ぴょんぴょんアタック！'],
   [hinoko_ame => 'ひのこのあめ', 'magic', 'fire', 0.7, 'all', '{actor}の ひのこのあめ！'],
   [nemuri_houshi => 'ねむりのほうし', 'status', undef, undef, 'one', '{actor}は ねむりのほうしを まきちらした！', { inflict => 'sleep' }],

@@ -9,7 +9,8 @@ import { canWalk, findStart, parseTiledMap } from '../src/core/map.js';
 const json = (p) => fetch(p).then((r) => r.json());
 const [items, skills, enemyData, shops] = await Promise.all(['../data/items.json', '../data/skills.json', '../data/enemies.json', '../data/shops.json'].map(json));
 // 裏ボスの作戦の表（まだ学習していなければ無し）
-enemyData.brains = { shadow: await fetch('../data/brains/shadow.json').then((r) => (r.ok ? r.json() : null)).catch(() => null) };
+const loadBrain = (id) => fetch(`../data/brains/${id}.json`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+enemyData.brains = { shadow: await loadBrain('shadow'), slime: await loadBrain('slime') };
 
 // ---- 道のり（効率よく進んだ時の順番）。walk：[マップ, 出発, 到着]（'start' はそのマップの始まり） ----
 const CHAPTERS = [
@@ -822,5 +823,89 @@ import('../src/core/brain.js').then(({ FEATURES, think }) => {
       });
     });
     return out.join('\n');
+  };
+});
+
+// ---- 町に入りこむスライム（旅立ちの直前に、主人公1人・Lv1で戦う）を鍛える ----
+// 使い方：trainSlime() で作戦の表を学習（window.slimeBrain）→ evalSlime(slimeBrain) でプレイヤーの勝率を見る。
+// 作戦はスライムが勝つように学習し、そのあと強さ（gen_enemies.pl の数字）で、プレイヤーの勝率が7割前後になるように合わせる
+import('../src/core/brain.js').then(({ FEATURES, think }) => {
+  const ACTS = enemyData.enemies.trick_slime.actions;
+  // 相手：ふつうに戦う（家の薬だけ）・薬を多めに買う・薬を使わない・大技は身を守る。武器と防具は最初のまま
+  const OPP = [
+    { strat: 'efficient', bag: { potion_s: 2, cure_potion: 1 } },
+    { strat: 'items', bag: { potion_s: 5, cure_potion: 2 } },
+    { strat: 'noitems', bag: {} },
+    { strat: 'guarder', bag: { potion_s: 3, cure_potion: 1 } },
+  ];
+  STRATEGIES.guarder ??= { label: '大技は身を守る', walk: 1, ai: 'smart', guardBig: true, healAt: 0.55 };
+  const toBrain = (v) => ({ weights: v.slice(0, FEATURES.length), bias: Object.fromEntries(ACTS.map((a, i) => [a, v[FEATURES.length + i]])), temp: 0.1, variety: window.slimeVariety ?? 0 });
+
+  function fight(brain, heroIndex, opp, seed) {
+    const hero = HEROES[heroIndex];
+    const sim = new Sim(hero, STRATEGIES[opp.strat], seed);
+    sim.st.party = sim.st.party.filter((m) => m.id === 'hero');
+    sim.st.bag = {};
+    for (const [it, c] of Object.entries(opp.bag)) addItem(sim.st, it, c);
+    const br = brain ? (Array.isArray(brain) ? toBrain(brain) : brain) : null;
+    const used = {};
+    sim.think = br
+      ? (b, e, allies) => {
+          const plan = think(b, e, allies, br);
+          for (const p of plan ?? []) used[p.sid] = (used[p.sid] ?? 0) + 1;
+          return plan;
+        }
+      : null;
+    sim.battle(['trick_slime'], 'field_town', true);
+    const lb = sim.lastBattle;
+    return { slimeWin: lb.result === 'lose', playerWin: lb.result === 'win', turns: lb.rec.turns, used };
+  }
+
+  window.trainSlime = async ({ generations = 16, pop = 26, elite = 6, battles = 32, onLog = console.log } = {}) => {
+    const dim = FEATURES.length + ACTS.length;
+    let mean = new Array(dim).fill(0);
+    let sd = new Array(dim).fill(1.5);
+    const gauss = () => Math.sqrt(-2 * Math.log(Math.random() + 1e-12)) * Math.cos(2 * Math.PI * Math.random());
+    for (let gen = 0; gen < generations; gen++) {
+      const seeds = Array.from({ length: battles }, (_, i) => ({ hero: i % 4, opp: Math.floor(i / 4) % OPP.length, seed: 70000 + gen * 1000 + i }));
+      const cands = [];
+      for (let k = 0; k < pop; k++) {
+        const v = k === 0 ? mean.slice() : mean.map((m, i) => m + sd[i] * gauss());
+        let s = 0;
+        for (const sd2 of seeds) s += fight(v, sd2.hero, OPP[sd2.opp], sd2.seed).slimeWin ? 1 : 0;
+        cands.push({ v, s: s / seeds.length });
+        if (k % 5 === 4) await new Promise((r) => setTimeout(r, 0));
+      }
+      cands.sort((a, b) => b.s - a.s);
+      const top = cands.slice(0, elite);
+      mean = mean.map((_, i) => top.reduce((n, c) => n + c.v[i], 0) / elite);
+      sd = sd.map((_, i) => Math.sqrt(top.reduce((n, c) => n + (c.v[i] - mean[i]) ** 2, 0) / elite) + 0.05);
+      onLog(`第${gen + 1}世代：いちばん強い作戦のスライムの勝率 ${Math.round(top[0].s * 100)}%、平均 ${Math.round((cands.reduce((n, c) => n + c.s, 0) / pop) * 100)}%`);
+    }
+    window.slimeBrain = toBrain(mean);
+    return window.slimeBrain;
+  };
+
+  // brain が null なら でたらめ。返り値：相手ごとのプレイヤーの勝率
+  window.evalSlime = (brain, n = 50) => {
+    window.slimeUsed = {};
+    const out = [];
+    let all = 0, turnsAll = 0;
+    OPP.forEach((opp) => {
+      HEROES.forEach((hero, hi) => {
+        let pw = 0, turns = 0;
+        for (let k = 0; k < n; k++) {
+          const r = fight(brain, hi, opp, 95000 + k);
+          pw += r.playerWin ? 1 : 0;
+          turns += r.turns;
+          for (const [a, c] of Object.entries(r.used)) window.slimeUsed[a] = (window.slimeUsed[a] ?? 0) + c;
+        }
+        all += pw;
+        turnsAll += turns;
+        out.push(`${STRATEGIES[opp.strat]?.label ?? opp.strat} ${hero.label}：プレイヤーの勝率 ${Math.round((100 * pw) / n)}%（平均${(turns / n).toFixed(1)}ターン）`);
+      });
+    });
+    const total = n * OPP.length * HEROES.length;
+    return `全体：プレイヤーの勝率 ${Math.round((100 * all) / total)}%（平均${(turnsAll / total).toFixed(1)}ターン）\n` + out.join('\n');
   };
 });

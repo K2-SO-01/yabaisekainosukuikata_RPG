@@ -390,7 +390,7 @@ export class FieldScene extends Scene {
     return d[0];
   }
 
-  startBattle({ enemyIds, area, boss = false, onEnd, fromScript = false, skipRewards = false }) {
+  startBattle({ enemyIds, area, boss = false, onEnd, fromScript = false, skipRewards = false, gentle = false }) {
     this.walkPlan = null;
     const g = this.game;
     this.busy = true;
@@ -400,9 +400,9 @@ export class FieldScene extends Scene {
     g.scenes.fadeTo(() => {
       g.scenes.push(
         new BattleScene({
-          enemyIds, area, boss, skipRewards,
+          enemyIds, area, boss, skipRewards, gentle,
           onEnd: (result) => {
-            if (result === 'lose') {
+            if (result === 'lose' && !gentle) {
               g.scenes.replaceAll(new FieldScene());
               return;
             }
@@ -520,7 +520,7 @@ export class FieldScene extends Scene {
       },
       battle: (opts) =>
         new Promise((done) => {
-          this.startBattle({ enemyIds: opts.enemies, area: opts.area ?? this.map.props.area ?? 'field_town', boss: true, fromScript: true, skipRewards: !!opts.skipRewards, onEnd: done });
+          this.startBattle({ enemyIds: opts.enemies, area: opts.area ?? this.map.props.area ?? 'field_town', boss: true, fromScript: true, skipRewards: !!opts.skipRewards, gentle: !!opts.gentle, onEnd: done });
         }),
       // レオ／リナ：Lv7、その職業のLv7までの技、専用技、風の村でいちばん安い武器・防具一式
       joinPartner: () => {
@@ -810,6 +810,7 @@ export class FieldScene extends Scene {
 
     // 屋根：建物の中にいる時は、その建物の屋根だけ消して中を見せる
     if (map.layers.roof) drawTileLayer(ctx, map, map.layers.roof, camX, camY, this.houseAt(this.moving ? this.moving.to : this.pos));
+    this.drawGuides(ctx, camX, camY);
 
     if (map.props.tint) {
       ctx.fillStyle = map.props.tint;
@@ -830,6 +831,51 @@ export class FieldScene extends Scene {
       ctx.globalAlpha = 1;
     }
     this.drawBanner(ctx);
+  }
+
+  // 行き先の目印（マップの guide。フラグで出たり消えたりする）：その場所の上で金の矢印がはね、名前の札を出す。
+  // 画面の外にある時は、画面のふちに、そちらを向いた矢印と名前を出す。その建物の中にいる時は出さない
+  drawGuides(ctx, camX, camY) {
+    const g = this.game;
+    const here = this.houseAt(this.moving ? this.moving.to : this.pos);
+    for (const o of this.map.objects) {
+      if (o.type !== 'guide' || !this.isOn(o)) continue;
+      if (here && (this.houseAt(o) ?? this.houseAt({ x: o.x, y: o.y - 1 })) === here) continue; // 戸口の目印も、中にいる時は出さない
+      if (this.map.objects.some((n) => n.type === 'npc' && n.x === o.x && n.y === o.y && this.isOn(n))) continue; // だれか（門をふさぐスライムなど）が立っている間は出さない
+      const label = o.props.label ?? o.name;
+      const cx = o.x * TILE - camX + TILE / 2;
+      const top = o.y * TILE - camY;
+      const bob = Math.round(Math.sin(this.time / 170) * 3);
+      const pulse = (Math.sin(this.time / 220) + 1) / 2;
+      ctx.save();
+      if (cx > 16 && cx < WIDTH - 16 && top > 40 && top < HEIGHT - 16) {
+        // 足もとの光の輪
+        ctx.fillStyle = `rgba(255,224,138,${(0.22 + 0.2 * pulse).toFixed(3)})`;
+        ctx.beginPath();
+        ctx.ellipse(cx, top + TILE - 6, 14 + pulse * 3, 6 + pulse, 0, 0, Math.PI * 2);
+        ctx.fill();
+        guideArrow(ctx, cx, top - 6 + bob, Math.PI / 2);
+        guideTag(ctx, g.font, label, cx, top - 38 + bob);
+      } else {
+        // 画面の外：まん中から目印へ向かう線が、画面のふちと交わる所に
+        const mx = WIDTH / 2;
+        const my = HEIGHT / 2;
+        const dx = cx - mx;
+        const dy = top + TILE / 2 - my;
+        const k = Math.min((WIDTH / 2 - 26) / Math.max(1, Math.abs(dx)), (HEIGHT / 2 - 26) / Math.max(1, Math.abs(dy)));
+        const ex = mx + dx * k;
+        const ey = my + dy * k;
+        const a = Math.atan2(dy, dx);
+        guideArrow(ctx, ex + Math.cos(a) * bob, ey + Math.sin(a) * bob, a);
+        // 札は、矢印のうしろ（画面の内がわ）に、矢印と重ならないように
+        const tw = g.font.width(label) + 16;
+        const back = 24 + Math.abs(Math.cos(a)) * (tw / 2) + Math.abs(Math.sin(a)) * 12;
+        const tx = Math.max(tw / 2 + 4, Math.min(WIDTH - tw / 2 - 4, ex - Math.cos(a) * back));
+        const ty = Math.max(14, Math.min(HEIGHT - 14, ey - Math.sin(a) * back));
+        guideTag(ctx, g.font, label, tx, ty);
+      }
+      ctx.restore();
+    }
   }
 
   // マップに入った時、場所の名前を画面の上に2秒ほど出す
@@ -1011,6 +1057,40 @@ function drawCrystal(ctx, x, y, t, img) {
 }
 
 // 師匠の形見：灰の上の古い書きつけ（巻物）。ときどき、きらりと光る
+// 目印の矢印（金色に黒いふち）。(x, y) が矢印の先、a が向き（下向きは π/2）
+function guideArrow(ctx, x, y, a) {
+  ctx.save();
+  ctx.translate(Math.round(x), Math.round(y));
+  ctx.rotate(a);
+  for (const [grow, color] of [[2, '#1a1208'], [0, '#ffd36e']]) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(grow, 0);
+    ctx.lineTo(-16 - grow, -11 - grow);
+    ctx.lineTo(-16 - grow, 11 + grow);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.fillStyle = '#fff6d8';
+  ctx.fillRect(-14, -7, 2, 14);
+  ctx.restore();
+}
+
+// 目印の名前の札（まん中が (x, y)）
+function guideTag(ctx, font, text, x, y) {
+  const w = font.width(text) + 16;
+  const h = 22;
+  const l = Math.round(x - w / 2);
+  const t = Math.round(y - h / 2);
+  ctx.fillStyle = '#1a1208';
+  ctx.fillRect(l - 2, t - 2, w + 4, h + 4);
+  ctx.fillStyle = '#ffd36e';
+  ctx.fillRect(l - 1, t - 1, w + 2, h + 2);
+  ctx.fillStyle = 'rgba(20,16,44,0.95)';
+  ctx.fillRect(l + 1, t + 1, w - 2, h - 2);
+  font.draw(ctx, text, l + 8, t + 2, '#ffe08a');
+}
+
 function drawKeepsake(ctx, x, y, t) {
   const px = (dx, dy, w, h, c) => {
     ctx.fillStyle = c;

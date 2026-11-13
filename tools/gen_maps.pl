@@ -223,6 +223,9 @@ sub ttree { my ($m, @at) = @_; for my $p (@at) { put($m, 'd', $p->[0], $p->[1], 
   obj($m, 'おじさん', 'npc', 5, 19, character => 'oji', dialogue => 'oji_after', dir => 'down');
   obj($m, 'おばさん', 'npc', 4, 19, character => 'oba', script => 'talk_oba', dir => 'down');
   obj($m, '旅立ち', 'trigger', 4, 21, script => 'home_event', unless => 'home_event_done');
+  # 行き先の目印：謁見のあとは自分の家、家のイベントのあとは町の門（町を出るまで）
+  obj($m, '自分の家', 'guide', 4, 22, label => '自分の家', if => 'audience_done', unless => 'home_event_done');
+  obj($m, '町の門', 'guide', 19, 32, label => '町の門', if => 'home_event_done', unless => 'luke_joined');
   # inside: the house by the stream (the mother waiting for her son)
   thing($m, 4, 10, 779, 787); drawer2($m, 2, 10, gold => 30); pot2($m, 2, 12, item => 'potion_s');
   obj($m, '町の人H', 'npc', 3, 11, character => 'town_h', dialogue => 'town_h', dir => 'down');
@@ -260,6 +263,8 @@ sub ttree { my ($m, @at) = @_; for my $p (@at) { put($m, 'd', $p->[0], $p->[1], 
   obj($m, '門の兵士', 'npc', 19, 31, character => 'gate_soldier', dialogue => 'gate_before', dir => 'up', unless => 'home_event_done');
   obj($m, '門の兵士', 'npc', 23, 31, character => 'gate_soldier', dialogue => 'gate_after', dir => 'left', if => 'home_event_done');
   obj($m, '町の門', 'trigger', $_, 32, script => 'town_gate') for (18 .. 20);
+  # 旅立ちの直前に門から入りこむスライム（門のまん中をふさぐ。話しかけるか門をふむと、また戦う）
+  obj($m, 'いたずらスライム', 'npc', 19, 32, enemy => 'trick_slime', script => 'slime_retry', if => 'slime_in', unless => 'slime_beaten');
   emit($m, "town", "城下町", "town", lift => "5,11,17", town => "town"); }
 
 # ---- the little room under the well ----
