@@ -2,7 +2,7 @@
 import { HEIGHT, TILE, WIDTH } from '../../config.js';
 import { isActive, runScript } from '../../core/events.js';
 import { encounterRoll, rollEncounter } from '../../core/battle.js';
-import { canWalk, DIRS, entityAt, findStart, stepTarget, tryMove } from '../../core/map.js';
+import { canWalk, DIRS, entityAt, findStart, isInside, stepTarget, tryMove } from '../../core/map.js';
 import { addItem, createMember, fullRecover, MEMBER_DEFS, partnerOf, totalStats } from '../../core/party.js';
 import { markCleared, writeSlot } from '../../core/save.js';
 import { addGold, addPlayTime } from '../../core/state.js';
@@ -156,7 +156,9 @@ export class FieldScene extends Scene {
     if (!dir) return;
     this.dir = dir;
     loc.dir = dir;
-    const to = tryMove(this.map, this.pos, dir, this.isOn);
+    // 開発者モードの「壁のすり抜け」：マップの中なら、どこへでも進める
+    const through = this.game.state.devTools?.noclip ? stepTarget(this.pos, dir) : null;
+    const to = through && isInside(this.map, through.x, through.y) ? through : tryMove(this.map, this.pos, dir, this.isOn);
     if (!to && this.walkPlan) {
       // 町の人が道に出てきた：道を探しなおす（だめならやめる）
       const p = this.walkPlan;
@@ -289,7 +291,7 @@ export class FieldScene extends Scene {
   checkEncounter() {
     const g = this.game;
     const areaId = this.map.props.area;
-    if (!areaId || g.dev?.noEncounter) return false;
+    if (!areaId || g.dev?.noEncounter || g.state.devTools?.noEncounter) return false;
     const area = g.enemies?.areas?.[areaId];
     if (!area) return false;
     if (this.map.objects.some((o) => o.type === 'savepoint' && Math.abs(o.x - this.pos.x) <= 3 && Math.abs(o.y - this.pos.y) <= 3)) return false;

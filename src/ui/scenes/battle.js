@@ -339,6 +339,8 @@ export class BattleScene extends Scene {
         { label: 'ぼうぎょ', value: 'guard' },
         { label: 'にげる', value: 'escape' },
         ...(this.lastCommands && this.who === this.firstInputIndex() ? [{ label: 'くり返す', value: 'repeat' }] : []),
+        // 開発者モード：すぐに勝つ
+        ...(this.game.state?.modes?.dev ? [{ label: '勝つ（開発）', value: 'win' }] : []),
       ],
       x: CMD.x, y: 0, width: CMD.w, index,
     });
@@ -510,6 +512,12 @@ export class BattleScene extends Scene {
     if (v === 'attack') return this.chooseTarget('enemy', (t) => this.setCommand({ type: 'attack', target: t }), 'command', 'たたかう');
     if (v === 'guard') return this.setCommand({ type: 'guard' });
     if (v === 'repeat') return this.repeatLast();
+    if (v === 'win') {
+      for (const e of this.b.enemies) e.hp = 0;
+      this.b.result = 'win';
+      this.syncDisp();
+      return this.finish();
+    }
     if (v === 'escape') {
       if (this.b.boss) return this.notice('逃げられない！', 4);
       this.commands = this.b.allies.map(() => ({ type: 'none' }));

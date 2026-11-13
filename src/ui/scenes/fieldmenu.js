@@ -7,6 +7,7 @@ import { Menu } from '../menu.js';
 import { Scene } from '../scene.js';
 import { equipMenu, itemMenu, skillMenu, StatusScene } from './menus.js';
 import { SettingsScene } from './settings.js';
+import { devMenu } from './devmenu.js';
 
 export class FieldMenuScene extends Scene {
   constructor({ mapProps = {} } = {}) {
@@ -24,6 +25,8 @@ export class FieldMenuScene extends Scene {
         { label: 'まほう／わざ', value: 'skills' },
         { label: 'つよさ', value: 'status' },
         { label: 'せってい', value: 'settings' },
+        // 開発者モード（隠し名前で始めた冒険）だけ
+        ...(this.game.state?.modes?.dev ? [{ label: '開発', value: 'dev' }] : []),
       ],
       x: WIDTH - 196,
       y: 16,
@@ -39,6 +42,7 @@ export class FieldMenuScene extends Scene {
     if (r.type === 'cancel') return g.scenes.pop(this);
     const v = r.item.value;
     if (v === 'settings') g.scenes.push(new SettingsScene({ inGame: true }));
+    else if (v === 'dev') this.run(devMenu(g));
     else if (v === 'status') g.scenes.push(new StatusScene());
     else this.run(v === 'items' ? itemMenu(g, { mapProps: this.mapProps }) : v === 'equip' ? equipMenu(g) : skillMenu(g));
   }

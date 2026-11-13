@@ -38,6 +38,7 @@ export function summarize(state) {
     level: state.party?.[0]?.level ?? 1,
     cleared: !!state.flags?.cleared, // クリアの証
     shadow: !!state.flags?.shadow_defeated, // 影の勇者を倒した証
+    dev: !!state.modes?.dev, // 開発者モードの冒険（証は出さず、「開発」のしるしを出す）
   };
 }
 

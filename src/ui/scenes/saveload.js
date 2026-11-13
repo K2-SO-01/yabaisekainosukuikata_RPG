@@ -136,7 +136,7 @@ export class SaveLoadScene extends Scene {
         g.font.draw(ctx, `${s.name ?? ''}　${s.place ?? ''}`, x + 170, ty, color);
         g.font.draw(ctx, `プレイ時間 ${formatPlayTime(s.playTimeMs)}　${formatDate(row.data.savedAt)}`, x + 170, ty + 20, COLORS.textDim);
         // 証：クリアした（★）、影の勇者を倒した（◆）
-        const marks = [s.cleared && ['★クリア', '#c8961e'], s.shadow && ['◆影越え', '#b0304a']].filter(Boolean);
+        const marks = s.dev ? [['開発', '#4a8ad0']] : [s.cleared && ['★クリア', '#c8961e'], s.shadow && ['◆影越え', '#b0304a']].filter(Boolean);
         let mx = x + w - 22;
         for (const [text, col] of marks.reverse()) {
           mx -= g.font.width(text);
