@@ -44,10 +44,13 @@ html, body {
 #touch { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
 #touch[hidden], #rotate[hidden], #textio[hidden] { display: none; }
 #pad, #buttons, #menuBtn, #padZone { position: absolute; pointer-events: auto; touch-action: none; }
-/* 十字キーは絵だけ。指は、画面の半分の広い範囲（#padZone）で受け、さわった所に十字キーを出す。はなすと消える */
-#pad { pointer-events: none; display: none; }
-#pad.show { display: block; }
-#touch.overlay #pad, #touch.overlay #buttons, #touch.overlay #menuBtn { opacity: 0.6; }
+/* 十字キーは絵だけ。指は、画面の半分の広い範囲（#padZone）で受け、さわった所に十字キーを出す。
+   さわっていない時は、ふだんの場所にうすく出しておく */
+#pad { pointer-events: none; opacity: 0.45; }
+#pad.show { opacity: 1; }
+#touch.overlay #buttons, #touch.overlay #menuBtn { opacity: 0.6; }
+#touch.overlay #pad { opacity: 0.35; }
+#touch.overlay #pad.show { opacity: 0.75; }
 
 #pad {
   width: 132px;

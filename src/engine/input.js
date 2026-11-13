@@ -25,7 +25,7 @@ const DIR_ACTIONS = ['up', 'down', 'left', 'right'];
 const REPEAT_DELAY = 320;
 const REPEAT_EVERY = 90;
 const STICK_DEAD = 14; // これより小さい動きは「たおしていない」
-const STICK_MAX = 58; // 指がこれより遠くへ行ったら、十字キーの中心が指についていく（反対向きへすぐ切りかえられる）
+// 十字キーは、さわった所から動かさない（指をすべらせても、ついてこない）
 const SHOW_MS = 110; // さわってから十字キーの絵を出すまで（タップの時にちらつかないように）
 // 8方向（右から時計回り）。ななめは、たてと横の両方
 const SECTORS = [['right'], ['down', 'right'], ['down'], ['down', 'left'], ['left'], ['up', 'left'], ['up'], ['up', 'right']];
@@ -142,6 +142,7 @@ export class Input {
     let moved = false;
     let showTimer = 0;
 
+    // on：さわった所に出す。off：ふだんの場所（screen.js が決める）に、うすく出しておく
     const show = (on) => {
       pad.classList.toggle('show', on);
       if (on) {
@@ -151,6 +152,9 @@ export class Input {
         const y = Math.min(Math.max(4, cy - w / 2), window.innerHeight - w - 4);
         pad.style.left = `${x}px`;
         pad.style.top = `${y}px`;
+      } else if (pad.dataset.homeLeft) {
+        pad.style.left = pad.dataset.homeLeft;
+        pad.style.top = pad.dataset.homeTop;
       }
     };
     const setSector = (k) => {
@@ -177,18 +181,9 @@ export class Input {
     });
     const steer = (e) => {
       if (e.pointerId !== id) return;
-      let dx = e.clientX - cx;
-      let dy = e.clientY - cy;
+      const dx = e.clientX - cx;
+      const dy = e.clientY - cy;
       const dist = Math.hypot(dx, dy);
-      if (dist > STICK_MAX) {
-        // 中心が指についてくるので、反対へ切り返す時もすぐ反応する
-        const k = (dist - STICK_MAX) / dist;
-        cx += dx * k;
-        cy += dy * k;
-        dx = e.clientX - cx;
-        dy = e.clientY - cy;
-        if (pad.classList.contains('show')) show(true);
-      }
       if (dist < (this.padSector >= 0 ? STICK_DEAD * 0.6 : STICK_DEAD)) {
         setSector(-1);
         return;
