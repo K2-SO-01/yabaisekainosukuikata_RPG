@@ -97,17 +97,19 @@ export class Screen {
     let padY;
     let btnX;
     let btnY;
+    // 十字キーは、左手でスマホを持った時に親指が自然に届く所（左下の、すみより少し内がわ）。
+    // すみにぴったり寄せると親指を曲げにくく、画面の角の丸みにもかかるので、中心を左から十字キー1つ分あまり、
+    // 下から画面の高さの3割ほど上に置く。決定ボタンも、右手の親指で同じように届く高さにそろえる
+    const padCY = vh - sab - Math.max(PAD_SIZE * 0.78, vh * 0.3);
     if (roomy) {
-      padX = sal + (sideL - PAD_SIZE) / 2;
+      padX = sal + Math.max(18, (sideL - PAD_SIZE) / 2);
       btnX = vw - sar - (sideR + BTN_W) / 2;
-      padY = vh * 0.62 - PAD_SIZE / 2;
-      btnY = vh * 0.62 - BTN_H / 2;
     } else {
-      padX = sal + 14;
+      padX = sal + Math.round(PAD_SIZE * 0.55);
       btnX = vw - sar - BTN_W - 10;
-      padY = vh - sab - PAD_SIZE - 14;
-      btnY = vh - sab - BTN_H - 8;
     }
+    padY = padCY - PAD_SIZE / 2;
+    btnY = padCY - BTN_H / 2 + 10;
     if (swap) {
       // 左右反転：スティックを右に、ボタンを左に
       const newPadX = vw - padX - PAD_SIZE;
@@ -123,13 +125,14 @@ export class Screen {
     pad.dataset.homeTop = `${clampY(padY, PAD_SIZE)}px`;
     pad.style.left = pad.dataset.homeLeft;
     pad.style.top = pad.dataset.homeTop;
-    // 十字キーの指を受ける範囲：画面の左半分（左右反転の時は右半分）。十字キーは、さわった所に出る
+    // 十字キーの指を受ける範囲：十字キーの絵より広い円（少しずれた所をさわっても動かせる）
     const zone = root.querySelector('#padZone');
     if (zone) {
-      zone.style.left = `${swap ? vw / 2 : 0}px`;
-      zone.style.top = '0px';
-      zone.style.width = `${vw / 2}px`;
-      zone.style.height = `${vh}px`;
+      const zs = 250;
+      zone.style.left = `${padX + PAD_SIZE / 2 - zs / 2}px`;
+      zone.style.top = `${clampY(padY, PAD_SIZE) + PAD_SIZE / 2 - zs / 2}px`;
+      zone.style.width = `${zs}px`;
+      zone.style.height = `${zs}px`;
     }
     buttons.style.left = `${btnX}px`;
     buttons.style.top = `${clampY(btnY, BTN_H)}px`;

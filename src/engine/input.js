@@ -1,6 +1,6 @@
 // 操作（キーボードと、スマホ・タブレットの画面ボタン）を「上・下・左・右・決定・キャンセル・ダッシュ」にまとめる
-// スマホ・タブレットの移動は、画面の左半分（左右反転の時は右半分）をさわった所に出る8方向の十字キー。
-// 指をはなすと消える。短くさわっただけ（タップ）は、その場所のタップとして扱う
+// スマホ・タブレットの移動は、左下（左右反転の時は右下）の決まった場所にある8方向の十字キー。
+// 十字キーのまわりを短くさわっただけ（タップ）は、その場所のタップとして扱う
 import { HEIGHT, WIDTH } from '../config.js';
 
 const KEYMAP = {
@@ -25,8 +25,6 @@ const DIR_ACTIONS = ['up', 'down', 'left', 'right'];
 const REPEAT_DELAY = 320;
 const REPEAT_EVERY = 90;
 const STICK_DEAD = 14; // これより小さい動きは「たおしていない」
-// 十字キーは、さわった所から動かさない（指をすべらせても、ついてこない）
-const SHOW_MS = 110; // さわってから十字キーの絵を出すまで（タップの時にちらつかないように）
 // 8方向（右から時計回り）。ななめは、たてと横の両方
 const SECTORS = [['right'], ['down', 'right'], ['down'], ['down', 'left'], ['left'], ['up', 'left'], ['up'], ['up', 'right']];
 const SECTOR_NAMES = ['right', 'down-right', 'down', 'down-left', 'left', 'up-left', 'up', 'up-right'];
@@ -133,36 +131,20 @@ export class Input {
     const root = this.touchRoot;
     if (!root) return;
     const pad = root.querySelector('#pad');
-    // 指を受ける範囲（#padZone）：画面の左半分（左右反転の時は右半分）。位置と大きさは screen.js が決める
+    // 指を受ける範囲（#padZone）：十字キーの絵より広い円。位置と大きさは screen.js が決める
     const zone = root.querySelector('#padZone') ?? pad;
     let id = null;
     let cx = 0;
     let cy = 0;
     let t0 = 0;
     let moved = false;
-    let showTimer = 0;
 
-    // on：さわった所に出す。off：ふだんの場所（screen.js が決める）に、うすく出しておく
-    const show = (on) => {
-      pad.classList.toggle('show', on);
-      if (on) {
-        // 画面の外にはみ出さないように
-        const w = pad.offsetWidth;
-        const x = Math.min(Math.max(4, cx - w / 2), window.innerWidth - w - 4);
-        const y = Math.min(Math.max(4, cy - w / 2), window.innerHeight - w - 4);
-        pad.style.left = `${x}px`;
-        pad.style.top = `${y}px`;
-      } else if (pad.dataset.homeLeft) {
-        pad.style.left = pad.dataset.homeLeft;
-        pad.style.top = pad.dataset.homeTop;
-      }
-    };
     const setSector = (k) => {
       if (k === this.padSector) return;
       const before = new Set(this.padDirs());
       this.padSector = k;
       this.padStale = false;
-      pad.className = `${pad.classList.contains('show') ? 'show ' : ''}${k >= 0 ? `dir-${SECTOR_NAMES[k]}` : ''}`.trim();
+      pad.className = k >= 0 ? `dir-${SECTOR_NAMES[k]}` : '';
       // 新しく押された向きは「押した瞬間」にもする（メニューのカーソルが1つ動く・1歩進む）
       for (const d of this.padDirs()) if (!before.has(d)) this.press(d);
     };
@@ -172,12 +154,13 @@ export class Input {
       e.preventDefault();
       id = e.pointerId;
       capture(zone, id);
-      cx = e.clientX;
-      cy = e.clientY;
+      // 十字キーは決まった場所。向きは、十字キーの中心から指への向き
+      const r = pad.getBoundingClientRect();
+      cx = r.left + r.width / 2;
+      cy = r.top + r.height / 2;
       t0 = performance.now();
       moved = false;
-      clearTimeout(showTimer);
-      showTimer = setTimeout(() => id !== null && show(true), SHOW_MS);
+      steer(e);
     });
     const steer = (e) => {
       if (e.pointerId !== id) return;
@@ -188,10 +171,7 @@ export class Input {
         setSector(-1);
         return;
       }
-      if (!moved) {
-        moved = true;
-        show(true);
-      }
+      moved = true;
       // 8方向。今の向きを少し優先して、境い目で向きがぶれないようにする
       const a = Math.atan2(dy, dx);
       let k = ((Math.round(a / (Math.PI / 4)) % 8) + 8) % 8;
@@ -207,10 +187,8 @@ export class Input {
     const end = (e) => {
       if (e.pointerId !== id) return;
       id = null;
-      clearTimeout(showTimer);
       const quick = e.type === 'pointerup' && !moved && performance.now() - t0 < TAP_MS;
       setSector(-1);
-      show(false);
       // 短くさわっただけ：その場所のタップ（フィールドならそのマスへ歩く、メニューならそこを選ぶ）
       if (quick) this.queueTap(e.clientX, e.clientY, true);
     };
