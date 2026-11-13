@@ -27,6 +27,9 @@ grep -o '"image": *"[^"]*"' data/enemies.json | sed 's/.*: *"//; s/"$//' >> "$li
 grep -o '^  "[a-z_0-9]*":' data/characters.json | tr -d ' ":' | grep -v "^_" | sed 's#^#assets/faces/#; s#$#.png#' >> "$list"
 # pictures of the things that block the way (flame statue, sign)
 echo assets/tiles/extra/blockers.png >> "$list"
+# title pictures
+echo assets/title/title_a.jpg >> "$list"
+echo assets/title/title_b.jpg >> "$list"
 # fonts
 printf '%s\n' assets/fonts/DotGothic16-Regular.ttf assets/fonts/OFL.txt >> "$list"
 

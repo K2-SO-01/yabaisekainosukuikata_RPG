@@ -115,6 +115,9 @@ async function loadGameData(game) {
   for (const id of Object.keys(characters)) jobs.push(assets.loadImage(`face:${id}`, `assets/faces/${id}.png`));
   // 道をふさぐ物（炎の銅像・看板）
   jobs.push(assets.loadImage('img:blockers', 'assets/tiles/extra/blockers.png'));
+  // タイトルの絵（Adobe Firefly で作成）
+  jobs.push(assets.loadImage('img:title_a', 'assets/title/title_a.jpg'));
+  jobs.push(assets.loadImage('img:title_b', 'assets/title/title_b.jpg'));
 
   game.dialogues = {};
   for (const [key, path] of Object.entries(manifest.dialogues ?? {})) {

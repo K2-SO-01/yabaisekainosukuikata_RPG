@@ -15,6 +15,7 @@ export function parseLine(line) {
 // 行の頭に来てはいけない文字・行の終わりに来てはいけない文字（かんたんな禁則処理）
 export const NO_LINE_START = '、。，．・：；？！?!」』）］｝〉》】〕ー…‥ぁぃぅぇぉっゃゅょゎァィゥェォッャュョヮ';
 export const NO_LINE_END = '「『（［｛〈《【〔';
+const KANA = /[ァ-ヶー]/;
 
 // measure(文字列) で幅を測りながら、maxWidth に収まるように行を分ける
 export function wrapText(text, maxWidth, measure) {
@@ -31,6 +32,15 @@ export function wrapText(text, maxWidth, measure) {
         while (line.length > 1 && NO_LINE_END.includes(line.at(-1))) {
           carry = line.at(-1) + carry;
           line = line.slice(0, -1);
+        }
+        // カタカナの言葉（8文字まで）は、行の途中で分けずに次の行へ送る（例：「レ｜オ」にしない）
+        if (!carry && KANA.test(ch) && KANA.test(line.at(-1))) {
+          let k = line.length;
+          while (k > 0 && KANA.test(line[k - 1])) k--;
+          if (k > 0 && line.length - k <= 8) {
+            carry = line.slice(k);
+            line = line.slice(0, k);
+          }
         }
         lines.push(line);
         line = carry + ch;

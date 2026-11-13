@@ -228,7 +228,7 @@ sub ttree { my ($m, @at) = @_; for my $p (@at) { put($m, 'd', $p->[0], $p->[1], 
   obj($m, '町の門', 'guide', 19, 32, label => '町の門', if => 'home_event_done', unless => 'luke_joined');
   # inside: the house by the stream (the mother waiting for her son)
   thing($m, 4, 10, 779, 787); drawer2($m, 2, 10, gold => 30); pot2($m, 2, 12, item => 'potion_s');
-  obj($m, '町の人H', 'npc', 3, 11, character => 'town_h', dialogue => 'town_h', dir => 'down');
+  obj($m, '町の人H', 'npc', 4, 12, character => 'town_h', dialogue => 'town_h', dir => 'down');
   # inside: the empty house
   thing($m, 6, 26, 778, 786); drawer2($m, 2, 26, item => 'potion_s', count => 2);
   pot2($m, 4, 26, item => 'warp_potion'); pot2($m, 2, 28); pot2($m, 6, 28, gold => 20);
@@ -252,11 +252,11 @@ sub ttree { my ($m, @at) = @_; for my $p (@at) { put($m, 'd', $p->[0], $p->[1], 
   obj($m, '町の人A', 'npc', 24, 30, character => 'town_a', dialogue => 'town_a', dir => 'down');
   obj($m, '町の人B', 'npc', 36, 16, character => 'town_b', dialogue => 'town_b', dir => 'down');
   # 家の前の道（1マス幅）をふさがないように、となりの家の戸口の前に立たせる（歩き回らない）
-  obj($m, '町の人C', 'npc', 11, 23, character => 'town_c', dialogue => 'town_c', dir => 'down');
+  obj($m, '町の人C', 'npc', 12, 23, character => 'town_c', dialogue => 'town_c', dir => 'down');
   obj($m, '町の人D', 'npc', 16, 20, character => 'town_d', dialogue => 'town_d', wander => 1);
   obj($m, '町の人E', 'npc', 13, 11, character => 'town_e', dialogue => 'town_e', wander => 1);
   obj($m, '町の人F', 'npc', 22, 17, character => 'town_f', dialogue => 'town_f', dir => 'left');
-  obj($m, '町の人G', 'npc', 36, 31, character => 'town_g', dialogue => 'town_g', wander => 1);
+  obj($m, '町の人G', 'npc', 36, 31, character => 'town_g', dialogue => 'town_g', dir => 'left'); # 歩き回ると、となりの家の扉の前をふさぐので立ったまま
   obj($m, '町の人I', 'npc', 17, 19, character => 'town_i', dialogue => 'town_i', dir => 'right');
   obj($m, '科学の村人', 'npc', 13, 25, character => 'science', dialogue => 'science', dir => 'down');
   obj($m, 'start', 'start', 19, 10, dir => 'down');

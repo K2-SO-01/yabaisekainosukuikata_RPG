@@ -14,6 +14,7 @@ import { createNewGame } from '../src/core/state.js';
 import { migrate, readSlot, writeSlot } from '../src/core/save.js';
 import { applyCheckpoint, CHECKPOINTS } from '../src/core/story.js';
 import { describeSkill } from '../src/core/skilltext.js';
+import { wrapText } from '../src/core/text.js';
 
 // 物語の順番（エリア・町・お店）
 const AREAS = ['field_town', 'lake', 'tower', 'volcano', 'storm', 'demon'];
@@ -175,9 +176,10 @@ function checkData(g, add) {
   for (const [id, it] of Object.entries(g.items)) {
     if (!it.name) add('重大', 'データ', `道具「${id}」に名前がない`);
     if (!it.desc) add('注意', '文字', `道具「${it.name}」に説明がない`);
-    if (it.kind !== 'key' && !(it.price > 0)) noPrice.push(it.name);
+    // 売れない物：値段も売値（sell）もなく、わざと売れないしるし（nosell）もない物
+    if (it.kind !== 'key' && !(it.price > 0) && it.sell == null && !it.nosell) noPrice.push(it.name);
   }
-  if (noPrice.length) add('参考', 'RPG', `値段のない道具 ${noPrice.length}件（お店で売れない）。敵が落とす物を売ってお金にできると、RPGらしい：${noPrice.slice(0, 12).join('、')}${noPrice.length > 12 ? ' …' : ''}`);
+  if (noPrice.length) add('注意', 'データ', `値段も売値もない道具 ${noPrice.length}件（買えず、売れもしない）：${noPrice.slice(0, 12).join('、')}${noPrice.length > 12 ? ' …' : ''}`);
   for (const [id, sk] of Object.entries(g.skills)) {
     if (!describeSkill(sk)) add('注意', '文字', `技「${sk.name}」の短い説明が作れない（戦闘の一覧で説明が出ない）`, id);
   }
@@ -332,16 +334,12 @@ function checkText(g, add) {
     const body = text.replace(/^[^「」\s]+?(?=「)/, '');
     const face = m && !['主人公'].includes(m[1]) ? 1 : 0;
     const maxW = face ? 600 - 22 - 64 - 14 - 30 : 600 - 22 - 30;
-    let w = 0;
-    let prev = '';
-    for (const ch of Array.from(body)) {
-      const cw = font.width(ch);
-      if (w + cw > maxW) {
-        if (/[ァ-ヶー]/.test(prev) && /[ァ-ヶー]/.test(ch)) add('参考', '文字', `カタカナの言葉が行の終わりで分かれるかも（${prev}｜${ch}）：${short(text)}`, key);
-        w = 0;
-      }
-      w += cw;
-      prev = ch;
+    // ゲームと同じ折り返し（src/core/text.js の wrapText）で、カタカナの言葉が2行に分かれていないか
+    const wrapped = wrapText(body, maxW, (x) => font.width(x));
+    for (let i = 0; i + 1 < wrapped.length; i++) {
+      const a = wrapped[i].at(-1);
+      const b = wrapped[i + 1][0];
+      if (/[ァ-ヶー]/.test(a ?? '') && /[ァ-ヶー]/.test(b ?? '')) add('参考', '文字', `カタカナの言葉が行の終わりで分かれる（${a}｜${b}）：${short(text)}`, key);
     }
   }
   if (halfMarks.length) {
