@@ -251,7 +251,8 @@ sub ttree { my ($m, @at) = @_; for my $p (@at) { put($m, 'd', $p->[0], $p->[1], 
   # people
   obj($m, '町の人A', 'npc', 24, 30, character => 'town_a', dialogue => 'town_a', dir => 'down');
   obj($m, '町の人B', 'npc', 36, 16, character => 'town_b', dialogue => 'town_b', dir => 'down');
-  obj($m, '町の人C', 'npc', 10, 24, character => 'town_c', dialogue => 'town_c', wander => 1);
+  # 家の前の道（1マス幅）をふさがないように、となりの家の戸口の前に立たせる（歩き回らない）
+  obj($m, '町の人C', 'npc', 11, 23, character => 'town_c', dialogue => 'town_c', dir => 'down');
   obj($m, '町の人D', 'npc', 16, 20, character => 'town_d', dialogue => 'town_d', wander => 1);
   obj($m, '町の人E', 'npc', 13, 11, character => 'town_e', dialogue => 'town_e', wander => 1);
   obj($m, '町の人F', 'npc', 22, 17, character => 'town_f', dialogue => 'town_f', dir => 'left');
