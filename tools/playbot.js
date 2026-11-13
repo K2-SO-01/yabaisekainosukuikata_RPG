@@ -152,6 +152,8 @@ export async function playthrough({ gender = 'male', job = 'swordsman', maxMinut
     if (!st.flags.audience_done) return null;
     if (!st.flags.home_event_done) return { map: 'town', x: 4, y: 21, act: 'step', why: '家のイベント' };
     if (!st.flags.luke_joined) return { map: 'field_town', x: 18, y: 14, act: 'step', why: 'ルークの加入' };
+    // 雷の四天王を倒したあと：師匠の形見を拾う（拾うと、外へ出る）
+    if (st.flags.keepsake_route && !st.flags.keepsake_got) return { map: 'storm_castle_boss', x: 6, y: 3, act: 'talk', why: '師匠の形見' };
     const c = chapter();
     if (!c) return null; // 魔王を倒したあと：エンディングの台本が進む
     if (!visited(c.village)) return { map: c.village, x: 12, y: 16, act: 'step', why: `${c.village}へ` };

@@ -109,6 +109,10 @@ sub dungeon { my (%o) = @_; my $th = $DTH{ $o{theme} }; my ($cw, $ch) = (9, 9);
   obj($m, '戻る', 'exit', 6, 10, map => "$o{id}_$o{floors}", x => 'end', y => 'end', dir => 'down');
   obj($m, '光の結晶', 'savepoint', 2, 8);
   obj($m, $o{bossName}, 'npc', 6, $o{throne} ? 2 : 3, enemy => $o{boss}, script => $o{script}, unless => $o{bossFlag});
+  if ($o{keepsake}) {
+    obj($m, '師匠の形見', 'sign', 6, 3, kind => 'keepsake', script => 'master_keepsake', if => $o{bossFlag}, unless => 'keepsake_got');
+    obj($m, '形見に気づく', 'trigger', 6, 9, script => 'keepsake_block', if => 'keepsake_route', unless => 'keepsake_got');
+  }
   obj($m, 'start', 'start', 6, 9, dir => 'up');
   emit($m, "$o{id}_boss", $o{name}, $o{bgm}, back => $th->{back}, ($th->{tint} ? (tint => $th->{tint}) : ()), ($th->{storm} ? (storm => 1) : ()));
 }
@@ -123,7 +127,7 @@ dungeon(id => 'volcano', floors => 2, theme => 'volcano', area => 'volcano', bgm
   boss => 'boss_fire', bossName => '炎の四天王', script => 'boss_fire', bossFlag => 'boss_fire');
 dungeon(id => 'storm_castle', floors => 3, theme => 'storm', area => 'storm', bgm => 'dungeon_storm', name => '嵐の城', seed => 4, out => ['field_thunder', 30, 14],
   chests => [[{ item => 'potion_l' }], [{ gold => 1500 }], [{ item => 'bolt_bangle' }, { item => 'lightning_edge' }]],
-  boss => 'boss_thunder', bossName => '雷の四天王', script => 'boss_thunder', bossFlag => 'boss_thunder');
+  boss => 'boss_thunder', bossName => '雷の四天王', script => 'boss_thunder', bossFlag => 'boss_thunder', keepsake => 1);
 dungeon(id => 'demon_castle', floors => 3, theme => 'demon', area => 'demon', bgm => 'dungeon_demon', name => '魔王城', seed => 5, out => ['field_demon', 30, 14],
   chests => [[{ item => 'revive_potion' }], [{ gold => 2000 }], [{ item => 'saint_rod' }]],
   boss => 'demon1', bossName => '魔王', script => 'boss_demon', bossFlag => 'demon_defeated', throne => 1, autoFirst => 'demon_enter', autoUnless => 'before_demon_done');

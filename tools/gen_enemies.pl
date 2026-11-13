@@ -35,9 +35,9 @@ my @enemies = (
   [thunder_spirit => 'サンダースピリット', "$M/pipo-enemy029b.png", 95, 13, 32, 36, 42, 'thunder', 60, [120, 150], 'bolt_crystal', [qw(bolt_paralyze raimei_small)]],
   [lost_soldier => 'ロストソルジャー', "$M/pipo-enemy039.png", 118, 44, 40, 30, 7, 'thunder', 60, [120, 150], 'rusty_helm', [qw(sword_attack cover_others)]],
   [utsuro => 'ウツロ', "$M/pipo-enemy010.png", 41, 35, 30, 34, 32, 'thunder', 60, [120, 150], 'nameless_letter', [qw(attack search_name)], { physImmune => \1, immune => ['poison', 'burn'] }],
-  [dark_knight => 'ダークナイト', "$M/pipo-enemy018b.png", 176, 63, 50, 40, 9, 'dark', 140, [150, 200], 'iron_shard', [qw(attack dark_sword)]],
-  [arch_demon => 'アークデーモン', "$M/pipo-enemy024.png", 169, 54, 42, 42, 62, 'dark', 140, [150, 200], 'demon_horn', [qw(attack dark_flame)]],
-  [gargoyle => 'ガーゴイル', "$M/pipo-enemy040b.png", 162, 60, 46, 46, 9, 'dark', 140, [150, 200], 'stone_wing', [qw(attack dive)]],
+  [dark_knight => 'ダークナイト', "$M/pipo-enemy018b.png", 211, 63, 50, 40, 9, 'dark', 140, [150, 200], 'iron_shard', [qw(attack dark_sword)]],
+  [arch_demon => 'アークデーモン', "$M/pipo-enemy024.png", 203, 54, 42, 42, 62, 'dark', 140, [150, 200], 'demon_horn', [qw(attack dark_flame)]],
+  [gargoyle => 'ガーゴイル', "$M/pipo-enemy040b.png", 194, 60, 46, 46, 9, 'dark', 140, [150, 200], 'stone_wing', [qw(attack dive)]],
   # bosses
   [boss_water => '水の四天王', "$X/boss_water.png", 300, 15, 18, 12, 22, 'water', 100, [400, 400], undef, [qw(aqua_splash madoromi poison_scale)],
     { boss => \1, acts => 1, special => 'royal_tidal', chargeText => '水の四天王「おーっほっほっほ!」', immune => ['poison'], bgm => 'boss' }],

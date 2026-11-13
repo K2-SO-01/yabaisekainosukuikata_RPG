@@ -1,6 +1,6 @@
 {
   "type": "map", "version": "1.10", "tiledversion": "1.10.2", "orientation": "orthogonal", "renderorder": "right-down", "infinite": false,
-  "width": 13, "height": 11, "tilewidth": 32, "tileheight": 32, "nextlayerid": 6, "nextobjectid": 5,
+  "width": 13, "height": 11, "tilewidth": 32, "tileheight": 32, "nextlayerid": 6, "nextobjectid": 7,
   "properties": [
     { "name": "name", "type": "string", "value": "嵐の城" },
     { "name": "bgm", "type": "string", "value": "dungeon_storm" },
@@ -74,7 +74,9 @@
         { "id": 1, "name": "戻る", "type": "exit", "x": 192, "y": 320, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "dir", "type": "string", "value": "down" }, { "name": "map", "type": "string", "value": "storm_castle_3" }, { "name": "x", "type": "string", "value": "end" }, { "name": "y", "type": "string", "value": "end" }] },
         { "id": 2, "name": "光の結晶", "type": "savepoint", "x": 64, "y": 256, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [] },
         { "id": 3, "name": "雷の四天王", "type": "npc", "x": 192, "y": 96, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "enemy", "type": "string", "value": "boss_thunder" }, { "name": "script", "type": "string", "value": "boss_thunder" }, { "name": "unless", "type": "string", "value": "boss_thunder" }] },
-        { "id": 4, "name": "start", "type": "start", "x": 192, "y": 288, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "dir", "type": "string", "value": "up" }] }
+        { "id": 4, "name": "師匠の形見", "type": "sign", "x": 192, "y": 96, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "if", "type": "string", "value": "boss_thunder" }, { "name": "kind", "type": "string", "value": "keepsake" }, { "name": "script", "type": "string", "value": "master_keepsake" }, { "name": "unless", "type": "string", "value": "keepsake_got" }] },
+        { "id": 5, "name": "形見に気づく", "type": "trigger", "x": 192, "y": 288, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "if", "type": "string", "value": "keepsake_route" }, { "name": "script", "type": "string", "value": "keepsake_block" }, { "name": "unless", "type": "string", "value": "keepsake_got" }] },
+        { "id": 6, "name": "start", "type": "start", "x": 192, "y": 288, "width": 32, "height": 32, "rotation": 0, "visible": true, "properties": [{ "name": "dir", "type": "string", "value": "up" }] }
       ] }
   ]
 }

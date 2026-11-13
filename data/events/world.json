@@ -74,9 +74,23 @@
     { "say": "farewell" },
     { "learnLight": true },
     { "fanfare": { "text": "light_awaken", "kind": "ちから", "se": null } },
-    { "se": "open_path" },
-    { "say": "open_thunder" },
-    { "transfer": { "map": "field_thunder", "x": 30, "y": 14, "dir": "down" } }
+    { "flag": "keepsake_route" },
+    { "say": "keepsake_hint" }
+  ],
+  "master_keepsake": [
+    { "say": "keepsake_found" },
+    { "learnKeepsake": true },
+    { "fanfare": { "text": "keepsake_learned", "kind": "ちから" } },
+    { "flag": "keepsake_got" },
+    { "if": "keepsake_route", "then": [
+      { "se": "open_path" },
+      { "say": "open_thunder" },
+      { "transfer": { "map": "field_thunder", "x": 30, "y": 14, "dir": "down" } }
+    ] }
+  ],
+  "keepsake_block": [
+    { "say": "keepsake_hint" },
+    { "playerMove": ["up"] }
   ],
   "demon_enter": [
     { "wait": 400 },

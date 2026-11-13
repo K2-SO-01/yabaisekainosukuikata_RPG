@@ -539,6 +539,15 @@ export class FieldScene extends Scene {
         if (!hero.extraSkills.includes(id)) hero.extraSkills.push(id);
         g.audio.playSe('awaken');
       },
+      // 師匠の形見：レオ／リナが、師匠の奥義の弟子版を受け継ぐ（剣士は雷鳴斬、魔法使いは雷鳴の陣）
+      learnKeepsake: () => {
+        const p = g.state.party.find((m) => m.id === 'partner');
+        if (!p) return;
+        p.extraSkills ??= [];
+        const id = p.job === 'mage' ? 'heir_spell' : 'heir_slash';
+        if (!p.extraSkills.includes(id)) p.extraSkills.push(id);
+        g.audio.playSe('awaken');
+      },
       flash: (color) =>
         new Promise((done) => {
           this.flashColor = color || '#ffffff';
@@ -789,6 +798,8 @@ export class FieldScene extends Scene {
       } else if (o.type === 'search' && o.props.kind === 'chest') {
         const opened = this.game.state.flags[`got_${this.game.state.location.map}_${o.id}`];
         sprites.push({ y: o.y * TILE - 1, draw: () => drawGid(ctx, map, opened ? CHEST_OPEN : CHEST_CLOSED, o.x * TILE - camX, o.y * TILE - camY) });
+      } else if (o.type === 'sign' && o.props.kind === 'keepsake') {
+        sprites.push({ y: o.y * TILE, draw: () => drawKeepsake(ctx, o.x * TILE - camX, o.y * TILE - camY, this.time) });
       } else if (o.type === 'savepoint') {
         sprites.push({ y: o.y * TILE, draw: () => drawCrystal(ctx, o.x * TILE - camX, o.y * TILE - camY, this.time, this.game.assets.image('img:blockers')) });
       }
@@ -996,5 +1007,36 @@ function drawCrystal(ctx, x, y, t, img) {
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
     ctx.fillRect(x + 21, y + 1 + bob, 1, 5);
     ctx.fillRect(x + 19, y + 3 + bob, 5, 1);
+  }
+}
+
+// 師匠の形見：灰の上の古い書きつけ（巻物）。ときどき、きらりと光る
+function drawKeepsake(ctx, x, y, t) {
+  const px = (dx, dy, w, h, c) => {
+    ctx.fillStyle = c;
+    ctx.fillRect(Math.round(x) + dx, Math.round(y) + dy, w, h);
+  };
+  // 灰
+  px(6, 24, 20, 4, 'rgba(60,60,70,0.55)');
+  px(9, 22, 14, 2, 'rgba(90,90,100,0.5)');
+  // 巻物
+  px(8, 14, 16, 9, '#3a2a18');
+  px(9, 15, 14, 7, '#e8dcb8');
+  px(9, 15, 14, 1, '#fff6d8');
+  px(7, 13, 2, 11, '#8a5a2a');
+  px(23, 13, 2, 11, '#8a5a2a');
+  px(11, 17, 8, 1, '#7a6a4a');
+  px(11, 19, 10, 1, '#7a6a4a');
+  // 雷の色のひも
+  px(15, 14, 2, 9, '#e6b800');
+  // きらり
+  const k = (t % 1600) / 1600;
+  if (k < 0.5) {
+    const a = Math.sin((k / 0.5) * Math.PI);
+    ctx.globalAlpha = a;
+    px(15, 4, 1, 9, '#ffffff');
+    px(11, 8, 9, 1, '#ffffff');
+    px(14, 7, 3, 3, '#fff3a0');
+    ctx.globalAlpha = 1;
   }
 }

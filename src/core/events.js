@@ -83,6 +83,7 @@ export async function runScript(commands, ctx) {
       if (r !== 'win') return; // 負けた時は、全滅の処理（宿屋や家へ）に任せる
     } else if ('joinPartner' in cmd) ui.joinPartner();
     else if ('learnLight' in cmd) ui.learnLight();
+    else if ('learnKeepsake' in cmd) ui.learnKeepsake();
     else if ('flash' in cmd) await ui.flash(cmd.flash);
     else if ('endroll' in cmd) await ui.endroll();
     else if ('epilogue' in cmd) await ui.epilogue(cmd.epilogue);

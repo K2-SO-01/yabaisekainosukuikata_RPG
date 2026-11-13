@@ -1,7 +1,7 @@
 // 戦闘の画面（フロントビュー）。ルールは src/core/battle.js、ここは見せ方と入力だけ
 import { HEIGHT, WIDTH } from '../../config.js';
 import {
-  alive, applyDefeat, createBattle, finishWin, has, mustSkipInput, planEnemies, resolveTurn,
+  alive, applyDefeat, createBattle, finishWin, has, mustSkipInput, planEnemies, resolveTurn, startTurnEvents,
 } from '../../core/battle.js';
 import { characterIdOf, isDown, itemCount, learnedSkills, totalStats } from '../../core/party.js';
 import { COLORS, drawCursor, drawWindow } from '../draw.js';
@@ -277,11 +277,17 @@ export class BattleScene extends Scene {
     if (b.result) return this.finish();
     planEnemies(b);
     if (b.intents.some((list) => list?.some((it) => it.special))) this.game.audio.playSe('warning');
-    this.text = '';
-    this.prevText = '';
-    this.commands = [];
-    this.who = -1;
-    this.nextActor(1);
+    // ターンの始めの出来事（ルークのビビり覚醒）を見せてから、コマンドを選ぶ
+    const begin = () => {
+      this.text = '';
+      this.prevText = '';
+      this.commands = [];
+      this.who = -1;
+      this.nextActor(1);
+    };
+    const ev = startTurnEvents(b);
+    if (ev.length) this.play(ev, begin);
+    else begin();
   }
 
   nextActor(dir) {
@@ -493,7 +499,8 @@ export class BattleScene extends Scene {
       const ids = learnedSkills(u.m, g.skills);
       if (!ids.length) return this.notice('まだ 何も覚えていない。', 1);
       this.list = new ListMenu({
-        items: ids.map((id) => ({ label: g.skills[id].name, right: `MP ${g.skills[id].mp}`, value: id, disabled: g.skills[id].mp > u.m.mp })),
+        // ビビり覚醒のターンは、MPを使わない
+        items: ids.map((id) => ({ label: g.skills[id].name, right: `MP ${u.panic ? 0 : g.skills[id].mp}`, value: id, disabled: !u.panic && g.skills[id].mp > u.m.mp })),
         x: 192, y: 56, w: 300, rows: 6, index: Math.max(0, ids.indexOf(this.memory?.[this.who]?.skill)),
       });
       this.listKind = 'skill';
@@ -989,7 +996,9 @@ export class BattleScene extends Scene {
       ctx.globalAlpha = 1;
       const tx = x + 62;
       const nx = g.font.draw(ctx, u.name, tx, y + 8, down ? DOWN_RED : COLORS.title);
-      g.font.draw(ctx, `Lv${m.level}`, nx + 8, y + 8, COLORS.textDim);
+      // ビビり覚醒のターンは、レベルの所に金色で「覚醒！」（点滅）
+      if (u.panic) g.font.draw(ctx, '覚醒！', nx + 8, y + 8, Math.floor(this.t / 200) % 2 ? COLORS.title : '#ffffff');
+      else g.font.draw(ctx, `Lv${m.level}`, nx + 8, y + 8, COLORS.textDim);
       g.font.draw(ctx, `HP ${Math.max(0, Math.round(d.hp))}/${s.hp}`, tx, y + 28, low ? '#ff6a5a' : COLORS.text);
       const gw = r.w - 78;
       ctx.fillStyle = '#0a0e22';

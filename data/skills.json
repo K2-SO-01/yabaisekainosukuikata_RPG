@@ -32,5 +32,7 @@
   "lightning_slash": { "name": "ライトニングスラッシュ", "job": "story", "mp": 5, "kind": "physical", "element": "thunder", "power": 2, "target": "enemy" },
   "lightning_bolt": { "name": "ライトニングボルト", "job": "story", "mp": 12, "kind": "magic", "element": "thunder", "power": 2, "target": "enemy", "inflict": "paralysis" },
   "holy_slash": { "name": "ホーリースラッシュ", "job": "story", "mp": 6, "kind": "physical", "element": "light", "power": 2, "target": "enemy" },
-  "holy": { "name": "ホーリー", "job": "story", "mp": 8, "kind": "magic", "element": "light", "power": 2, "target": "enemy" }
+  "holy": { "name": "ホーリー", "job": "story", "mp": 8, "kind": "magic", "element": "light", "power": 2, "target": "enemy" },
+  "heir_slash": { "name": "雷鳴斬", "job": "story", "mp": 12, "kind": "physical", "element": "thunder", "power": 1.8, "target": "enemies", "inflict": "paralysis", "chance": 0.3 },
+  "heir_spell": { "name": "雷鳴の陣", "job": "story", "mp": 14, "kind": "magic", "element": "thunder", "power": 1.8, "target": "enemies", "inflict": "paralysis", "chance": 0.3 }
 }

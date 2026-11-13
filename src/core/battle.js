@@ -285,6 +285,27 @@ export function resolveTurn(b, commands) {
   }
 
   if (!b.result && !b.transformed) endOfTurn(b);
+  for (const u of b.allies) u.panic = false;
+  return b.events;
+}
+
+// ターンの始め（コマンドを選ぶ前）の出来事。ルークのビビり覚醒：仲間が倒れているか、立っている全員のHPが4分の1以下になると、
+// 1回の戦闘で1度だけパニックを起こし、そのターンだけ魔法のMPが0、回復の量が2倍になる
+export function startTurnEvents(b) {
+  b.events = [];
+  if (b.panicUsed) return b.events;
+  const luke = b.allies.find((a) => a.m.id === 'luke' && alive(a) && !has(a, 'sleep'));
+  if (!luke) return b.events;
+  const standing = living(b.allies);
+  const pinch = b.allies.some((a) => !alive(a)) || standing.every((a) => a.m.hp <= maxHp(b, a) / 4);
+  if (!pinch) return b.events;
+  b.panicUsed = true;
+  luke.panic = true;
+  emit(b, { t: 'act', side: 'ally', i: luke.index, kind: 'panic' });
+  emit(b, { t: 'se', name: 'warning' });
+  emit(b, { t: 'talk', key: 'luke_panic' });
+  emit(b, { t: 'se', name: 'buff' });
+  msg(b, 'このターン、{a}の魔法は MPを使わず、回復が2倍になる！', { a: luke.name });
   return b.events;
 }
 
@@ -474,13 +495,14 @@ function allyAction(b, u, c) {
   if (c.type === 'item') return useItem(b, u, c);
   const sk = b.skills[c.skill];
   if (!sk) return;
-  if (m.mp < sk.mp) {
+  const cost = u.panic ? 0 : sk.mp; // ルークのビビり覚醒：このターンはMPを使わない
+  if (m.mp < cost) {
     msg(b, '{a}は {s}を 使おうとした！', { a: u.name, s: sk.name });
     msg(b, 'しかし MPが 足りない！');
     return;
   }
-  m.mp -= sk.mp;
-  emit(b, { t: 'mp', i: u.index, amount: -sk.mp });
+  m.mp -= cost;
+  if (cost) emit(b, { t: 'mp', i: u.index, amount: -cost });
   const verb = sk.kind === 'physical' ? '{a}の {s}！' : m.job === 'swordsman' ? '{a}は {s}を 使った！' : '{a}は {s}を となえた！';
   msg(b, verb, { a: u.name, s: sk.name });
   if (sk.kind === 'physical' || sk.kind === 'magic') {
@@ -488,7 +510,7 @@ function allyAction(b, u, c) {
     if (sk.target !== 'enemies' && targets[0]) targets = [enemyCover(b, targets[0])];
     if (sk.kind === 'physical' && sk.element && sk.element !== 'none') emit(b, { t: 'se', name: 'slash' });
     const hit = hitWith(b, u, targets, { kind: sk.kind, power: sk.power, element: sk.element ?? 'none' });
-    if (sk.inflict) for (const t of hit) if (alive(t) && inflict(b, t, sk.inflict, 0.5)) sayAilment(b, t, sk.inflict, true);
+    if (sk.inflict) for (const t of hit) if (alive(t) && inflict(b, t, sk.inflict, sk.chance ?? 0.5)) sayAilment(b, t, sk.inflict, true);
   } else if (sk.kind === 'status') {
     let t = retargetEnemy(b, c.target);
     if (!t) return;
@@ -508,7 +530,7 @@ function allyAction(b, u, c) {
       msg(b, '{t}の 防御力が 下がった！', { t: t.name });
     }
   } else if (sk.kind === 'heal') {
-    const effect = sk.revive ? { revive: sk.revive } : sk.cure ? { cure: true } : { hp: healAmount(m, sk, b.items) };
+    const effect = sk.revive ? { revive: sk.revive } : sk.cure ? { cure: true } : { hp: healAmount(m, sk, b.items) * (u.panic ? 2 : 1) };
     let targets;
     if (sk.target === 'allies') targets = living(b.allies);
     else if (sk.target === 'ally_down') targets = [retargetAlly(b, c.target, { down: true })].filter(Boolean);

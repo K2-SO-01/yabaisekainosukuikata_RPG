@@ -1,6 +1,6 @@
 // バランス確認ボット（企画書14章）。ゲームの戦闘・成長・お金のルール（src/core）をそのまま使い、
 // 最初から魔王までを、画面なしで何度も自動で遊ばせて、結果を表とCSVで出す
-import { applyDefeat, createBattle, elementRate, encounterRoll, finishWin, mustSkipInput, planEnemies, resolveTurn, rollEncounter, alive } from '../src/core/battle.js';
+import { applyDefeat, createBattle, elementRate, encounterRoll, finishWin, mustSkipInput, planEnemies, resolveTurn, rollEncounter, startTurnEvents, alive } from '../src/core/battle.js';
 import { addItem, applyRecovery, canEquip, createMember, fullRecover, healAmount, isDown, itemCount, learnedSkills, removeItem, sellPrice, slotOf, totalStats, partnerOf } from '../src/core/party.js';
 import { createNewGame } from '../src/core/state.js';
 import { createRng } from '../src/core/rng.js';
@@ -204,6 +204,7 @@ export class Sim {
     let form2 = null;
     while (!b.result && rec.turns < 300) {
       planEnemies(b);
+      if (!globalThis.noPanic) startTurnEvents(b); // ルークのビビり覚醒（noPanic = true で、なしと比べられる）
       const cmds = b.allies.map((u, i) => this.command(b, u, i, boss));
       for (const c of cmds) if (c?.type === 'item') this.log.itemsUsed++;
       const evs = resolveTurn(b, cmds);
@@ -232,7 +233,7 @@ export class Sim {
   command(b, u, i, boss) {
     if (!alive(u) || mustSkipInput(u)) return { type: 'none' };
     const m = u.m;
-    const known = learnedSkills(m, skills).filter((id) => skills[id].mp <= m.mp);
+    const known = learnedSkills(m, skills).filter((id) => u.panic || skills[id].mp <= m.mp); // ビビり覚醒のターンは、MPを使わない
     const foes = b.enemies.filter(alive);
     const ai = this.strat.ai;
     if (ai === 'random') {
@@ -459,6 +460,9 @@ export class Sim {
     if (s.light) {
       const hero = this.party[0];
       hero.extraSkills = [...(hero.extraSkills ?? []), hero.job === 'mage' ? 'holy' : 'holy_slash'];
+      // 師匠の形見：レオ／リナが、師匠の奥義の弟子版を受け継ぐ
+      const partner = this.party.find((m) => m.id === 'partner');
+      if (partner && !globalThis.noHeir) partner.extraSkills = [...(partner.extraSkills ?? []), partner.job === 'mage' ? 'heir_spell' : 'heir_slash'];
     }
     return 'ok';
   }
@@ -685,6 +689,12 @@ window.zako = (area, heroJob = 'swordsman', n = 300, lvAdj = 0) => {
   for (let k = 0; k < n; k++) {
     const sim = new Sim(HEROES[heroJob === 'mage' ? 1 : 0], STRATEGIES.efficient, 5000 + k);
     sim.st.party = testParty(area, heroJob, lvAdj);
+    // 物語で覚える技（雷の村からの専用技、魔王城では光の技と師匠の奥義）。window.noHeir = true で、奥義なしと比べられる
+    for (const m of sim.party) {
+      if (m.id === 'partner' && ['storm', 'demon'].includes(area)) m.extraSkills = [m.job === 'mage' ? 'lightning_bolt' : 'lightning_slash'];
+      if (m.id === 'partner' && area === 'demon' && !window.noHeir) m.extraSkills.push(m.job === 'mage' ? 'heir_spell' : 'heir_slash');
+      if (m.id === 'hero' && area === 'demon') m.extraSkills = [m.job === 'mage' ? 'holy' : 'holy_slash'];
+    }
     const total = sim.party.reduce((s, m) => s + sim.stats(m).hp, 0);
     const res = sim.battle(rollEncounter(enemyData.areas[area], sim.r), area, false);
     turns += sim.lastBattle.rec.turns;
@@ -703,6 +713,7 @@ window.boss = (id, area, heroJob = 'swordsman', n = 40, lvAdj = 0) => {
     sim.st.party = testParty(area, heroJob, lvAdj);
     if (['storm', 'demon'].includes(area)) for (const m of sim.party) if (m.id === 'partner') m.extraSkills = [m.job === 'mage' ? 'lightning_bolt' : 'lightning_slash'];
     if (area === 'demon') sim.party[0].extraSkills = [heroJob === 'mage' ? 'holy' : 'holy_slash'];
+    if (area === 'demon' && !globalThis.noHeir) for (const m of sim.party) if (m.id === 'partner') m.extraSkills.push(m.job === 'mage' ? 'heir_spell' : 'heir_slash');
     // その時に買えそうな薬を持って挑む
     const bag = { lake: { potion_s: 5 }, tower: { potion_m: 5 }, volcano: { potion_m: 8, revive_potion: 1 }, storm: { potion_l: 5, revive_potion: 2 }, demon: { potion_l: 8, revive_potion: 3, mana_potion: 3 } }[area] ?? {};
     for (const [it, c] of Object.entries(bag)) addItem(sim.st, it, c);
@@ -738,7 +749,7 @@ import('../src/core/brain.js').then(({ FEATURES, think }) => {
     const hero = HEROES[heroIndex];
     const sim = new Sim(hero, STRATEGIES[opp.strat], seed);
     sim.st.party = testParty('post', hero.job, lvAdj);
-    for (const m of sim.party) if (m.id === 'partner') m.extraSkills = [m.job === 'mage' ? 'lightning_bolt' : 'lightning_slash'];
+    for (const m of sim.party) if (m.id === 'partner') m.extraSkills = m.job === 'mage' ? ['lightning_bolt', 'heir_spell'] : ['lightning_slash', 'heir_slash'];
     sim.party[0].extraSkills = [hero.job === 'mage' ? 'holy' : 'holy_slash'];
     for (const [it, c] of Object.entries({ potion_l: 10, revive_potion: 3, mana_potion: 5, cure_potion: 5 })) addItem(sim.st, it, c);
     sim.st.stats = { habits: JSON.parse(JSON.stringify(opp.habits)) };
