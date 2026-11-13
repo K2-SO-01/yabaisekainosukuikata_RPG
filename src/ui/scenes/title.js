@@ -1,19 +1,22 @@
-// タイトル画面：Adobe Firefly で作った2枚の絵（assets/title）が、ゆっくり動きながら切りかわる。
-// タイトルの文字は金色にふち取り、光が横切る。光の結晶のかけらが舞う。絵が読めない時は、前の空と丘の背景
+// タイトル画面：Adobe Firefly で作った2枚の絵（assets/title）が、ゆっくり動きながら切りかわる。きらきらの演出は src/ui/titlefx.js
+// （光の筋・光の粒・星・結晶・火の粉・流れ星・稲妻・文字の輝きと爆発）。絵が読めない時は、前の空と丘の背景
+
 import { HEIGHT, WIDTH } from '../../config.js';
 import { hasAnySave } from '../../core/save.js';
-import { COLORS, drawCursor, drawSkyGradient } from '../draw.js';
+import { drawCursor, drawSkyGradient } from '../draw.js';
 import { Menu } from '../menu.js';
 import { Scene } from '../scene.js';
 import { NewGameScene } from './newgame.js';
 import { SaveLoadScene } from './saveload.js';
 import { SettingsScene } from './settings.js';
+import { TitleFx } from '../titlefx.js';
 
 export class TitleScene extends Scene {
   enter() {
     this.t = 0;
     // 光の結晶のかけら（下から上へ、ゆらゆら舞う）
     this.shards = Array.from({ length: 34 }, (_, i) => ({ x: Math.random() * WIDTH, y: Math.random() * HEIGHT, v: 0.006 + Math.random() * 0.012, sway: Math.random() * 6.28, size: 1 + Math.floor(Math.random() * 3), hue: i % 3 }));
+    this.fx = new TitleFx(); // きらきらの演出（src/ui/titlefx.js）
     this.game.state = null;
     this.makeMenu();
     this.game.audio.playBgm('title');
@@ -52,6 +55,7 @@ export class TitleScene extends Scene {
       }
     }
     const g = this.game;
+    this.fx.update(dt, this.t, this.logoRect());
     const r = this.menu.update(g.input, g.audio);
     if (!r || r.type !== 'select') return;
     if (r.item.value === 'new') {
@@ -68,7 +72,9 @@ export class TitleScene extends Scene {
     const pics = [g.assets.image('img:title_a'), g.assets.image('img:title_b')].filter(Boolean);
     if (pics.length) this.drawPictures(ctx, pics);
     else this.drawPlainSky(ctx);
+    this.fx.drawBack(ctx, this.t);
     this.drawShards(ctx);
+    this.fx.drawFront(ctx, this.t);
     this.drawLogo(ctx);
     if (g.scenes.top === this) this.drawMenu(ctx);
     // 始まりは黒からふわっと
@@ -77,6 +83,13 @@ export class TitleScene extends Scene {
       ctx.fillStyle = `rgba(0,0,0,${fade.toFixed(3)})`;
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
     }
+  }
+
+  // タイトルの文字の場所（きらめきを出す所）
+  logoRect() {
+    const font = this.game.fontBig;
+    const w = font.width('ヤバい世界の救い方');
+    return { x: Math.round(WIDTH / 2 - w / 2), y: 46, w, h: 36 };
   }
 
   // メニュー：窓は出さず、絵の上に光る文字だけ（行の位置とタップの範囲は Menu と同じ）
@@ -105,6 +118,7 @@ export class TitleScene extends Scene {
       for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1]]) g.font.draw(ctx, item.label, x + dx, y + dy, '#0b0820');
       g.font.draw(ctx, item.label, x, y, color);
       if (sel) {
+        this.fx.sparkleAround(x, y, w);
         const bob = Math.round(Math.sin(this.t / 160) * 2);
         drawCursor(ctx, x - 20 + bob, y + 2);
         drawCursor(ctx, x + w + 8 - bob, y + 2);
@@ -196,25 +210,8 @@ export class TitleScene extends Scene {
     for (let r = 3; r >= 1; r--) {
       for (const [dx, dy] of [[-r, 0], [r, 0], [0, -r], [0, r], [-r, -r], [r, r], [-r, r], [r, -r]]) font.draw(ctx, title, tx + dx, ty + dy, r === 3 ? '#0b0820' : '#3a2a10');
     }
-    ctx.shadowColor = 'rgba(255, 210, 110, 0.9)';
-    ctx.shadowBlur = 14;
-    font.draw(ctx, title, tx, ty, '#ffe08a');
-    ctx.shadowBlur = 0;
-    font.draw(ctx, title, tx, ty - 1, '#fff2c0');
-    font.draw(ctx, title, tx, ty, COLORS.title);
-    // 光が横切る（6秒ごと）
-    const sweep = ((this.t - 1500) % 6000) / 900;
-    if (this.t > 1500 && sweep < 1) {
-      ctx.globalCompositeOperation = 'lighter';
-      const sx = tx - 40 + (tw + 80) * sweep;
-      const grad = ctx.createLinearGradient(sx - 30, 0, sx + 30, 0);
-      grad.addColorStop(0, 'rgba(255,255,255,0)');
-      grad.addColorStop(0.5, 'rgba(255,250,220,0.55)');
-      grad.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(sx - 30, ty - 4, 60, 44);
-      ctx.globalCompositeOperation = 'source-over';
-    }
+    // 文字の中：流れる金色の輝き・きらめき・登場の時の光の爆発（src/ui/titlefx.js）
+    this.fx.drawLogo(ctx, this.t, font, title, tx, ty);
     // 下の飾り：金の線と、両はしの結晶
     const ly = ty + 46;
     const line = ctx.createLinearGradient(tx - 30, 0, tx + tw + 30, 0);
