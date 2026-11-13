@@ -26,7 +26,8 @@ export class BattleScene extends Scene {
   // enemyIds：出てくる敵、area：data/enemies.json の areas の名前、onEnd(result)：戦闘が終わった時
   // skipRewards：勝っても経験値などを出さずに終える（魔王）
   // gentle：負けても全滅の扱いにしない（お金は減らず、その場で全員が元気になる。旅立ちの前の、町のスライム）
-  constructor({ enemyIds, area, boss = false, onEnd, skipRewards = false, gentle = false }) {
+  // tips：戦いの中でシステムが出す説明 [{ on: 'start'（最初のターン）| 'big'（大技の吹き出しが初めて出た時）, say: セリフの名前 }]
+  constructor({ enemyIds, area, boss = false, onEnd, skipRewards = false, gentle = false, tips = null }) {
     super();
     this.enemyIds = enemyIds;
     this.areaId = area;
@@ -34,6 +35,16 @@ export class BattleScene extends Scene {
     this.onEnd = onEnd;
     this.skipRewards = skipRewards;
     this.gentle = gentle;
+    this.tips = (tips ?? []).map((t) => ({ ...t }));
+  }
+
+  // このターンに出す説明（それぞれ1回だけ）
+  takeTip() {
+    const big = this.b.intents.some((list) => list?.some((it) => it.special || it.big));
+    const t = this.tips.find((x) => !x.done && (x.on === 'start' || (x.on === 'big' && big)));
+    if (!t) return null;
+    t.done = true;
+    return this.game.pick(this.game.dialogues[t.say]) ?? null;
   }
 
   enter() {
@@ -288,8 +299,13 @@ export class BattleScene extends Scene {
       this.nextActor(1);
     };
     const ev = startTurnEvents(b);
-    if (ev.length) this.play(ev, begin);
-    else begin();
+    const go = () => (ev.length ? this.play(ev, begin) : begin());
+    // システムの説明（吹き出しが見えている状態で出す）
+    const tip = this.takeTip();
+    if (!tip) return go();
+    this.text = ''; // 吹き出しを見せたまま説明する
+    this.talking = true;
+    this.game.scenes.push(new MessageScene(tip, { onDone: () => { this.talking = false; go(); } }));
   }
 
   nextActor(dir) {

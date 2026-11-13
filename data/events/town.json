@@ -24,7 +24,13 @@
   ],
   "slime_retry": [{ "say": "slime_again" }, { "run": "slime_fight" }],
   "slime_fight": [
-    { "battle": { "enemies": ["trick_slime"], "area": "field_town", "gentle": true, "lose": [{ "say": "slime_lose" }] } },
+    {
+      "battle": {
+        "enemies": ["trick_slime"], "area": "field_town", "gentle": true,
+        "tips": [{ "on": "start", "say": "tip_intent" }, { "on": "big", "say": "tip_big" }],
+        "lose": [{ "say": "slime_lose" }]
+      }
+    },
     { "flag": "slime_beaten" },
     { "say": "slime_win" }
   ],

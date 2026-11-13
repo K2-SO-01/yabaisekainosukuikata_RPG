@@ -390,7 +390,7 @@ export class FieldScene extends Scene {
     return d[0];
   }
 
-  startBattle({ enemyIds, area, boss = false, onEnd, fromScript = false, skipRewards = false, gentle = false }) {
+  startBattle({ enemyIds, area, boss = false, onEnd, fromScript = false, skipRewards = false, gentle = false, tips = null }) {
     this.walkPlan = null;
     const g = this.game;
     this.busy = true;
@@ -400,7 +400,7 @@ export class FieldScene extends Scene {
     g.scenes.fadeTo(() => {
       g.scenes.push(
         new BattleScene({
-          enemyIds, area, boss, skipRewards, gentle,
+          enemyIds, area, boss, skipRewards, gentle, tips,
           onEnd: (result) => {
             if (result === 'lose' && !gentle) {
               g.scenes.replaceAll(new FieldScene());
@@ -520,7 +520,7 @@ export class FieldScene extends Scene {
       },
       battle: (opts) =>
         new Promise((done) => {
-          this.startBattle({ enemyIds: opts.enemies, area: opts.area ?? this.map.props.area ?? 'field_town', boss: true, fromScript: true, skipRewards: !!opts.skipRewards, gentle: !!opts.gentle, onEnd: done });
+          this.startBattle({ enemyIds: opts.enemies, area: opts.area ?? this.map.props.area ?? 'field_town', boss: true, fromScript: true, skipRewards: !!opts.skipRewards, gentle: !!opts.gentle, tips: opts.tips ?? null, onEnd: done });
         }),
       // レオ／リナ：Lv7、その職業のLv7までの技、専用技、風の村でいちばん安い武器・防具一式
       joinPartner: () => {
