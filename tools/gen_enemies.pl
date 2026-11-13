@@ -28,7 +28,7 @@ my @enemies = (
   [doronuman => 'ドロヌマン', "$M/pipo-enemy017.png", 24, 10, 14, 6, 4, 'water', 15, [50, 70], 'mud_ball', [qw(attack dorodango)]],
   [wind_spirit => 'ウィンドスピリット', "$M/pipo-enemy029a.png", 48, 12, 14, 24, 14, 'wind', 18, [80, 110], 'wind_crystal', [qw(wind_confuse tsumujikaze)]],
   [mini_tornado => 'ミニトルネード', "$M/pipo-enemy012a.png", 50, 14, 16, 20, 12, 'wind', 18, [80, 110], 'leaf', [qw(wind_confuse makikomi)]],
-  [dash_ostrich => 'ダッシュダチョウ', $OST, 54, 15, 15, 30, 5, 'wind', 18, [80, 110], 'ostrich_feather', [qw(swift_kick kakenuke)]],
+  [dash_ostrich => 'ダッシュダチョウ', $OST, 54, 15, 15, 30, 5, 'wind', 18, [80, 110], 'ostrich_feather', [qw(swift_kick kakenuke)], { first => \1 }], # 先制：毎ターン、いちばん先に動く
   [flame_spirit => 'フレイムスピリット', "$M/pipo-enemy013.png", 81, 12, 26, 24, 32, 'fire', 65, [120, 160], 'flame_crystal', [qw(fire_bolt hibashira)]],
   [chibi_salamander => 'ちびサラマンダー', "$M/pipo-enemy016b.png", 88, 32, 28, 22, 32, 'fire', 65, [120, 160], 'warm_tail', [qw(fire_burn tail_slap)]],
   [homuran => 'ホムラン', "$M/pipo-enemy012.png", 75, 32, 24, 23, 10, 'fire', 65, [120, 160], 'burnt_stone', [qw(fire_tackle bakuhatsu)]],

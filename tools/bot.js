@@ -6,10 +6,11 @@ import { createNewGame } from '../src/core/state.js';
 import { createRng } from '../src/core/rng.js';
 import { canWalk, findStart, parseTiledMap } from '../src/core/map.js';
 
-const json = (p) => fetch(p).then((r) => r.json());
+// データは毎回新しく読む（ブラウザが前のデータを覚えていると、変えた数字がくらべられない）
+const json = (p) => fetch(p, { cache: 'no-store' }).then((r) => r.json());
 const [items, skills, enemyData, shops] = await Promise.all(['../data/items.json', '../data/skills.json', '../data/enemies.json', '../data/shops.json'].map(json));
 // 裏ボスの作戦の表（まだ学習していなければ無し）
-const loadBrain = (id) => fetch(`../data/brains/${id}.json`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+const loadBrain = (id) => fetch(`../data/brains/${id}.json`, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 enemyData.brains = { shadow: await loadBrain('shadow'), slime: await loadBrain('slime') };
 
 // ---- 道のり（効率よく進んだ時の順番）。walk：[マップ, 出発, 到着]（'start' はそのマップの始まり） ----

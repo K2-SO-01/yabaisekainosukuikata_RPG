@@ -1,13 +1,14 @@
 {
   "_note": "kind: physical / magic / status / support / heal. target: enemy / enemies / ally / allies / self / ally_down. power: damage multiplier. learn: level (1 = from the start).",
   "slash": { "name": "スラッシュ", "job": "swordsman", "learn": 1, "mp": 1, "kind": "physical", "element": "none", "power": 1.5, "target": "enemy" },
-  "cover": { "name": "かばう", "job": "swordsman", "learn": 1, "mp": 2, "kind": "support", "target": "self", "effect": "cover" },
+  "cover": { "name": "かばう", "job": "swordsman", "learn": 3, "mp": 2, "kind": "support", "target": "self", "effect": "cover" },
   "focus": { "name": "フォーカス", "job": "swordsman", "learn": 1, "mp": 3, "kind": "support", "target": "allies", "buff": "focus" },
   "stun": { "name": "スタン", "job": "swordsman", "learn": 2, "mp": 2, "kind": "physical", "element": "none", "power": 1, "target": "enemy", "inflict": "paralysis" },
   "power_up": { "name": "パワーアップ", "job": "swordsman", "learn": 7, "mp": 4, "kind": "support", "target": "allies", "buff": "atkUp" },
-  "guard_up": { "name": "防御アップ", "job": "swordsman", "learn": 7, "mp": 4, "kind": "support", "target": "allies", "buff": "defUp" },
+  "guard_up": { "name": "防御アップ", "job": "swordsman", "learn": 16, "mp": 4, "kind": "support", "target": "allies", "buff": "defUp" },
   "wide_slash": { "name": "ワイドスラッシュ", "job": "swordsman", "learn": 10, "mp": 6, "kind": "physical", "element": "none", "power": 1.4, "target": "enemies" },
   "high_slash": { "name": "ハイスラッシュ", "job": "swordsman", "learn": 12, "mp": 4, "kind": "physical", "element": "none", "power": 2, "target": "enemy" },
+  "kamaitachi": { "name": "かまいたち", "job": "swordsman", "learn": 17, "mp": 8, "kind": "physical", "element": "wind", "power": 1.2, "target": "enemies" },
   "giga_slash": { "name": "ギガスラッシュ", "job": "swordsman", "learn": 22, "mp": 9, "kind": "physical", "element": "none", "power": 3, "target": "enemy" },
 
   "fire": { "name": "ファイア", "job": "mage", "learn": 1, "mp": 6, "kind": "magic", "element": "fire", "power": 2, "target": "enemy" },
@@ -19,6 +20,7 @@
   "break": { "name": "ブレイク", "job": "mage", "learn": 14, "mp": 10, "kind": "support", "target": "enemy", "debuff": "defDown" },
   "wind": { "name": "ウィンド", "job": "mage", "learn": 17, "mp": 6, "kind": "magic", "element": "wind", "power": 2, "target": "enemy" },
   "meteor": { "name": "メテオ", "job": "mage", "learn": 20, "mp": 25, "kind": "magic", "element": "none", "power": 1.4, "target": "enemies" },
+  "blizzard": { "name": "ブリザード", "job": "mage", "learn": 24, "mp": 16, "kind": "magic", "element": "water", "power": 1.3, "target": "enemies" },
   "explosion": { "name": "エクスプロージョン", "job": "mage", "learn": 30, "mp": 60, "kind": "magic", "element": "none", "power": 5, "target": "enemy" },
 
   "heal": { "name": "ヒール", "job": "priest", "learn": 1, "mp": 4, "kind": "heal", "target": "ally", "heal": [1.5, 20], "field": true },
@@ -26,6 +28,8 @@
   "cure": { "name": "キュア", "job": "priest", "learn": 4, "mp": 3, "kind": "heal", "target": "ally", "cure": true, "field": true },
   "high_heal": { "name": "ハイヒール", "job": "priest", "learn": 9, "mp": 8, "kind": "heal", "target": "ally", "heal": [3, 40], "field": true },
   "heal_all": { "name": "ヒールオール", "job": "priest", "learn": 11, "mp": 12, "kind": "heal", "target": "allies", "heal": [1.5, 20], "field": true },
+  "protect": { "name": "プロテクト", "job": "priest", "learn": 15, "mp": 8, "kind": "support", "target": "allies", "buff": "defUp" },
+  "holy_ray": { "name": "ホーリーレイ", "job": "priest", "learn": 17, "mp": 14, "kind": "magic", "element": "light", "power": 1.2, "target": "enemies" },
   "resurrection": { "name": "リザレクション", "job": "priest", "learn": 20, "mp": 60, "kind": "heal", "target": "ally_down", "revive": 0.5, "field": true },
 
   "_story": "Skills given by the story (not by level): Leo/Lina have one from the start, the hero learns the light skill after the thunder king.",
