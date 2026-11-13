@@ -26,6 +26,8 @@ export class SettingsScene extends Scene {
       { key: 'textSpeed', label: '文字の速さ', type: 'choice', options: TEXT_SPEED_LABELS },
       { key: 'animSpeed', label: '戦闘の速さ', type: 'choice', options: ANIM_SPEED_LABELS },
       g.screen.touchEnabled ? { key: 'swapButtons', label: 'ボタン配置', type: 'bool', options: ['ふつう', '左右反転'] } : null,
+      // 隠し名前「れとろ」で始めた冒険だけ：画面の色を、ふつう／レトロ（緑の4色）で切りかえる（冒険ごとに覚える）
+      this.inGame && g.state?.modes && 'retro' in g.state.modes ? { key: 'retro', label: '画面の色', type: 'mode', options: ['ふつう', 'レトロ'] } : null,
       { key: 'help', label: 'そうさ', type: 'action' },
       { key: 'export', label: 'セーブの書き出し', type: 'action' },
       { key: 'import', label: 'セーブの読み込み', type: 'action' },
@@ -46,6 +48,10 @@ export class SettingsScene extends Scene {
     } else if (row.type === 'bool') {
       s[row.key] = !s[row.key];
       g.screen.layout();
+    } else if (row.type === 'mode') {
+      g.state.modes[row.key] = !g.state.modes[row.key];
+      g.audio.playSe('cursor');
+      return;
     } else {
       return;
     }
@@ -129,6 +135,7 @@ export class SettingsScene extends Scene {
     if (row.type === 'num') return String(v);
     if (row.type === 'choice') return row.options[v];
     if (row.type === 'bool') return row.options[v ? 1 : 0];
+    if (row.type === 'mode') return row.options[this.game.state?.modes?.[row.key] ? 1 : 0];
     return '';
   }
 

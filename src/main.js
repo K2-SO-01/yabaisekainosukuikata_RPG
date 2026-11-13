@@ -12,6 +12,7 @@ import { createStore } from './engine/storage.js';
 import { PixelFont } from './ui/font.js';
 import { SceneStack } from './ui/scene.js';
 import { TapScene } from './ui/scenes/tap.js';
+import { applyItemNames } from './core/secrets.js';
 
 
 const DEV = new URLSearchParams(location.search).has('dev');
@@ -58,6 +59,7 @@ async function boot() {
       game.input.update(dt);
       if (!game.screen.portrait) game.scenes.update(dt);
       updateMenuButton(game);
+      applyModes(game);
       useScale(ctx);
       ctx.fillStyle = '#000';
       ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -227,6 +229,34 @@ function makeFace(img) {
 }
 
 // スマホの画面ボタン「メニュー」：フィールドでは「メニュー」、メニューの中や戦闘で選んでいる途中は「もどる」。
+// 隠しモード（隠し名前で始めた冒険）：道具の名前（はらぺこ）と、画面の色（れとろ）を、今の冒険に合わせる
+let modeKey = '';
+function applyModes(game) {
+  const st = game.state;
+  const retro = !!st?.modes?.retro && game.scenes.top?.constructor?.name !== 'TitleScene';
+  const key = `${st?.runId ?? ''}:${st?.modes?.gourmet ? 1 : 0}:${retro ? 1 : 0}`;
+  if (key === modeKey) return;
+  modeKey = key;
+  applyItemNames(game.items, st);
+  if (retro && !document.getElementById('retroFilter')) {
+    // 緑の4色：明るさを4段に分けて、それぞれの緑にする
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '0');
+    svg.setAttribute('height', '0');
+    svg.style.position = 'absolute';
+    svg.innerHTML = `<filter id="retroFilter" color-interpolation-filters="sRGB">
+      <feColorMatrix type="matrix" values="0.3 0.59 0.11 0 0  0.3 0.59 0.11 0 0  0.3 0.59 0.11 0 0  0 0 0 1 0"/>
+      <feComponentTransfer>
+        <feFuncR type="discrete" tableValues="0.06 0.19 0.55 0.61"/>
+        <feFuncG type="discrete" tableValues="0.22 0.38 0.67 0.74"/>
+        <feFuncB type="discrete" tableValues="0.06 0.19 0.06 0.06"/>
+      </feComponentTransfer>
+    </filter>`;
+    document.body.appendChild(svg);
+  }
+  game.screen.canvas.style.filter = retro ? 'url(#retroFilter)' : '';
+}
+
 // 会話中・イベント中など、押しても何も起きない時は隠す（押すとキャンセルと同じ）
 const NO_BACK = ['TapScene', 'TitleScene', 'MessageScene', 'RestScene', 'BlackTextScene', 'EndRollScene', 'TheEndScene', 'PrologueScene'];
 let menuState = '';

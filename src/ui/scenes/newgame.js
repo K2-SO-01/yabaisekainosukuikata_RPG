@@ -1,6 +1,7 @@
 // 「はじめから」：性別 → 職業 → 名前 → 確認 の順に決める
 import { HEIGHT, WIDTH } from '../../config.js';
 import { createNewGame, DEFAULT_NAMES } from '../../core/state.js';
+import { MODE_LABELS, secretOf } from '../../core/secrets.js';
 import { COLORS, drawCursor, drawSkyGradient, drawWindow } from '../draw.js';
 import { Menu } from '../menu.js';
 import { Scene } from '../scene.js';
@@ -47,6 +48,9 @@ export class NewGameScene extends Scene {
     this.page = 0;
     this.row = 0;
     this.col = 0;
+    this.dev = false; // 開発者モードの名前を入れた（このあと本当の名前を入れる）
+    this.fun = null; // 遊びの隠し名前（rich・retro・gourmet）
+    this.secretT = -1; // 隠し名前に気づいた時の表示
     this.setStep('gender');
   }
 
@@ -79,6 +83,7 @@ export class NewGameScene extends Scene {
 
   update(dt) {
     this.t += dt;
+    if (this.secretT >= 0) this.secretT += dt;
     if (this.step === 'name') this.updateName();
     else this.updateMenu();
   }
@@ -113,6 +118,10 @@ export class NewGameScene extends Scene {
     const g = this.game;
     g.scenes.fadeTo(() => {
       g.state = createNewGame({ name: this.name, gender: this.gender, job: this.job }, g.items);
+      // 隠しモード（開発者モード・遊びの名前）
+      const modes = Object.fromEntries(this.modeList.map((m) => [m, true]));
+      if (Object.keys(modes).length) g.state.modes = modes;
+      if (modes.rich) g.state.gold += 300;
       g.scenes.replaceAll(new PrologueScene());
     }, 700);
   }
@@ -182,9 +191,34 @@ export class NewGameScene extends Scene {
     } else if (i === 3) {
       if (!this.erase()) audio.playSe('buzzer');
     } else {
-      audio.playSe('ok');
+      // 隠し名前：開発者モードは、名前を消して本当の名前を入れなおす。遊びの名前は、そのまま主人公の名前になる
+      const mode = secretOf(this.chars.join(''));
+      if (mode === 'dev' && !this.dev) {
+        this.dev = true;
+        this.chars = [];
+        this.page = 0;
+        this.row = 0;
+        this.col = 0;
+        this.reveal(mode);
+        return;
+      }
+      this.fun = mode && mode !== 'dev' ? mode : null;
+      if (this.fun) this.reveal(this.fun);
+      else audio.playSe('ok');
       this.setStep('confirm');
     }
+  }
+
+  // 隠し名前に気づいた時：特別な音と、システムの小さな文
+  reveal(mode) {
+    this.game.audio.playSe('awaken');
+    this.secretText = `隠しモード：${MODE_LABELS[mode]}`;
+    this.secretT = 0;
+  }
+
+  // 今の隠しモード（確認の画面に出す）
+  get modeList() {
+    return [this.dev && 'dev', this.fun].filter(Boolean);
   }
 
   updateName() {
@@ -240,9 +274,10 @@ export class NewGameScene extends Scene {
     drawSkyGradient(ctx, WIDTH, HEIGHT, '#bfe4f6', '#fde9d6');
     if (this.step === 'name') {
       this.drawName(ctx);
+      this.drawSecret(ctx);
       return;
     }
-    drawWindow(ctx, 110, 70, 420, 220);
+    drawWindow(ctx, 110, 70, 420, this.step === 'confirm' && this.modeList.length ? 238 : 220); // 隠しモードの行のぶん、少し高く
     const title = { gender: 'あなたは どちらですか？', job: '職業を えらんでください', confirm: 'これで いいですか？' }[this.step];
     g.font.draw(ctx, title, 134, 92, COLORS.title);
     if (this.step === 'confirm') {
@@ -250,6 +285,8 @@ export class NewGameScene extends Scene {
       const jobLabel = JOBS.find((x) => x.value === this.job).label;
       g.fontBig.draw(ctx, this.name, 150, 124, COLORS.text);
       g.font.draw(ctx, `${genderLabel}・${jobLabel}`, 152, 166, COLORS.text);
+      const ml = this.modeList.map((m) => MODE_LABELS[m]).join('・');
+      if (ml) g.font.draw(ctx, `隠しモード：${ml}`, 134, 262, COLORS.title);
     } else if (this.step === 'job') {
       g.font.draw(ctx, JOBS[this.menu.index].note, 134, 250, COLORS.textDim);
     }
@@ -257,6 +294,25 @@ export class NewGameScene extends Scene {
     ctx.fillStyle = COLORS.winInner;
     ctx.fillRect(392, 124, 104, 104);
     this.drawHero(ctx, 396, 128, 96);
+    this.drawSecret(ctx);
+  }
+
+  // 隠し名前に気づいた時の帯（画面の上に3秒ほど。金の文字が光る）
+  drawSecret(ctx) {
+    if (this.secretT < 0 || this.secretT > 3200) return;
+    const g = this.game;
+    const k = Math.min(1, this.secretT / 250) * Math.min(1, (3200 - this.secretT) / 400);
+    const w = g.font.width(this.secretText) + 40;
+    ctx.save();
+    ctx.globalAlpha = k;
+    ctx.fillStyle = 'rgba(20,14,40,0.9)';
+    ctx.fillRect(WIDTH / 2 - w / 2, 10, w, 28);
+    ctx.fillStyle = '#ffd36e';
+    ctx.fillRect(WIDTH / 2 - w / 2, 10, w, 2);
+    ctx.fillRect(WIDTH / 2 - w / 2, 36, w, 2);
+    const shine = 0.5 + 0.5 * Math.sin(this.secretT / 120);
+    g.font.drawCentered(ctx, this.secretText, WIDTH / 2, 15, shine > 0.5 ? '#fff6d8' : '#ffd36e');
+    ctx.restore();
   }
 
   drawName(ctx) {
@@ -265,7 +321,7 @@ export class NewGameScene extends Scene {
     ctx.fillStyle = COLORS.winInner;
     ctx.fillRect(108, 56, 64, 64);
     this.drawHero(ctx, 108, 56, 64);
-    g.font.draw(ctx, 'なまえを いれてください', 190, 58, COLORS.title);
+    g.font.draw(ctx, this.dev ? '本当の なまえを いれてください' : 'なまえを いれてください', 190, 58, COLORS.title);
     // 何も入れていない時は、そのまま決めた時の名前を、うすく入れておく（入れないとこの名前になる）
     const ghost = this.chars.length ? [] : Array.from(DEFAULT_NAMES[this.gender]);
     for (let i = 0; i < MAX_NAME; i++) {
