@@ -6,7 +6,9 @@ import { HEIGHT, WIDTH } from '../config.js';
 const BG_CACHE = new Map();
 const BW = 320;
 const BH = 180;
-const HORIZON = 104; // 地面の始まり（320×180の中で）
+// 地面の始まり（320×180の中で。画面では2倍の172）。敵の足もと（battle.js の GROUND_Y＝画面192＝ここの96）が、
+// 地面の少し奥に乗るように、地平線を足もとより10だけ上にしている
+const HORIZON = 86;
 
 function rnd(seed) {
   let s = seed >>> 0;
@@ -51,8 +53,9 @@ const PAINTERS = {
     c.fillStyle = '#4e9042';
     for (let i = 0; i < 120; i++) c.fillRect(Math.floor(r() * BW), HORIZON + 4 + Math.floor(r() * 70), 2, 1);
     c.fillStyle = 'rgba(150,120,70,0.35)';
-    c.fillRect(70, 112, 180, 10);
-    c.fillRect(54, 116, 212, 4);
+    // 敵が立つ土の道（足もとの高さ）
+    c.fillRect(70, HORIZON + 4, 180, 10);
+    c.fillRect(54, HORIZON + 8, 212, 4);
   },
   lake(c, r) {
     grad(c, 0, HORIZON, ['#101a2a', '#16263c', '#1e3450', '#264466']);
@@ -147,10 +150,10 @@ const PAINTERS = {
     c.strokeStyle = 'rgba(220,40,80,0.55)';
     c.lineWidth = 1;
     c.beginPath();
-    c.ellipse(160, 140, 100, 18, 0, 0, Math.PI * 2);
+    c.ellipse(160, HORIZON + 12, 110, 11, 0, 0, Math.PI * 2); // 魔法陣（敵の足もと）
     c.stroke();
     c.beginPath();
-    c.ellipse(160, 140, 80, 13, 0, 0, Math.PI * 2);
+    c.ellipse(160, HORIZON + 12, 88, 8, 0, 0, Math.PI * 2);
     c.stroke();
   },
   shadow(c, r) {
@@ -203,7 +206,7 @@ export function drawBackgroundLife(ctx, areaId, t) {
     ctx.fillStyle = 'rgba(200,240,255,0.5)';
     for (let i = 0; i < 14; i++) {
       const x = (i * 83 + t * 0.03) % WIDTH;
-      const y = 214 + (i * 29) % 120;
+      const y = HORIZON * 2 + 6 + (i * 29) % 150;
       if (Math.sin(t / 300 + i) > 0.6) ctx.fillRect(Math.round(x), y, 6, 1);
     }
   } else if (areaId === 'demon' || areaId === 'shadow') {
